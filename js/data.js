@@ -9,7 +9,7 @@ const BASE = '/Wiggle';
 const DEFAULT_DATA = {
   users: [
     { id: 'u1', username: 'manager', password: 'spmanager2024', name: 'Luke',          role: 'manager'  },
-    { id: 'u2', username: 'luke',    password: 'luke1234',       name: 'Lewis Kirk',    role: 'engineer' },
+    { id: 'u2', username: 'luke',    password: 'luke1234',       name: 'Luke Storey',    role: 'engineer' },
     { id: 'u3', username: 'lewis',    password: 'lewis1234',       name: 'Lewis Kirk',  role: 'engineer' },
     { id: 'u4', username: 'josh',    password: 'josh1234',       name: 'Josh Barbour', role: 'engineer' },
   ],
