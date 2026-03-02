@@ -27,21 +27,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark); color: var(--text); min-height: 100vh; }
 
-  /* ── LOGIN ── */
-  #login-screen {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  }
-  .login-card {
-    background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
-    padding: 48px 40px; width: 100%; max-width: 400px; box-shadow: var(--shadow);
-  }
-  .login-logo {
-    text-align: center; margin-bottom: 32px;
-  }
-  .login-logo .bolt { font-size: 48px; }
-  .login-logo h1 { font-size: 20px; font-weight: 700; color: var(--primary); margin-top: 8px; line-height: 1.2; }
-  .login-logo p { font-size: 12px; color: var(--text-muted); margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  
   .form-group { margin-bottom: 20px; }
   .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
   .form-group input, .form-group select, .form-group textarea {
@@ -279,28 +265,6 @@
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════
-     LOGIN SCREEN
-════════════════════════════════════════════ -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="bolt">⚡</div>
-      <h1>Strike Point<br>Lightning Protection Ltd</h1>
-      <p>Field Service Management</p>
-    </div>
-    <div class="form-group">
-      <label>Username</label>
-      <input type="text" id="login-user" placeholder="Enter username" autocomplete="username">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password">
-    </div>
-    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
-    <div class="error-msg" id="login-error"></div>
-  </div>
-</div>
 
 <!-- ════════════════════════════════════════════
      APP SHELL
@@ -465,7 +429,13 @@
 <!-- TOAST -->
 <div id="toast"></div>
 
+  <script src="/Wiggle/js/data.js"></script>
 <script>
+  var currentUser = (function() {
+  const u = getSession();
+  if (!u) { window.location.href = '/Wiggle/login.html'; return null; }
+  return u;
+})();
 // ══════════════════════════════════════════════
 // DATA STORE
 // ══════════════════════════════════════════════
@@ -501,7 +471,6 @@ function loadData() {
 function saveData() { localStorage.setItem(STORE_KEY, JSON.stringify(appData)); }
 
 let appData = loadData();
-let currentUser = null;
 let currentFilter = 'live';
 let currentView = 'list'; // or 'grid'
 let currentPeriod = 'week';
@@ -509,31 +478,11 @@ let currentPeriod = 'week';
 // ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
-function doLogin() {
-  const u = document.getElementById('login-user').value.trim().toLowerCase();
-  const p = document.getElementById('login-pass').value;
-  const user = appData.users.find(x => x.username.toLowerCase() === u && x.password === p);
-  if (!user) {
-    document.getElementById('login-error').textContent = 'Invalid username or password.';
-    return;
-  }
-  currentUser = user;
-  sessionStorage.setItem('sp_user', JSON.stringify(user)); // ← ADD THIS LINE
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  initApp();
-}
 
-document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
 
 function doLogout() {
-  currentUser = null;
-  sessionStorage.removeItem('sp_user'); // ← ADD THIS LINE
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-user').value = '';
-  document.getElementById('login-pass').value = '';
-  document.getElementById('login-error').textContent = '';
+  clearSession();
+  window.location.href = '/Wiggle/login.html';
 }
 
 // ══════════════════════════════════════════════
