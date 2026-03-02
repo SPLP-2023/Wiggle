@@ -70,7 +70,7 @@
 <script>
   // If already logged in, skip login screen
   const existing = getSession();
-  if (existing) window.location.href = '/Wiggle/dashboard.html';
+  if (existing) window.location.href = '/Wiggle/index.html';
 
   function doLogin() {
     const u = document.getElementById('login-user').value.trim().toLowerCase();
@@ -81,7 +81,7 @@
       return;
     }
     setSession(user);
-    window.location.href = '/Wiggle/dashboard.html';
+    window.location.href = '/Wiggle/index.html';
   }
 
   document.getElementById('login-pass').addEventListener('keydown', e => {
