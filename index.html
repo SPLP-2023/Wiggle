@@ -518,6 +518,7 @@ function doLogin() {
     return;
   }
   currentUser = user;
+  sessionStorage.setItem('sp_user', JSON.stringify(user)); // ← ADD THIS LINE
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   initApp();
@@ -527,6 +528,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 
 function doLogout() {
   currentUser = null;
+  sessionStorage.removeItem('sp_user'); // ← ADD THIS LINE
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-user').value = '';
