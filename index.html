@@ -436,6 +436,13 @@
   if (!u) { window.location.href = '/Wiggle/login.html'; return null; }
   return u;
 })();
+
+  document.addEventListener('DOMContentLoaded', () => {
+  if (currentUser) {
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  }
+});
 // ══════════════════════════════════════════════
 // DATA STORE
 // ══════════════════════════════════════════════
