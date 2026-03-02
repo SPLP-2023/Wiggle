@@ -769,12 +769,13 @@ function renderCosts() {
 
   renderExtraCosts();
   renderProfitSummary();
+  saveCosts(); // ← ADD THIS LINE
 }
 
 function setVal(id, v) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.value = (v !== undefined && v !== null && v !== 0) ? v : '';
+  el.value = (v !== undefined && v !== null) ? v : '';
 }
 
 function saveCosts() {
@@ -808,8 +809,8 @@ function saveCosts() {
   if (isTI) {
     c.netProfit = parseFloat((c.jobValue - c.parking - c.fuelCost - extraTotal).toFixed(2));
   } else {
-    const markupProfit = c.jobValue * (c.markup / 100);
-    c.netProfit = parseFloat((markupProfit - c.labour - c.materials - c.parking - c.fuelCost - extraTotal).toFixed(2));
+    
+    c.netProfit = parseFloat((c.jobValue - c.labour - c.materials - c.parking - c.fuelCost - extraTotal).toFixed(2));
   }
 
   saveData();
