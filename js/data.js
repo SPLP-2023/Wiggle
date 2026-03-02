@@ -8,10 +8,10 @@ const BASE = '/Wiggle';
 
 const DEFAULT_DATA = {
   users: [
-    { id: 'u1', username: 'manager', password: 'spmanager2024', name: 'Gary',          role: 'manager'  },
-    { id: 'u2', username: 'john',    password: 'john1234',       name: 'John Smith',    role: 'engineer' },
-    { id: 'u3', username: 'mike',    password: 'mike1234',       name: 'Mike Johnson',  role: 'engineer' },
-    { id: 'u4', username: 'dave',    password: 'dave1234',       name: 'Dave Williams', role: 'engineer' },
+    { id: 'u1', username: 'manager', password: 'spmanager2024', name: 'Luke',          role: 'manager'  },
+    { id: 'u2', username: 'luke',    password: 'luke1234',       name: 'Lewis Kirk',    role: 'engineer' },
+    { id: 'u3', username: 'lewis',    password: 'lewis1234',       name: 'Lewis Kirk',  role: 'engineer' },
+    { id: 'u4', username: 'josh',    password: 'josh1234',       name: 'Josh Barbour', role: 'engineer' },
   ],
   jobs: [],
   settings: {
