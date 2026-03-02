@@ -793,13 +793,13 @@ function openJob(id) {
   if (job.isNew && currentUser.role === 'engineer' && job.engineers?.includes(currentUser.id)) {
     job.isNew = false; saveData();
   }
-  showToast(`Job #${job.ref} — ${job.company} (Full detail page in Stage 2)`, 'success');
+  window.location.href = '/Wiggle/job-detail.html?id=' + id;
 }
 
 // ══════════════════════════════════════════════
 // NEW JOB (stub)
 // ══════════════════════════════════════════════
-function showNewJobModal() { document.getElementById('modal-new-job').style.display = 'flex'; }
+function showNewJobModal() { window.location.href = '/Wiggle/new-job.html'; }
 
 let sampleCount = 0;
 function addSampleJob() {
