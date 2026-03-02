@@ -440,22 +440,6 @@
 // DATA STORE
 // ══════════════════════════════════════════════
 
-function loadData() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return DEFAULT_DATA;
-    const d = JSON.parse(raw);
-    // merge defaults for missing keys
-    if (!d.settings) d.settings = DEFAULT_DATA.settings;
-    if (!d.users) d.users = DEFAULT_DATA.users;
-    if (!d.jobs) d.jobs = [];
-    return d;
-  } catch { return DEFAULT_DATA; }
-}
-
-function saveData() { localStorage.setItem(STORE_KEY, JSON.stringify(appData)); }
-
-let appData = loadData();
 let currentFilter = 'live';
 let currentView = 'list'; // or 'grid'
 let currentPeriod = 'week';
