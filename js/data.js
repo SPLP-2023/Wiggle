@@ -53,14 +53,14 @@ function clearSession() {
 // ── Auth guard — call at top of every sub-page ──
 function requireAuth() {
   const user = getSession();
-  if (!user) { window.location.href = BASE + '/index.html'; return null; }
+  if (!user) { window.location.href = BASE + '/login.html'; return null; }
   return user;
 }
 
 function requireManager() {
   const user = requireAuth();
   if (user && user.role !== 'manager') {
-    window.location.href = BASE + '/index.html';
+    window.location.href = BASE + '/login.html';
     return null;
   }
   return user;
