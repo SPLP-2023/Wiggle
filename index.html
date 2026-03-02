@@ -439,21 +439,6 @@
 // ══════════════════════════════════════════════
 // DATA STORE
 // ══════════════════════════════════════════════
-const STORE_KEY = 'sp_fsm_data';
-
-const DEFAULT_DATA = {
-  users: [
-    { id: 'u1', username: 'manager', password: 'spmanager2024', name: 'Luke', role: 'manager' },
-    { id: 'u2', username: 'lewis',    password: 'lewis1234',       name: 'Lewis Kirk',   role: 'engineer' },
-    { id: 'u3', username: 'luke',    password: 'luke1234',       name: 'Luke Storey', role: 'engineer' },
-    { id: 'u4', username: 'josh',    password: 'josh1234',       name: 'Josh Barbour',role: 'engineer' },
-  ],
-  jobs: [],
-  settings: {
-    dieselPricePerLitre: 1.55,
-    mpg: 30,
-  }
-};
 
 function loadData() {
   try {
