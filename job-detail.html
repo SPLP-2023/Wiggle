@@ -225,8 +225,11 @@
       </div>
     </div>
 
-    <div class="job-company" id="h-company">—</div>
-    <div style="color:var(--text-muted);font-size:14px;" id="h-address">—</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
+      <div class="job-company" id="h-sitename">—</div>
+      <div style="font-size:14px;color:var(--primary);font-weight:700;" id="h-ref-inline">#—</div>
+    </div>
+    <div style="font-size:14px;color:var(--text-muted);" id="h-company">—</div>
 
     <div class="job-meta-row">
       <div class="job-meta-item">📅 <span id="h-date">—</span></div>
@@ -271,6 +274,19 @@
         <div class="detail-item"><label>Reference</label><div class="val" id="d-ref">—</div></div>
         <div class="detail-item"><label>Job Type</label><div class="val" id="d-type">—</div></div>
         <div class="detail-item"><label>Booking Date</label><div class="val" id="d-date">—</div></div>
+        <div class="detail-item"><label>Site Name</label>
+       <div style="display:flex;align-items:center;gap:8px;">
+        <div class="val" id="d-sitename">—</div>
+        <button class="btn btn-secondary btn-xs" id="btn-edit-sitename" onclick="editSiteName()">✏</button>
+      </div>
+      <div id="sitename-edit" style="display:none;margin-top:6px;">
+        <input type="text" class="edit-input" id="sitename-input">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-primary btn-xs" onclick="saveSiteName()">Save</button>
+          <button class="btn btn-secondary btn-xs" onclick="cancelSiteName()">Cancel</button>
+    </div>
+  </div>
+</div>
         <div class="detail-item"><label>Company</label><div class="val" id="d-company">—</div></div>
         <div class="detail-item"><label>Site Rep</label><div class="val" id="d-rep">—</div></div>
         <div class="detail-item"><label>Postcode</label><div class="val" id="d-postcode">—</div></div>
@@ -550,7 +566,8 @@ function renderPage() {
 
 function renderHeader() {
   const si = getStatusInfo(job.status);
-  document.getElementById('h-ref').textContent     = '#' + job.ref;
+  document.getElementById('h-sitename').textContent = job.siteName || '—';
+  document.getElementById('h-ref-inline').textContent = '#' + job.ref;
   document.getElementById('h-type').textContent    = job.type;
   document.getElementById('h-company').textContent = job.company;
   document.getElementById('h-address').textContent = job.address + (job.postcode ? ', ' + job.postcode : '');
@@ -564,6 +581,7 @@ function renderHeader() {
 }
 
 function renderDetails() {
+  document.getElementById('d-sitename').textContent = job.siteName || '—';
   document.getElementById('d-ref').textContent     = '#' + job.ref;
   document.getElementById('d-type').textContent    = job.type;
   document.getElementById('d-date').textContent    = formatDate(job.bookingDate);
@@ -580,6 +598,7 @@ function renderDetails() {
   renderEngineerChips();
   // Edit desc btn: only manager
   document.getElementById('btn-edit-desc').classList.toggle('hidden', currentUser.role !== 'manager');
+  document.getElementById('btn-edit-sitename').classList.toggle('hidden', currentUser.role !== 'manager');
 }
 
 function renderEngineerChips() {
@@ -600,6 +619,27 @@ function renderEngineerChips() {
     sel.innerHTML = '<option value="">— Add engineer —</option>' +
       getEngineers().filter(e => !assigned.includes(e.id)).map(e => `<option value="${e.id}">${e.name}</option>`).join('');
   }
+
+  function editSiteName() {
+  document.getElementById('sitename-input').value = job.siteName || '';
+  document.getElementById('sitename-edit').style.display = 'block';
+  document.getElementById('btn-edit-sitename').style.display = 'none';
+}
+function cancelSiteName() {
+  document.getElementById('sitename-edit').style.display = 'none';
+  document.getElementById('btn-edit-sitename').style.display = 'inline-flex';
+}
+function saveSiteName() {
+  const val = document.getElementById('sitename-input').value.trim();
+  if (!val) { showToast('Site name cannot be empty.', 'error'); return; }
+  job.siteName = val;
+  addAuditEntry(job, 'Site name updated to: ' + val, currentUser.name);
+  saveData();
+  cancelSiteName();
+  document.getElementById('d-sitename').textContent = val;
+  document.getElementById('h-sitename').textContent = val;
+  showToast('Site name updated ✓', 'success');
+}
 }
 
 // ════════════════════════════════════════════
@@ -1043,6 +1083,7 @@ ${'='.repeat(50)}
 
 JOB DETAILS
 Job Ref:        ${job.ref}
+Site Name:      ${job.siteName || '—'}
 Company:        ${job.company}
 Site Rep:       ${job.rep || 'N/A'}
 Address:        ${job.address}
