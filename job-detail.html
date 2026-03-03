@@ -699,11 +699,12 @@ function goBack() { window.location.href = '/Wiggle/index.html'; }
 
 function loadCompanyList() {
   _db.collection('crm_customers').orderBy('company').get().then(function(snap) {
-    var dl = document.getElementById('company-list');
+    var sel = document.getElementById('f-company');
     snap.docs.forEach(function(d) {
       var opt = document.createElement('option');
       opt.value = d.data().company;
-      dl.appendChild(opt);
+      opt.textContent = d.data().company;
+      sel.appendChild(opt);
     });
   }).catch(function(err) { console.error('Company list error', err); });
 }
@@ -1197,7 +1198,7 @@ function renderHistory(items) {
   noH.style.display = 'none'; banner.style.display = 'block';
   document.getElementById('history-site-name').textContent = job.siteName;
   list.innerHTML = items.map((h, i) => {
-    const s = h.snapshot || {}; const isTI = s.type === 'Test & Inspection';
+    const s = h.snapshot || {}; if (!s.costs) s.costs = {}; const isTI = s.type === 'Test & Inspection';
     const details = `JOB DETAILS
 Reference:    #${s.jobRef}
 Site Name:    ${s.siteName}
