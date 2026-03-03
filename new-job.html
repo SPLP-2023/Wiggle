@@ -266,11 +266,19 @@ let currentUser;
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireManager();
   if (!currentUser) return;
-  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
-  document.getElementById('user-name-display').textContent = currentUser.name;
-  buildEngineerList();
-  // Default booking date to today
-  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  showLoader();
+  setLoaderMsg('Loading…');
+  initFirebase().then(() => {
+    hideLoader();
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    buildEngineerList();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  }).catch(err => {
+    hideLoader();
+    console.error('Firebase error', err);
+    showToast('Connection error — please refresh.', 'error');
+  });
 });
 
 function goBack() { window.location.href = '/Wiggle/index.html'; }
@@ -386,5 +394,7 @@ function submitJob() {
   setTimeout(() => { window.location.href = '/Wiggle/index.html'; }, 1200);
 }
 </script>
+</body>
+</html>
 </body>
 </html>
