@@ -15,6 +15,7 @@
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Detail — Strike Point</title>
 <style>
@@ -199,6 +200,34 @@
   .inline-edit-wrap { margin-top:8px; }
   .inline-edit-btns { display:flex; gap:8px; margin-top:8px; }
   .manager-only { display:none; }
+  /* ── DOCUMENTS ── */
+  .doc-upload-zone {
+    border:2px dashed var(--border); border-radius:12px; padding:24px;
+    text-align:center; cursor:pointer; transition:border-color 0.2s; margin-bottom:14px;
+  }
+  .doc-upload-zone:hover { border-color:var(--primary); }
+  .doc-upload-zone p { color:var(--text-muted); font-size:13px; margin-top:6px; }
+  .doc-card {
+    background:var(--dark); border:1px solid var(--border); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .doc-card-top { display:flex; align-items:center; gap:12px; }
+  .doc-icon { font-size:26px; flex-shrink:0; }
+  .doc-info { flex:1; min-width:0; }
+  .doc-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .doc-meta { font-size:11px; color:var(--text-muted); margin-top:3px; }
+  .doc-actions { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
+  .doc-preview-wrap { margin-top:10px; display:none; }
+  .doc-preview-wrap.open { display:block; }
+  .doc-preview-img { max-width:100%; max-height:360px; border-radius:8px; object-fit:contain; background:var(--dark2); }
+  .doc-preview-pdf { width:100%; height:500px; border-radius:8px; border:none; }
+  .upload-progress {
+    background:var(--dark); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; margin-bottom:10px; font-size:13px; color:var(--text-muted); display:none;
+  }
+  .progress-bar-wrap { background:var(--dark3); border-radius:20px; height:6px; margin-top:8px; overflow:hidden; }
+  .progress-bar-fill { background:var(--primary); height:6px; border-radius:20px; transition:width 0.2s; width:0%; }
+
   .hidden { display:none !important; }
 
   @media(max-width:600px) {
@@ -588,6 +617,25 @@
        TAB 4 — HISTORY
   ═══════════════════════════════════════ -->
   <div class="tab-panel" id="tab-history">
+
+    <!-- ══ DOCUMENTS SECTION ══ -->
+    <div class="detail-card" style="margin-bottom:20px;">
+      <h4>📎 Documents & Images</h4>
+      <div class="doc-upload-zone" onclick="document.getElementById('doc-file-input').click()">
+        <div style="font-size:32px;">📂</div>
+        <p>Click to upload a PDF or image</p>
+        <p style="font-size:11px;margin-top:4px;color:var(--text-muted);">PDF, JPG, PNG · Max 50MB per file</p>
+      </div>
+      <input type="file" id="doc-file-input" accept=".pdf,image/*" style="display:none;" onchange="uploadDocument(event)" multiple>
+      <div class="upload-progress" id="upload-progress">
+        <span id="upload-progress-name">Uploading…</span>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="upload-progress-bar"></div></div>
+      </div>
+      <div id="docs-list"></div>
+      <div id="no-docs" style="color:var(--text-muted);font-size:13px;padding:8px 0;">No documents uploaded yet.</div>
+    </div>
+
+    <!-- ══ SITE HISTORY SNAPSHOTS ══ -->
     <div id="history-site-banner" style="display:none;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text-muted);">
       📍 Showing all saved history for site: <strong id="history-site-name" style="color:var(--text);"></strong>
     </div>
@@ -600,6 +648,23 @@
   </div>
 
 </main>
+
+<!-- DELETE DOCUMENT MODAL -->
+<div class="modal-overlay hidden" id="modal-delete-doc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗑 Delete Document</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete-doc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to permanently delete this document? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete-doc')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteDoc()">Delete Document</button>
+    </div>
+  </div>
+</div>
 
 <!-- ABORT CONFIRM MODAL -->
 <div class="modal-overlay hidden" id="modal-abort">
@@ -665,6 +730,7 @@
 // ════════════════════════════════════════════
 let currentUser, job;
 let timerInterval = null;
+let _storage = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireAuth();
@@ -677,6 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setLoaderMsg('Loading job…');
   initFirebase().then(() => {
     hideLoader();
+    _storage = firebase.storage();
     job = appData.jobs.find(j => j.id === jobId);
     if (!job) {
       document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8;"><h2>Job not found</h2><a href="/Wiggle/index.html" style="color:#f59e0b;">← Back to Dashboard</a></div>';
@@ -718,6 +785,7 @@ function renderPage() {
   renderDetails();
   renderCosts();
   renderComments();
+  loadDocs();
   loadAndRenderHistory();
   renderAuditLog();
 }
@@ -1381,7 +1449,188 @@ function saveInline(field) {
 // ════════════════════════════════════════════
 // TABS
 // ════════════════════════════════════════════
-function switchTab(name, btn) {
+// ════════════════════════════════════════════
+// DOCUMENTS
+// ════════════════════════════════════════════
+function getFileIcon(name) {
+  if (!name) return '📄';
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') return '📕';
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼';
+  return '📄';
+}
+function formatFileSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+function isImage(name) {
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(name || '');
+}
+function isPdf(name) {
+  return /\.pdf$/i.test(name || '');
+}
+
+function loadDocs() {
+  if (!_db) return;
+  _db.collection('jobs').doc(job.id).collection('documents').orderBy('uploadedAt', 'desc').get()
+    .then(snap => {
+      const docs = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+      renderDocs(docs);
+    }).catch(err => console.error('Load docs error:', err));
+}
+
+function renderDocs(docs) {
+  const list   = document.getElementById('docs-list');
+  const noDocs = document.getElementById('no-docs');
+  const isManager = currentUser.role === 'manager';
+
+  if (!docs || !docs.length) {
+    noDocs.style.display = 'block';
+    list.innerHTML = '';
+    return;
+  }
+  noDocs.style.display = 'none';
+
+  list.innerHTML = docs.map((doc, i) => `
+    <div class="doc-card" id="doc-card-${i}">
+      <div class="doc-card-top">
+        <div class="doc-icon">${getFileIcon(doc.name)}</div>
+        <div class="doc-info">
+          <div class="doc-name" title="${doc.name}">${doc.name}</div>
+          <div class="doc-meta">${formatFileSize(doc.size)} · Uploaded by ${doc.uploadedBy} · ${formatDate(doc.uploadedAt)}</div>
+        </div>
+        <div class="doc-actions">
+          ${isImage(doc.name) || isPdf(doc.name) ? `<button class="btn btn-secondary btn-xs" onclick="togglePreview(${i}, '${doc.url}', '${doc.name}')">👁 View</button>` : ''}
+          <a class="btn btn-secondary btn-xs" href="${doc.url}" download="${doc.name}" target="_blank">⬇ Download</a>
+          <button class="btn btn-info btn-xs" onclick="saveDocToHistory('${doc._docId}', '${doc.name}', '${doc.url}')">📁 Save to History</button>
+          ${isManager ? `<button class="btn btn-danger btn-xs" onclick="confirmDeleteDoc('${doc._docId}', ${i})">🗑</button>` : ''}
+        </div>
+      </div>
+      <div class="doc-preview-wrap" id="doc-preview-${i}"></div>
+    </div>`).join('');
+}
+
+function togglePreview(i, url, name) {
+  const wrap = document.getElementById('doc-preview-' + i);
+  if (wrap.classList.contains('open')) {
+    wrap.classList.remove('open');
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.classList.add('open');
+  if (isPdf(name)) {
+    wrap.innerHTML = `<iframe class="doc-preview-pdf" src="${url}"></iframe>`;
+  } else {
+    wrap.innerHTML = `<img class="doc-preview-img" src="${url}" alt="${name}">`;
+  }
+}
+
+function uploadDocument(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  if (!_storage) { showToast('Storage not ready — please refresh.', 'error'); return; }
+
+  const progress = document.getElementById('upload-progress');
+  const bar      = document.getElementById('upload-progress-bar');
+  const label    = document.getElementById('upload-progress-name');
+
+  let index = 0;
+  function uploadNext() {
+    if (index >= files.length) {
+      progress.style.display = 'none';
+      bar.style.width = '0%';
+      event.target.value = '';
+      loadDocs();
+      showToast(files.length + ' file(s) uploaded ✓', 'success');
+      addAuditEntry(job, files.length + ' document(s) uploaded by ' + currentUser.name, currentUser.name);
+      saveJob(job);
+      return;
+    }
+    const file = files[index++];
+    label.textContent = 'Uploading ' + file.name + '…';
+    progress.style.display = 'block';
+
+    const storageRef = _storage.ref('jobs/' + job.id + '/' + Date.now() + '_' + file.name);
+    const uploadTask = storageRef.put(file);
+
+    uploadTask.on('state_changed',
+      snap => {
+        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+        bar.style.width = pct + '%';
+      },
+      err => {
+        console.error('Upload error:', err);
+        showToast('Upload failed: ' + file.name, 'error');
+        progress.style.display = 'none';
+      },
+      () => {
+        uploadTask.snapshot.ref.getDownloadURL().then(url => {
+          return _db.collection('jobs').doc(job.id).collection('documents').add({
+            name:       file.name,
+            size:       file.size,
+            type:       file.type,
+            url,
+            uploadedBy: currentUser.name,
+            uploadedAt: new Date().toISOString(),
+            savedToSiteHistory: false,
+          });
+        }).then(() => uploadNext())
+          .catch(err => { console.error(err); showToast('Error saving file info.', 'error'); });
+      }
+    );
+  }
+  uploadNext();
+}
+
+function saveDocToHistory(docId, name, url) {
+  if (!job.siteName || !job.siteName.trim()) {
+    showToast('Please set a site name before saving to history.', 'error'); return;
+  }
+  const entry = {
+    siteKey:  job.siteName.trim(),
+    savedAt:  new Date().toISOString(),
+    savedBy:  currentUser.name,
+    type:     'document',
+    docName:  name,
+    docUrl:   url,
+    jobRef:   job.ref,
+    siteName: job.siteName,
+  };
+  _db.collection('siteHistory').add(entry).then(() => {
+    _db.collection('jobs').doc(job.id).collection('documents').doc(docId)
+      .update({ savedToSiteHistory: true });
+    showToast('Document saved to site history ✓', 'success');
+    addAuditEntry(job, 'Document saved to site history: ' + name, currentUser.name);
+    saveJob(job);
+    loadAndRenderHistory();
+  }).catch(err => { console.error(err); showToast('Error saving to history.', 'error'); });
+}
+
+let _pendingDeleteDocId = null;
+function confirmDeleteDoc(docId) {
+  _pendingDeleteDocId = docId;
+  document.getElementById('modal-delete-doc').classList.remove('hidden');
+}
+
+function deleteDoc() {
+  if (!_pendingDeleteDocId) return;
+  _db.collection('jobs').doc(job.id).collection('documents').doc(_pendingDeleteDocId).get()
+    .then(snap => {
+      const data = snap.data();
+      return _storage.refFromURL(data.url).delete().then(() => {
+        return _db.collection('jobs').doc(job.id).collection('documents').doc(_pendingDeleteDocId).delete();
+      });
+    }).then(() => {
+      _pendingDeleteDocId = null;
+      closeModal('modal-delete-doc');
+      showToast('Document deleted ✓', 'success');
+      loadDocs();
+    }).catch(err => { console.error(err); showToast('Error deleting document.', 'error'); });
+}
+
+
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
