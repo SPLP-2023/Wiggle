@@ -132,6 +132,11 @@
       </div>
     </div>
 
+    <div class="form-group">
+        <label>Site Name</label>
+        <input type="text" id="f-sitename" placeholder="e.g. The Chuckery">
+    </div>
+
     <div class="form-row">
       <div class="form-group">
         <label>Job Type</label>
@@ -310,6 +315,7 @@ function validateForm() {
     { id: 'f-company', msg: 'Please enter a company name.' },
     { id: 'f-address', msg: 'Please enter the site address.' },
     { id: 'f-postcode',msg: 'Please enter the site postcode.' },
+    { id: 'f-sitename', msg: 'Please enter a site name.' },
   ];
   for (const f of fields) {
     const el = document.getElementById(f.id);
@@ -351,6 +357,7 @@ function submitJob() {
     ref:         document.getElementById('f-ref').value.trim(),
     bookingDate: document.getElementById('f-date').value,
     type,
+    siteName:    document.getElementById('f-sitename').value.trim(),
     company:     document.getElementById('f-company').value.trim(),
     rep:         document.getElementById('f-rep').value.trim(),
     address:     document.getElementById('f-address').value.trim(),
