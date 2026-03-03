@@ -250,13 +250,21 @@ let selectedJobId = null;
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireAuth();
   if (!currentUser) return;
-  document.getElementById('user-avatar').textContent  = currentUser.name[0].toUpperCase();
-  document.getElementById('user-name-display').textContent = currentUser.name;
-
-  const now = new Date();
-  currentYear  = now.getFullYear();
-  currentMonth = now.getMonth();
-  renderCalendar();
+  showLoader();
+  setLoaderMsg('Loading calendar…');
+  initFirebase().then(() => {
+    hideLoader();
+    document.getElementById('user-avatar').textContent  = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    const now = new Date();
+    currentYear  = now.getFullYear();
+    currentMonth = now.getMonth();
+    renderCalendar();
+  }).catch(err => {
+    hideLoader();
+    console.error('Firebase error', err);
+    showToast('Connection error — please refresh.', 'error');
+  });
 });
 
 function goBack() { window.location.href = '/Wiggle/index.html'; }
