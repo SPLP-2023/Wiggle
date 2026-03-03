@@ -300,10 +300,18 @@ let pendingDeleteUserId = null;
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireManager();
   if (!currentUser) return;
-  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
-  document.getElementById('user-name-display').textContent = currentUser.name;
-  loadSettings();
-  renderUsers();
+  showLoader();
+  initFirebase().then(() => {
+    hideLoader();
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    loadSettings();
+    renderUsers();
+  }).catch(err => {
+    hideLoader();
+    console.error('Firebase error', err);
+    showToast('Connection error — please refresh.', 'error');
+  });
 });
 
 function goBack() { window.location.href = '/Wiggle/index.html'; }
