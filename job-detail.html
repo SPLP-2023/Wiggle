@@ -1154,6 +1154,24 @@ function renderHistory(items) {
   noH.style.display = 'none'; banner.style.display = 'block';
   document.getElementById('history-site-name').textContent = job.siteName;
   list.innerHTML = items.map((h, i) => {
+    if (h.type === 'document') {
+      const icon = /\.(jpg|jpeg|png|gif|webp)$/i.test(h.docName) ? '🖼️' : '📄';
+      return `<div class="history-item">
+        <div class="history-header" style="cursor:default;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;">
+            <span style="font-size:22px;">${icon}</span>
+            <div>
+              <div class="history-title">${h.docName}</div>
+              <div class="history-sub">Saved by ${h.savedBy} · Job #${h.jobRef} · ${formatDate(h.savedAt)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <a class="btn btn-secondary btn-xs" href="${h.docUrl}" target="_blank">⬇ Download</a>
+            ${isManager ? `<button class="btn btn-danger btn-xs" onclick="confirmDeleteHistory('${h._docId}')" title="Delete">🗑</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }
     const s = h.snapshot; const isTI = s.type === 'Test & Inspection';
     const details = `JOB DETAILS
 Reference:    #${s.jobRef}
