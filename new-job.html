@@ -138,7 +138,7 @@
       <div class="form-group">
         <label>Job Reference Number</label>
         <input type="text" id="f-ref" placeholder="e.g. 4821" maxlength="10">
-        <div class="hint">number from customer quote</div>
+        <div class="hint">Ref number from customer quote</div>
       </div>
       <div class="form-group">
         <label>Booking Date</label>
@@ -344,7 +344,7 @@ function validateForm() {
     if (!el.value.trim()) { showToast(f.msg, 'error'); el.focus(); return false; }
   }
   const ref = document.getElementById('f-ref').value.trim();
-  if (!/^\d{4,5}$/.test(ref)) { showToast('Job reference must be 4–5 digits.', 'error'); return false; }
+  if (!/^\d{1,10}$/.test(ref)) { showToast('Job reference must be 1–10 digits.', 'error'); return false; }
   if (!getSelectedEngineers().length) { showToast('Please assign at least one engineer.', 'error'); return false; }
   return true;
 }
