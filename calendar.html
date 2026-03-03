@@ -339,8 +339,7 @@ function renderCalendar() {
     dayJobs.slice(0, MAX_SHOW).forEach(j => {
       pillsHtml += `
         <div class="cal-job-pill pill-${j.status}" onclick="event.stopPropagation();openJobPopup('${j.id}')">
-          <span>#${j.ref}</span>
-          <span style="overflow:hidden;text-overflow:ellipsis;">${j.company}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;">${j.siteName || j.company} #${j.ref}</span>
         </div>`;
     });
     if (dayJobs.length > MAX_SHOW) {
@@ -389,7 +388,7 @@ function openDateModal(dateStr) {
       <div class="date-job-item" onclick="closeModal('modal-date-jobs');openJobPopup('${j.id}')">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="date-job-ref">#${j.ref}</span>
+            <span class="date-job-ref">${j.siteName || j.company} #${j.ref}</span>
             <div class="status-pill" style="padding:3px 10px;">
               <div class="status-dot ${si.dot}"></div>
               <span class="status-label" style="font-size:11px;">${si.label}</span>
