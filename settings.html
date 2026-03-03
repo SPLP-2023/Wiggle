@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Strike Point</title>
+<style>
+  :root {
+    --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
+    --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+    --text:#f1f5f9; --text-muted:#94a3b8;
+    --card-bg:#1e293b; --border:#334155;
+    --success:#22c55e; --danger:#ef4444; --info:#3b82f6;
+    --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
+
+  /* NAV */
+  nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
+  .nav-brand .bolt { font-size:22px; }
+  .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
+  .nav-right { display:flex; align-items:center; gap:10px; }
+  .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
+  .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
+
+  /* BUTTONS */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; }
+  .btn-primary { background:var(--primary); color:var(--dark); }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .btn-secondary { background:var(--dark3); color:var(--text); }
+  .btn-secondary:hover { background:#475569; }
+  .btn-success { background:var(--success); color:#fff; }
+  .btn-success:hover { background:#16a34a; }
+  .btn-danger { background:var(--danger); color:#fff; }
+  .btn-danger:hover { background:#dc2626; }
+  .btn-sm { padding:7px 14px; font-size:12px; }
+  .btn-full { width:100%; }
+
+  /* MAIN */
+  main { max-width:760px; margin:0 auto; padding:28px 20px 60px; }
+  .page-header { margin-bottom:28px; }
+  .page-header h2 { font-size:22px; font-weight:700; }
+  .page-header p { color:var(--text-muted); font-size:14px; margin-top:4px; }
+
+  /* SETTINGS CARD */
+  .settings-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:20px; }
+  .settings-card h3 { font-size:15px; font-weight:700; color:var(--primary); margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+
+  /* FORM */
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:13px; color:var(--text-muted); margin-bottom:7px; font-weight:500; }
+  .form-group input {
+    width:100%; padding:11px 14px; background:var(--dark); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text); font-size:14px; transition:border-color 0.2s;
+  }
+  .form-group input:focus { outline:none; border-color:var(--primary); }
+  .form-group .hint { font-size:11px; color:var(--text-muted); margin-top:5px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .input-prefix { position:relative; }
+  .input-prefix span { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; }
+  .input-prefix input { padding-left:28px; }
+
+  /* USER LIST */
+  .user-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+  .user-item { display:flex; align-items:center; justify-content:space-between; background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:14px 16px; gap:12px; flex-wrap:wrap; }
+  .user-info { display:flex; align-items:center; gap:12px; flex:1; }
+  .user-avatar-sm { width:36px; height:36px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--dark); flex-shrink:0; }
+  .user-avatar-sm.manager { background:var(--info); }
+  .user-name { font-size:14px; font-weight:600; }
+  .user-username { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .user-role-tag { font-size:10px; padding:2px 8px; border-radius:20px; font-weight:600; text-transform:uppercase; }
+  .tag-manager { background:var(--primary-light); color:var(--primary-dark); }
+  .tag-engineer { background:#dbeafe; color:#1d4ed8; }
+
+  /* ADD USER FORM */
+  .add-user-form { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:16px; display:none; }
+  .add-user-form.open { display:block; }
+  .add-user-form h4 { font-size:13px; font-weight:600; color:var(--text-muted); margin-bottom:14px; }
+
+  /* DANGER ZONE */
+  .danger-zone { background:var(--dark); border:1px solid var(--danger); border-radius:10px; padding:16px; }
+  .danger-zone p { font-size:13px; color:var(--text-muted); margin-bottom:12px; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); }
+  .modal-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--card-bg); }
+  .modal-header h3 { font-size:16px; font-weight:700; }
+  .modal-close { background:var(--dark3); border:none; color:var(--text); width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .modal-body { padding:22px; }
+  .modal-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+  .hidden { display:none !important; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; box-shadow:var(--shadow); max-width:300px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--success); }
+  .toast.error { border-color:var(--danger); }
+
+  @media(max-width:580px) {
+    .form-row { grid-template-columns:1fr; }
+    .user-item { flex-direction:column; align-items:flex-start; }
+  }
+</style>
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand" onclick="goBack()">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" onclick="goBack()">← Dashboard</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">—</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h2>⚙️ Settings</h2>
+    <p>Manage fuel rates, users and system preferences.</p>
+  </div>
+
+  <!-- ── FUEL SETTINGS ── -->
+  <div class="settings-card">
+    <h3>⛽ Fuel & Travel Settings</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Diesel Price per Litre</label>
+        <div class="input-prefix">
+          <span>£</span>
+          <input type="number" id="s-diesel" step="0.01" min="0" placeholder="1.55">
+        </div>
+        <div class="hint">Update this when fuel prices change</div>
+      </div>
+      <div class="form-group">
+        <label>Van MPG</label>
+        <input type="number" id="s-mpg" step="1" min="1" placeholder="30">
+        <div class="hint">Miles per gallon for fuel cost calculation</div>
+      </div>
+    </div>
+    <div style="background:var(--dark);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      💡 Fuel cost formula: <strong style="color:var(--text);">Miles ÷ MPG × 4.546 × £/Litre</strong>
+    </div>
+    <button class="btn btn-primary" onclick="saveFuelSettings()">Save Fuel Settings</button>
+  </div>
+
+  <!-- ── ENGINEERS ── -->
+  <div class="settings-card">
+    <h3>👷 Engineer Accounts</h3>
+    <div class="user-list" id="engineer-list"></div>
+    <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('engineer')">+ Add Engineer</button>
+
+    <div class="add-user-form" id="add-engineer-form">
+      <h4>New Engineer</h4>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="new-eng-name" placeholder="e.g. James Taylor">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="new-eng-username" placeholder="e.g. james">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="text" id="new-eng-password" placeholder="e.g. james1234">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-success btn-sm" onclick="addUser('engineer')">✓ Add Engineer</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('engineer')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MANAGERS ── -->
+  <div class="settings-card">
+    <h3>👔 Manager Accounts</h3>
+    <div class="user-list" id="manager-list"></div>
+    <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('manager')">+ Add Manager</button>
+
+    <div class="add-user-form" id="add-manager-form">
+      <h4>New Manager</h4>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="new-mgr-name" placeholder="e.g. Sarah Jones">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="new-mgr-username" placeholder="e.g. sarah">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="text" id="new-mgr-password" placeholder="e.g. sarah1234">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-success btn-sm" onclick="addUser('manager')">✓ Add Manager</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('manager')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DANGER ZONE ── -->
+  <div class="settings-card">
+    <h3 style="color:var(--danger);">⚠️ Danger Zone</h3>
+    <div class="danger-zone">
+      <p>Permanently delete all jobs from the system. This cannot be undone. User accounts and settings will be preserved.</p>
+      <button class="btn btn-danger btn-sm" onclick="confirmClearJobs()">🗑 Clear All Jobs</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- EDIT USER MODAL -->
+<div class="modal-overlay hidden" id="modal-edit-user">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ Edit User</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-user-id">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="edit-user-name" placeholder="Full name">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="edit-user-username" placeholder="Username">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="text" id="edit-user-password" placeholder="Leave blank to keep current">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE USER MODAL -->
+<div class="modal-overlay hidden" id="modal-delete-user">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗑 Remove User</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to remove <strong id="delete-user-name"></strong>? They will no longer be able to log in. Jobs they are assigned to will not be affected.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete-user')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteUser()">Remove User</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR JOBS MODAL -->
+<div class="modal-overlay hidden" id="modal-clear-jobs">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚠️ Clear All Jobs</h3>
+      <button class="modal-close" onclick="closeModal('modal-clear-jobs')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">This will permanently delete <strong id="job-count-display"></strong> jobs from the system. This cannot be undone.</p>
+      <p style="font-size:13px;color:var(--danger);margin-top:12px;">Type <strong>DELETE</strong> to confirm:</p>
+      <input type="text" id="clear-confirm-input" placeholder="Type DELETE here" style="width:100%;padding:10px 14px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-top:8px;">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-clear-jobs')">Cancel</button>
+      <button class="btn btn-danger" onclick="clearAllJobs()">Clear All Jobs</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/Wiggle/js/data.js"></script>
+<script>
+let currentUser;
+let pendingDeleteUserId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireManager();
+  if (!currentUser) return;
+  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  loadSettings();
+  renderUsers();
+});
+
+function goBack() { window.location.href = '/Wiggle/index.html'; }
+
+// ── FUEL SETTINGS ─────────────────────────────
+function loadSettings() {
+  const s = appData.settings;
+  document.getElementById('s-diesel').value = s.dieselPricePerLitre || 1.55;
+  document.getElementById('s-mpg').value    = s.mpg || 30;
+}
+
+function saveFuelSettings() {
+  const diesel = parseFloat(document.getElementById('s-diesel').value);
+  const mpg    = parseFloat(document.getElementById('s-mpg').value);
+  if (!diesel || diesel <= 0) { showToast('Please enter a valid diesel price.', 'error'); return; }
+  if (!mpg    || mpg    <= 0) { showToast('Please enter a valid MPG.', 'error'); return; }
+  appData.settings.dieselPricePerLitre = diesel;
+  appData.settings.mpg = mpg;
+  saveData();
+  showToast('Fuel settings saved ✓', 'success');
+}
+
+// ── RENDER USERS ──────────────────────────────
+function renderUsers() {
+  renderUserList('engineer');
+  renderUserList('manager');
+}
+
+function renderUserList(role) {
+  const users   = appData.users.filter(u => u.role === role);
+  const listEl  = document.getElementById(role + '-list');
+  const isEng   = role === 'engineer';
+
+  if (!users.length) {
+    listEl.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0;">No ${role}s added yet.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = users.map(u => `
+    <div class="user-item">
+      <div class="user-info">
+        <div class="user-avatar-sm ${role === 'manager' ? 'manager' : ''}">${u.name[0].toUpperCase()}</div>
+        <div>
+          <div class="user-name">${u.name}</div>
+          <div class="user-username">@${u.username}</div>
+        </div>
+        <span class="user-role-tag ${role === 'manager' ? 'tag-manager' : 'tag-engineer'}">${role}</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}')">✏ Edit</button>
+        ${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm" onclick="openDeleteUser('${u.id}')">✕ Remove</button>` : '<span style="font-size:12px;color:var(--text-muted);padding:7px 0;">( you )</span>'}
+      </div>
+    </div>`).join('');
+}
+
+// ── ADD USER ──────────────────────────────────
+function toggleAddForm(role) {
+  const form = document.getElementById('add-' + (role === 'engineer' ? 'engineer' : 'manager') + '-form');
+  form.classList.toggle('open');
+}
+
+function addUser(role) {
+  const isEng  = role === 'engineer';
+  const name   = document.getElementById(isEng ? 'new-eng-name'     : 'new-mgr-name').value.trim();
+  const uname  = document.getElementById(isEng ? 'new-eng-username'  : 'new-mgr-username').value.trim().toLowerCase();
+  const pass   = document.getElementById(isEng ? 'new-eng-password'  : 'new-mgr-password').value.trim();
+
+  if (!name)  { showToast('Please enter a name.', 'error'); return; }
+  if (!uname) { showToast('Please enter a username.', 'error'); return; }
+  if (!pass)  { showToast('Please enter a password.', 'error'); return; }
+
+  // Check username not already taken
+  if (appData.users.find(u => u.username.toLowerCase() === uname)) {
+    showToast('Username already exists.', 'error'); return;
+  }
+
+  const newUser = {
+    id:       'u_' + Date.now(),
+    username: uname,
+    password: pass,
+    name,
+    role,
+  };
+
+  appData.users.push(newUser);
+  saveData();
+
+  // Clear form
+  document.getElementById(isEng ? 'new-eng-name'     : 'new-mgr-name').value     = '';
+  document.getElementById(isEng ? 'new-eng-username'  : 'new-mgr-username').value = '';
+  document.getElementById(isEng ? 'new-eng-password'  : 'new-mgr-password').value = '';
+  toggleAddForm(role);
+  renderUsers();
+  showToast(name + ' added successfully ✓', 'success');
+}
+
+// ── EDIT USER ─────────────────────────────────
+function openEditUser(id) {
+  const u = appData.users.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('edit-user-id').value       = u.id;
+  document.getElementById('edit-user-name').value     = u.name;
+  document.getElementById('edit-user-username').value = u.username;
+  document.getElementById('edit-user-password').value = '';
+  document.getElementById('modal-edit-user').classList.remove('hidden');
+}
+
+function saveEditUser() {
+  const id    = document.getElementById('edit-user-id').value;
+  const name  = document.getElementById('edit-user-name').value.trim();
+  const uname = document.getElementById('edit-user-username').value.trim().toLowerCase();
+  const pass  = document.getElementById('edit-user-password').value.trim();
+
+  if (!name)  { showToast('Please enter a name.', 'error'); return; }
+  if (!uname) { showToast('Please enter a username.', 'error'); return; }
+
+  // Check username not taken by another user
+  if (appData.users.find(u => u.username.toLowerCase() === uname && u.id !== id)) {
+    showToast('Username already taken.', 'error'); return;
+  }
+
+  const u = appData.users.find(x => x.id === id);
+  if (!u) return;
+  u.name     = name;
+  u.username = uname;
+  if (pass) u.password = pass;
+
+  // Update session if editing self
+  if (id === currentUser.id) {
+    currentUser.name = name;
+    currentUser.username = uname;
+    setSession(currentUser);
+    document.getElementById('user-avatar').textContent      = name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = name;
+  }
+
+  saveData();
+  closeModal('modal-edit-user');
+  renderUsers();
+  showToast('User updated ✓', 'success');
+}
+
+// ── DELETE USER ───────────────────────────────
+function openDeleteUser(id) {
+  const u = appData.users.find(x => x.id === id);
+  if (!u) return;
+  pendingDeleteUserId = id;
+  document.getElementById('delete-user-name').textContent = u.name;
+  document.getElementById('modal-delete-user').classList.remove('hidden');
+}
+
+function deleteUser() {
+  if (!pendingDeleteUserId) return;
+  appData.users = appData.users.filter(u => u.id !== pendingDeleteUserId);
+  saveData();
+  pendingDeleteUserId = null;
+  closeModal('modal-delete-user');
+  renderUsers();
+  showToast('User removed ✓', 'success');
+}
+
+// ── CLEAR ALL JOBS ────────────────────────────
+function confirmClearJobs() {
+  document.getElementById('job-count-display').textContent = appData.jobs.length + ' job' + (appData.jobs.length !== 1 ? 's' : '');
+  document.getElementById('clear-confirm-input').value = '';
+  document.getElementById('modal-clear-jobs').classList.remove('hidden');
+}
+
+function clearAllJobs() {
+  const input = document.getElementById('clear-confirm-input').value.trim();
+  if (input !== 'DELETE') { showToast('Please type DELETE to confirm.', 'error'); return; }
+  appData.jobs = [];
+  saveData();
+  closeModal('modal-clear-jobs');
+  showToast('All jobs cleared ✓', 'success');
+}
+
+// ── MODAL ─────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+</script>
+</body>
+</html>
