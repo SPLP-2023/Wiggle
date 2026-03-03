@@ -498,8 +498,10 @@ function buildNav() {
   ];
   const html = links.map(l =>
   l.page === 'settings'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/settings.html'">${l.label}</button>`
-    : `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
+  ? `<button class="nav-link" onclick="window.location.href='/Wiggle/settings.html'">${l.label}</button>`
+  : l.page === 'calendar'
+  ? `<button class="nav-link" onclick="window.location.href='/Wiggle/calendar.html'">${l.label}</button>`
+  : `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
 ).join('') + `<button class="nav-link" onclick="doLogout()">🚪 Logout</button>`;
 
   document.getElementById('nav-links').innerHTML = html;
@@ -517,7 +519,7 @@ function showPage(name, btn) {
   document.getElementById('mobile-menu').classList.remove('open');
 }
 
-function showCalendar() { showPage('calendar'); }
+function showCalendar() { window.location.href = '/Wiggle/calendar.html'; }
 
 function toggleMobileMenu() {
   document.getElementById('mobile-menu').classList.toggle('open');
