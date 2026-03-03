@@ -84,8 +84,14 @@
     <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" id="btn-back">&#8592; Back</button>
-    <div class="user-badge"><div class="user-avatar" id="user-avatar">?</div><span id="user-name-display">-</span></div>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#9889; FSM</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html'">&#129534; Invoices</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">-</span>
+    </div>
   </div>
 </nav>
 <main>
@@ -179,10 +185,6 @@ document.addEventListener('DOMContentLoaded',function(){
   var params=new URLSearchParams(window.location.search);
   var iid=params.get('id');
   currentCustomerId=params.get('customer');
-  document.getElementById('btn-back').onclick=function(){
-    if(currentCustomerId)window.location.href='/Wiggle/crm-customer.html?id='+currentCustomerId;
-    else window.location.href='/Wiggle/customers.html';
-  };
   document.getElementById('i-date').addEventListener('change',function(){
     var d=new Date(this.value);d.setDate(d.getDate()+30);
     document.getElementById('i-due-date').value=d.toISOString().split('T')[0];
