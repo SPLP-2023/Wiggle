@@ -303,6 +303,7 @@ function goBack() { window.location.href = '/Wiggle/index.html'; }
         snap.docs.forEach(function(d) {
           var opt = document.createElement('option');
           opt.value = d.data().company;
+          opt.textContent = d.data().company;
           dl.appendChild(opt);
         });
       }).catch(function(err) { console.error('Company list error', err); });
