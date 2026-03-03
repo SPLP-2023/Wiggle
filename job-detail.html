@@ -1193,7 +1193,7 @@ ${s.comments}
 AUDIT LOG
 ${s.auditLog}`;
     // Document entry
-    if (h.type === 'document') {
+    if (h.type && h.type === 'document') {
       const icon = /\.(jpg|jpeg|png|gif|webp)$/i.test(h.docName) ? '🖼️' : '📄';
       return `<div class="history-item">
         <div class="history-header" style="cursor:default;">
