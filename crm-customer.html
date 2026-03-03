@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/Wiggle/manifest.json">
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SP FSM">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer - Strike Point CRM</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --primary:#f59e0b; --primary-dark:#d97706;
+      --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+      --text:#f1f5f9; --text-muted:#94a3b8;
+      --card-bg:#1e293b; --border:#334155;
+      --success:#22c55e; --danger:#ef4444; --info:#3b82f6;
+      --pending:#a855f7; --warning:#f59e0b;
+      --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
+    nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
+    .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
+    .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; }
+    .btn-primary { background:var(--primary); color:var(--dark); }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-secondary { background:var(--dark3); color:var(--text); }
+    .btn-secondary:hover { background:#475569; }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .btn-sm { padding:7px 14px; font-size:12px; }
+    .btn-xs { padding:5px 10px; font-size:11px; }
+    main { max-width:900px; margin:0 auto; padding:24px 20px 60px; }
+    .cust-header { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:20px; }
+    .cust-header-top { display:flex; align-items:flex-start; gap:18px; flex-wrap:wrap; margin-bottom:16px; }
+    .cust-avatar { width:60px; height:60px; border-radius:14px; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:var(--dark); flex-shrink:0; }
+    .cust-info h1 { font-size:22px; font-weight:800; }
+    .cust-info .ref { font-size:13px; color:var(--text-muted); margin-top:3px; }
+    .contact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:12px; }
+    .ci label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; }
+    .ci .val { font-size:14px; font-weight:500; margin-top:3px; word-break:break-word; }
+    .spend-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:20px; }
+    .spend-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+    .spend-val { font-size:20px; font-weight:800; color:var(--primary); }
+    .spend-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .tab-bar { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; overflow-x:auto; scrollbar-width:none; }
+    .tab-bar::-webkit-scrollbar { display:none; }
+    .tab-btn { padding:12px 20px; font-size:14px; font-weight:500; color:var(--text-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+    .tab-btn:hover { color:var(--text); }
+    .tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .detail-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+    .detail-card h4 { font-size:13px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+    .site-chip { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:8px; }
+    .site-chip-name { font-size:13px; font-weight:600; }
+    .site-chip-addr { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .job-item { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:border-color 0.2s; }
+    .job-item:hover { border-color:var(--primary); }
+    .job-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .dot-live     { background:var(--warning); box-shadow:0 0 6px var(--warning); }
+    .dot-pending  { background:var(--pending); box-shadow:0 0 6px var(--pending); }
+    .dot-complete { background:var(--success); box-shadow:0 0 6px var(--success); }
+    .dot-aborted  { background:var(--danger);  box-shadow:0 0 6px var(--danger); }
+    .job-info { flex:1; min-width:0; }
+    .job-ref { font-size:13px; font-weight:700; color:var(--primary); }
+    .job-site { font-size:14px; font-weight:600; }
+    .job-meta { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .doc-item { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; }
+    .doc-info { flex:1; min-width:0; }
+    .doc-ref { font-size:13px; font-weight:700; color:var(--primary); }
+    .doc-desc { font-size:13px; margin-top:2px; }
+    .doc-meta { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .sbadge { font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; white-space:nowrap; }
+    .badge-draft    { background:rgba(148,163,184,0.2); color:#94a3b8; }
+    .badge-sent     { background:rgba(59,130,246,0.2);  color:#3b82f6; }
+    .badge-accepted { background:rgba(34,197,94,0.2);   color:#22c55e; }
+    .badge-declined { background:rgba(239,68,68,0.2);   color:#ef4444; }
+    .badge-paid     { background:rgba(34,197,94,0.2);   color:#22c55e; }
+    .badge-overdue  { background:rgba(239,68,68,0.2);   color:#ef4444; }
+    .badge-cancelled{ background:rgba(148,163,184,0.2); color:#94a3b8; }
+    .empty-msg { text-align:center; padding:40px 20px; color:var(--text-muted); font-size:14px; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); }
+    .modal-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--card-bg); z-index:1; }
+    .modal-header h3 { font-size:16px; font-weight:700; }
+    .modal-close { background:var(--dark3); border:none; color:var(--text); width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; }
+    .modal-body { padding:22px; }
+    .modal-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:7px; }
+    .form-input { width:100%; padding:10px 13px; background:var(--dark); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; }
+    .form-input:focus { outline:none; border-color:var(--primary); }
+    .form-input::placeholder { color:var(--text-muted); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .sec-div { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; padding:10px 0 8px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+    .site-form { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:8px; }
+    .add-site-btn { font-size:13px; color:var(--primary); background:none; border:1px dashed var(--primary); border-radius:8px; padding:8px 14px; cursor:pointer; width:100%; margin-top:4px; }
+    .site-addr-item { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+    .sat { flex:1; }
+    .san { font-weight:600; font-size:13px; }
+    .saa { color:var(--text-muted); font-size:12px; margin-top:2px; }
+    .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; max-width:320px; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { border-color:var(--success); }
+    .toast.error { border-color:var(--danger); }
+    .hidden { display:none !important; }
+    @media(max-width:600px) { .cust-header-top { flex-direction:column; } .form-row { grid-template-columns:1fr; } .contact-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/customers.html'">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
+    <span>Strike Point CRM</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#8592; Customers</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">-</span>
+    </div>
+  </div>
+</nav>
+
+<main id="main-content" style="display:none;">
+  <div class="cust-header">
+    <div class="cust-header-top">
+      <div class="cust-avatar" id="h-avatar">??</div>
+      <div class="cust-info" style="flex:1;">
+        <h1 id="h-company">-</h1>
+        <div class="ref" id="h-ref"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" id="btn-new-quote">&#43; New Quote</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal()">&#9998; Edit</button>
+      </div>
+    </div>
+    <div class="contact-grid">
+      <div class="ci"><label>Primary Contact</label><div class="val" id="h-contact">-</div></div>
+      <div class="ci"><label>Phone</label><div class="val" id="h-phone">-</div></div>
+      <div class="ci"><label>Client Email</label><div class="val" id="h-email">-</div></div>
+      <div class="ci"><label>Invoice Email</label><div class="val" id="h-inv-email">-</div></div>
+      <div class="ci"><label>City</label><div class="val" id="h-city">-</div></div>
+      <div class="ci"><label>Invoice Address</label><div class="val" id="h-inv-addr">-</div></div>
+    </div>
+    <div id="h-notes-wrap" class="hidden" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Notes</div>
+      <div id="h-notes" style="font-size:14px;line-height:1.6;white-space:pre-wrap;"></div>
+    </div>
+  </div>
+
+  <div class="spend-row">
+    <div class="spend-card"><div class="spend-val" id="s-jobs">0</div><div class="spend-label">Total Jobs</div></div>
+    <div class="spend-card"><div class="spend-val" id="s-value">&#163;0</div><div class="spend-label">Total Job Value</div></div>
+    <div class="spend-card"><div class="spend-val" id="s-profit">&#163;0</div><div class="spend-label">Net Profit</div></div>
+    <div class="spend-card"><div class="spend-val" id="s-quotes">0</div><div class="spend-label">Quotes</div></div>
+    <div class="spend-card"><div class="spend-val" id="s-invoices">0</div><div class="spend-label">Invoices</div></div>
+    <div class="spend-card"><div class="spend-val" id="s-outstanding">&#163;0</div><div class="spend-label">Outstanding</div></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('jobs',this)">&#9889; Jobs <span id="jobs-badge"></span></button>
+    <button class="tab-btn" onclick="switchTab('quotes',this)">&#128176; Quotes <span id="quotes-badge"></span></button>
+    <button class="tab-btn" onclick="switchTab('invoices',this)">&#129534; Invoices <span id="inv-badge"></span></button>
+    <button class="tab-btn" onclick="switchTab('info',this)">&#128203; Details</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-jobs"><div id="jobs-list"></div></div>
+
+  <div class="tab-panel" id="tab-quotes">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary btn-sm" id="btn-new-quote2">&#43; New Quote</button>
+    </div>
+    <div id="quotes-list"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-invoices">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary btn-sm" id="btn-new-inv">&#43; New Invoice</button>
+    </div>
+    <div id="inv-list"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-info">
+    <div class="detail-card">
+      <h4>Contact Details</h4>
+      <div class="contact-grid">
+        <div class="ci"><label>Company</label><div class="val" id="d-company">-</div></div>
+        <div class="ci"><label>Client Ref #</label><div class="val" id="d-ref">-</div></div>
+        <div class="ci"><label>Contact</label><div class="val" id="d-contact">-</div></div>
+        <div class="ci"><label>Phone</label><div class="val" id="d-phone">-</div></div>
+        <div class="ci"><label>Client Email</label><div class="val" id="d-email">-</div></div>
+        <div class="ci"><label>Invoice Email</label><div class="val" id="d-inv-email">-</div></div>
+        <div class="ci"><label>City</label><div class="val" id="d-city">-</div></div>
+        <div class="ci"><label>Additional Emails</label><div class="val" id="d-extra-emails">-</div></div>
+      </div>
+    </div>
+    <div class="detail-card">
+      <h4>Invoice Address</h4>
+      <div id="d-inv-addr" style="font-size:14px;line-height:1.7;white-space:pre-wrap;">-</div>
+    </div>
+    <div class="detail-card">
+      <h4>Site Addresses</h4>
+      <div id="d-sites"></div>
+    </div>
+    <div class="detail-card">
+      <h4>Internal Notes</h4>
+      <div id="d-notes" style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--text-muted);">No notes.</div>
+    </div>
+  </div>
+</main>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay hidden" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Customer</h3>
+      <button class="modal-close" onclick="closeEditModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="sec-div">Company Details</div>
+      <div class="form-group"><label>Company Name *</label><input type="text" class="form-input" id="e-company"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Primary Contact</label><input type="text" class="form-input" id="e-contact"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" class="form-input" id="e-phone"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Client Email</label><input type="email" class="form-input" id="e-email"></div>
+        <div class="form-group"><label>Invoice Email</label><input type="email" class="form-input" id="e-inv-email"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>City</label><input type="text" class="form-input" id="e-city"></div>
+        <div class="form-group"><label>Client Ref #</label><input type="text" class="form-input" id="e-ref"></div>
+      </div>
+      <div class="sec-div">Invoice Address</div>
+      <div class="form-group"><label>Invoice Address</label><input type="text" class="form-input" id="e-inv-addr"></div>
+      <div class="sec-div">Site Addresses</div>
+      <div id="edit-site-list"></div>
+      <button class="add-site-btn" onclick="addSiteForm()">+ Add Site Address</button>
+      <div class="sec-div" style="margin-top:18px;">Notes</div>
+      <div class="form-group"><label>Internal Notes</label>
+        <textarea class="form-input" id="e-notes" rows="3" style="resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" id="edit-save-btn" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/Wiggle/js/data.js"></script>
+<script>
+var currentUser, customer, customerId;
+var editSites = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  currentUser = requireAuth();
+  if (!currentUser) return;
+  if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
+  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  var params = new URLSearchParams(window.location.search);
+  customerId = params.get('id');
+  if (!customerId) { window.location.href = '/Wiggle/customers.html'; return; }
+  document.getElementById('btn-new-quote').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId; };
+  document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId; };
+  document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/Wiggle/crm-invoices.html?customer=' + customerId; };
+  showLoader();
+  initFirebase().then(function() { hideLoader(); loadCustomer(); })
+    .catch(function() { hideLoader(); showToast('Connection error - please refresh.', 'error'); });
+});
+
+function loadCustomer() {
+  _db.collection('crm_customers').doc(customerId).get().then(function(doc) {
+    if (!doc.exists) { window.location.href = '/Wiggle/customers.html'; return; }
+    customer = Object.assign({ id: doc.id }, doc.data());
+    document.getElementById('main-content').style.display = 'block';
+    renderHeader();
+    renderDetails();
+    loadJobs();
+    loadQuotes();
+    loadInvoices();
+  }).catch(function(err) { console.error(err); showToast('Error loading customer.', 'error'); });
+}
+
+function renderHeader() {
+  var initials = (customer.company || '?').split(' ').map(function(w) { return w[0] || ''; }).join('').substring(0,2).toUpperCase();
+  document.getElementById('h-avatar').textContent = initials;
+  document.getElementById('h-company').textContent = customer.company || '-';
+  document.getElementById('h-ref').textContent = customer.clientRef ? 'Client Ref #' + customer.clientRef : '';
+  document.getElementById('h-contact').textContent = customer.contact || '-';
+  document.getElementById('h-phone').textContent = customer.phone || '-';
+  document.getElementById('h-email').textContent = customer.email || '-';
+  document.getElementById('h-inv-email').textContent = customer.invoiceEmail || '-';
+  document.getElementById('h-city').textContent = customer.city || '-';
+  document.getElementById('h-inv-addr').textContent = customer.invoiceAddress || '-';
+  if (customer.notes) {
+    document.getElementById('h-notes').textContent = customer.notes;
+    document.getElementById('h-notes-wrap').classList.remove('hidden');
+  }
+  document.title = (customer.company || 'Customer') + ' - Strike Point CRM';
+}
+
+function renderDetails() {
+  document.getElementById('d-company').textContent = customer.company || '-';
+  document.getElementById('d-ref').textContent = customer.clientRef || '-';
+  document.getElementById('d-contact').textContent = customer.contact || '-';
+  document.getElementById('d-phone').textContent = customer.phone || '-';
+  document.getElementById('d-email').textContent = customer.email || '-';
+  document.getElementById('d-inv-email').textContent = customer.invoiceEmail || '-';
+  document.getElementById('d-city').textContent = customer.city || '-';
+  document.getElementById('d-extra-emails').textContent = customer.additionalEmails || '-';
+  document.getElementById('d-inv-addr').textContent = customer.invoiceAddress || '-';
+  document.getElementById('d-notes').textContent = customer.notes || 'No notes.';
+  var sites = customer.siteAddresses || [];
+  var sitesEl = document.getElementById('d-sites');
+  if (!sites.length) {
+    sitesEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No site addresses added.</div>';
+  } else {
+    sitesEl.innerHTML = sites.map(function(s) {
+      return '<div class="site-chip"><div class="site-chip-name">' + esc(s.name || 'Unnamed site') + '</div>'
+           + '<div class="site-chip-addr">' + esc(s.address || '') + (s.postcode ? ', ' + esc(s.postcode) : '') + '</div></div>';
+    }).join('');
+  }
+}
+
+function loadJobs() {
+  var jobs = (appData.jobs || []).filter(function(j) {
+    return j.company && customer.company &&
+      j.company.toLowerCase().trim() === customer.company.toLowerCase().trim();
+  });
+  jobs.sort(function(a,b) { return new Date(b.bookingDate) - new Date(a.bookingDate); });
+  var totalValue  = jobs.reduce(function(acc,j) { return acc + ((j.costs && j.costs.jobValue)  || 0); }, 0);
+  var totalProfit = jobs.reduce(function(acc,j) { return acc + ((j.costs && j.costs.netProfit) || 0); }, 0);
+  document.getElementById('s-jobs').textContent   = jobs.length;
+  document.getElementById('s-value').textContent  = fmtMoney(totalValue);
+  document.getElementById('s-profit').textContent = fmtMoney(totalProfit);
+  document.getElementById('jobs-badge').textContent = jobs.length ? ' (' + jobs.length + ')' : '';
+  var list = document.getElementById('jobs-list');
+  if (!jobs.length) { list.innerHTML = '<div class="empty-msg">No FSM jobs found matching this company name.</div>'; return; }
+  var html = '';
+  for (var i = 0; i < jobs.length; i++) {
+    var j = jobs[i];
+    var si = getStatusInfo(j.status);
+    var val = (j.costs && j.costs.jobValue)   ? fmtMoney(j.costs.jobValue)   : '-';
+    var pft = (j.costs && j.costs.netProfit != null) ? fmtMoney(j.costs.netProfit) : '-';
+    html += '<div class="job-item" onclick="window.location.href=\'/Wiggle/job-detail.html?id=' + esc(j.id) + '\'">'
+      + '<div class="job-dot dot-' + esc(j.status) + '"></div>'
+      + '<div class="job-info">'
+      +   '<div style="display:flex;align-items:center;gap:8px;">'
+      +     '<span class="job-ref">#' + esc(j.ref) + '</span>'
+      +     '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:var(--dark3);color:var(--text-muted);">' + esc(j.type) + '</span>'
+      +   '</div>'
+      +   '<div class="job-site">' + esc(j.siteName || j.company) + '</div>'
+      +   '<div class="job-meta">' + esc(si.label) + ' &middot; ' + formatDate(j.bookingDate) + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;">'
+      +   '<div style="font-size:14px;font-weight:700;color:var(--success);">' + val + '</div>'
+      +   '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">profit: ' + pft + '</div>'
+      + '</div></div>';
+  }
+  list.innerHTML = html;
+}
+
+function loadQuotes() {
+  _db.collection('crm_quotes').where('customerId','==',customerId).orderBy('createdAt','desc').get().then(function(snap) {
+    var quotes = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    document.getElementById('s-quotes').textContent = quotes.length;
+    document.getElementById('quotes-badge').textContent = quotes.length ? ' (' + quotes.length + ')' : '';
+    renderQuotes(quotes);
+  }).catch(function() { renderQuotes([]); });
+}
+
+function renderQuotes(quotes) {
+  var list = document.getElementById('quotes-list');
+  if (!quotes.length) { list.innerHTML = '<div class="empty-msg">No quotes for this customer yet.</div>'; return; }
+  var html = '';
+  for (var i = 0; i < quotes.length; i++) {
+    var q = quotes[i];
+    html += '<div class="doc-item">'
+      + '<div class="doc-info">'
+      +   '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      +     '<span class="doc-ref">' + esc(q.ref || '-') + '</span>'
+      +     '<span class="sbadge badge-' + esc(q.status) + '">' + cap(q.status) + '</span>'
+      +   '</div>'
+      +   '<div class="doc-desc">' + esc(q.description || 'No description') + '</div>'
+      +   '<div class="doc-meta">' + formatDate(q.createdAt) + ' &middot; ' + esc(q.siteName || '-') + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;flex-shrink:0;">'
+      +   '<div style="font-size:15px;font-weight:700;">' + fmtMoney(q.total || 0) + '</div>'
+      +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
+      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-quotes.html?id=' + esc(q.id) + '\'">View</button></div>'
+      + '</div></div>';
+  }
+  list.innerHTML = html;
+}
+
+function loadInvoices() {
+  _db.collection('crm_invoices').where('customerId','==',customerId).orderBy('createdAt','desc').get().then(function(snap) {
+    var invs = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    var outstanding = invs.filter(function(i) { return i.status === 'sent' || i.status === 'overdue'; })
+      .reduce(function(acc,i) { return acc + parseFloat(i.totalDue || 0); }, 0);
+    document.getElementById('s-invoices').textContent = invs.length;
+    document.getElementById('s-outstanding').textContent = fmtMoney(outstanding);
+    document.getElementById('inv-badge').textContent = invs.length ? ' (' + invs.length + ')' : '';
+    renderInvoices(invs);
+  }).catch(function() { renderInvoices([]); });
+}
+
+function renderInvoices(invs) {
+  var list = document.getElementById('inv-list');
+  if (!invs.length) { list.innerHTML = '<div class="empty-msg">No invoices for this customer yet.</div>'; return; }
+  var html = '';
+  for (var i = 0; i < invs.length; i++) {
+    var inv = invs[i];
+    var col = inv.status === 'paid' ? 'var(--success)' : inv.status === 'overdue' ? 'var(--danger)' : 'var(--text)';
+    html += '<div class="doc-item">'
+      + '<div class="doc-info">'
+      +   '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      +     '<span class="doc-ref">' + esc(inv.ref || '-') + '</span>'
+      +     '<span class="sbadge badge-' + esc(inv.status) + '">' + cap(inv.status) + '</span>'
+      +   '</div>'
+      +   '<div class="doc-desc">' + esc(inv.description || 'No description') + '</div>'
+      +   '<div class="doc-meta">' + formatDate(inv.createdAt) + ' &middot; Due: ' + formatDate(inv.dueDate) + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;flex-shrink:0;">'
+      +   '<div style="font-size:15px;font-weight:700;color:' + col + ';">' + fmtMoney(inv.totalDue || 0) + '</div>'
+      +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
+      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-invoices.html?id=' + esc(inv.id) + '\'">View</button></div>'
+      + '</div></div>';
+  }
+  list.innerHTML = html;
+}
+
+function openEditModal() {
+  editSites = (customer.siteAddresses || []).slice();
+  document.getElementById('e-company').value   = customer.company || '';
+  document.getElementById('e-contact').value   = customer.contact || '';
+  document.getElementById('e-phone').value     = customer.phone || '';
+  document.getElementById('e-email').value     = customer.email || '';
+  document.getElementById('e-inv-email').value = customer.invoiceEmail || '';
+  document.getElementById('e-inv-addr').value  = customer.invoiceAddress || '';
+  document.getElementById('e-city').value      = customer.city || '';
+  document.getElementById('e-ref').value       = customer.clientRef || '';
+  document.getElementById('e-notes').value     = customer.notes || '';
+  renderEditSites();
+  document.getElementById('modal-edit').classList.remove('hidden');
+}
+
+function closeEditModal() { document.getElementById('modal-edit').classList.add('hidden'); }
+
+function renderEditSites() {
+  var list = document.getElementById('edit-site-list');
+  if (!editSites.length) { list.innerHTML = ''; return; }
+  list.innerHTML = editSites.map(function(s, i) {
+    return '<div class="site-addr-item">'
+      + '<div class="sat"><div class="san">' + esc(s.name || 'Unnamed') + '</div>'
+      + '<div class="saa">' + esc(s.address || '') + (s.postcode ? ', ' + esc(s.postcode) : '') + '</div></div>'
+      + '<button class="btn btn-danger btn-xs" onclick="removeEditSite(' + i + ')">&#10005;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function addSiteForm() {
+  var list = document.getElementById('edit-site-list');
+  var fid = 'esf' + Date.now();
+  var div = document.createElement('div');
+  div.className = 'site-form'; div.id = fid;
+  div.innerHTML = '<div class="form-row" style="margin-bottom:8px;">'
+    + '<div class="form-group" style="margin-bottom:0;"><label>Site Name</label>'
+    +   '<input type="text" class="form-input" id="' + fid + '-n" placeholder="e.g. The Maltings"></div>'
+    + '<div class="form-group" style="margin-bottom:0;"><label>Postcode</label>'
+    +   '<input type="text" class="form-input" id="' + fid + '-p" placeholder="e.g. NG5 6LJ"></div>'
+    + '</div>'
+    + '<div class="form-group" style="margin-bottom:8px;"><label>Address</label>'
+    +   '<input type="text" class="form-input" id="' + fid + '-a" placeholder="Full site address"></div>'
+    + '<div style="display:flex;gap:8px;">'
+    +   '<button class="btn btn-primary btn-xs" onclick="confirmSite(\'' + fid + '\')">Add</button>'
+    +   '<button class="btn btn-secondary btn-xs" onclick="document.getElementById(\'' + fid + '\').remove()">Cancel</button>'
+    + '</div>';
+  list.appendChild(div);
+}
+
+function confirmSite(fid) {
+  var n = document.getElementById(fid+'-n').value.trim();
+  var a = document.getElementById(fid+'-a').value.trim();
+  var p = document.getElementById(fid+'-p').value.trim();
+  if (!a) { showToast('Please enter a site address.', 'error'); return; }
+  editSites.push({ name:n, address:a, postcode:p });
+  document.getElementById(fid).remove();
+  renderEditSites();
+}
+
+function removeEditSite(i) { editSites.splice(i,1); renderEditSites(); }
+
+function saveEdit() {
+  var company = document.getElementById('e-company').value.trim();
+  if (!company) { showToast('Company name is required.', 'error'); return; }
+  var data = {
+    company:        company,
+    contact:        document.getElementById('e-contact').value.trim(),
+    phone:          document.getElementById('e-phone').value.trim(),
+    email:          document.getElementById('e-email').value.trim(),
+    invoiceEmail:   document.getElementById('e-inv-email').value.trim(),
+    invoiceAddress: document.getElementById('e-inv-addr').value.trim(),
+    city:           document.getElementById('e-city').value.trim(),
+    clientRef:      document.getElementById('e-ref').value.trim(),
+    notes:          document.getElementById('e-notes').value.trim(),
+    siteAddresses:  editSites,
+    updatedAt:      new Date().toISOString()
+  };
+  var btn = document.getElementById('edit-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  _db.collection('crm_customers').doc(customerId).update(data).then(function() {
+    customer = Object.assign({}, customer, data);
+    closeEditModal(); renderHeader(); renderDetails();
+    showToast('Customer updated', 'success');
+  }).catch(function(err) { console.error(err); showToast('Error saving.', 'error'); })
+    .finally(function() { btn.disabled = false; btn.textContent = 'Save Changes'; });
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function fmtMoney(v) { return '\u00a3' + parseFloat(v || 0).toFixed(2); }
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || 'success');
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Wiggle/sw.js');
+  }
+</script>
+</body>
+</html>
