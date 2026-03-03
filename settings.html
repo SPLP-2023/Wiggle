@@ -11,9 +11,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings — Strike Point</title>
+<!-- SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
@@ -25,17 +26,12 @@
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
-
-  /* NAV */
   nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
   .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
-  .nav-brand .bolt { font-size:22px; }
   .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
   .nav-right { display:flex; align-items:center; gap:10px; }
   .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
   .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
-
-  /* BUTTONS */
   .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; }
   .btn-primary { background:var(--primary); color:var(--dark); }
   .btn-primary:hover { background:var(--primary-dark); }
@@ -45,34 +41,25 @@
   .btn-success:hover { background:#16a34a; }
   .btn-danger { background:var(--danger); color:#fff; }
   .btn-danger:hover { background:#dc2626; }
+  .btn-info { background:var(--info); color:#fff; }
+  .btn-info:hover { background:#2563eb; }
   .btn-sm { padding:7px 14px; font-size:12px; }
   .btn-full { width:100%; }
-
-  /* MAIN */
   main { max-width:760px; margin:0 auto; padding:28px 20px 60px; }
   .page-header { margin-bottom:28px; }
   .page-header h2 { font-size:22px; font-weight:700; }
   .page-header p { color:var(--text-muted); font-size:14px; margin-top:4px; }
-
-  /* SETTINGS CARD */
   .settings-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:20px; }
   .settings-card h3 { font-size:15px; font-weight:700; color:var(--primary); margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
-
-  /* FORM */
   .form-group { margin-bottom:18px; }
   .form-group label { display:block; font-size:13px; color:var(--text-muted); margin-bottom:7px; font-weight:500; }
-  .form-group input {
-    width:100%; padding:11px 14px; background:var(--dark); border:1px solid var(--border);
-    border-radius:var(--radius); color:var(--text); font-size:14px; transition:border-color 0.2s;
-  }
+  .form-group input { width:100%; padding:11px 14px; background:var(--dark); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; transition:border-color 0.2s; }
   .form-group input:focus { outline:none; border-color:var(--primary); }
   .form-group .hint { font-size:11px; color:var(--text-muted); margin-top:5px; }
   .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .input-prefix { position:relative; }
   .input-prefix span { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; }
   .input-prefix input { padding-left:28px; }
-
-  /* USER LIST */
   .user-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
   .user-item { display:flex; align-items:center; justify-content:space-between; background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:14px 16px; gap:12px; flex-wrap:wrap; }
   .user-info { display:flex; align-items:center; gap:12px; flex:1; }
@@ -83,17 +70,15 @@
   .user-role-tag { font-size:10px; padding:2px 8px; border-radius:20px; font-weight:600; text-transform:uppercase; }
   .tag-manager { background:var(--primary-light); color:var(--primary-dark); }
   .tag-engineer { background:#dbeafe; color:#1d4ed8; }
-
-  /* ADD USER FORM */
   .add-user-form { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:16px; display:none; }
   .add-user-form.open { display:block; }
   .add-user-form h4 { font-size:13px; font-weight:600; color:var(--text-muted); margin-bottom:14px; }
-
-  /* DANGER ZONE */
   .danger-zone { background:var(--dark); border:1px solid var(--danger); border-radius:10px; padding:16px; }
   .danger-zone p { font-size:13px; color:var(--text-muted); margin-bottom:12px; }
-
-  /* MODAL */
+  .export-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .export-stat { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; }
+  .export-stat .num { font-size:22px; font-weight:700; color:var(--primary); }
+  .export-stat .lbl { font-size:11px; color:var(--text-muted); margin-top:2px; }
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
   .modal { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); }
   .modal-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--card-bg); }
@@ -102,16 +87,14 @@
   .modal-body { padding:22px; }
   .modal-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
   .hidden { display:none !important; }
-
-  /* TOAST */
   .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; box-shadow:var(--shadow); max-width:300px; }
   .toast.show { transform:translateY(0); opacity:1; }
   .toast.success { border-color:var(--success); }
   .toast.error { border-color:var(--danger); }
-
   @media(max-width:580px) {
     .form-row { grid-template-columns:1fr; }
     .user-item { flex-direction:column; align-items:flex-start; }
+    .export-stats { grid-template-columns:repeat(2,1fr); }
   }
 </style>
   <!-- Firebase compat SDK -->
@@ -164,12 +147,36 @@
     <button class="btn btn-primary" onclick="saveFuelSettings()">Save Fuel Settings</button>
   </div>
 
+  <!-- ── EXPORT ── -->
+  <div class="settings-card">
+    <h3>📊 Export Jobs to Excel</h3>
+
+    <!-- Job count stats -->
+    <div class="export-stats" id="export-stats">
+      <div class="export-stat"><div class="num" id="stat-live">—</div><div class="lbl">Live</div></div>
+      <div class="export-stat"><div class="num" id="stat-pending">—</div><div class="lbl">Pending Review</div></div>
+      <div class="export-stat"><div class="num" id="stat-complete">—</div><div class="lbl">Completed</div></div>
+      <div class="export-stat"><div class="num" id="stat-aborted">—</div><div class="lbl">Aborted</div></div>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      Exports all jobs to a single <strong style="color:var(--text);">.xlsx</strong> file with separate sheets for each status.
+      Each sheet includes job details, financials, comments and history notes.
+    </p>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-info" onclick="exportAllJobs()">⬇ Export All Jobs</button>
+      <button class="btn btn-secondary" onclick="exportByStatus('live')">🟠 Export Live</button>
+      <button class="btn btn-secondary" onclick="exportByStatus('complete')">🟢 Export Completed</button>
+      <button class="btn btn-secondary" onclick="exportByStatus('aborted')">🔴 Export Aborted</button>
+    </div>
+  </div>
+
   <!-- ── ENGINEERS ── -->
   <div class="settings-card">
     <h3>👷 Engineer Accounts</h3>
     <div class="user-list" id="engineer-list"></div>
     <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('engineer')">+ Add Engineer</button>
-
     <div class="add-user-form" id="add-engineer-form">
       <h4>New Engineer</h4>
       <div class="form-group">
@@ -198,7 +205,6 @@
     <h3>👔 Manager Accounts</h3>
     <div class="user-list" id="manager-list"></div>
     <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('manager')">+ Add Manager</button>
-
     <div class="add-user-form" id="add-manager-form">
       <h4>New Manager</h4>
       <div class="form-group">
@@ -230,7 +236,6 @@
       <button class="btn btn-danger btn-sm" onclick="confirmClearJobs()">🗑 Clear All Jobs</button>
     </div>
   </div>
-
 </main>
 
 <!-- EDIT USER MODAL -->
@@ -317,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('user-name-display').textContent = currentUser.name;
     loadSettings();
     renderUsers();
+    updateExportStats();
   }).catch(err => {
     hideLoader();
     console.error('Firebase error', err);
@@ -340,8 +346,139 @@ function saveFuelSettings() {
   if (!mpg    || mpg    <= 0) { showToast('Please enter a valid MPG.', 'error'); return; }
   appData.settings.dieselPricePerLitre = diesel;
   appData.settings.mpg = mpg;
-  saveData();
+  saveSettings();
   showToast('Fuel settings saved ✓', 'success');
+}
+
+// ── EXPORT STATS ──────────────────────────────
+function updateExportStats() {
+  const jobs = appData.jobs;
+  document.getElementById('stat-live').textContent     = jobs.filter(j => j.status === 'live').length;
+  document.getElementById('stat-pending').textContent  = jobs.filter(j => j.status === 'pending').length;
+  document.getElementById('stat-complete').textContent = jobs.filter(j => j.status === 'complete').length;
+  document.getElementById('stat-aborted').textContent  = jobs.filter(j => j.status === 'aborted').length;
+}
+
+// ── EXPORT FUNCTIONS ──────────────────────────
+function buildJobRow(j) {
+  const c   = j.costs || {};
+  const eng = (j.engineers || []).map(id => getUserName(id)).join(', ');
+  const comments = (j.comments || [])
+    .map(cm => '[' + formatDateTime(cm.ts) + '] ' + cm.author + ': ' + cm.text)
+    .join(' | ');
+  const history = (j.auditLog || [])
+    .map(e => '[' + formatDateTime(e.ts) + '] ' + e.user + ': ' + e.action)
+    .join(' | ');
+
+  return {
+    'Job Ref':        j.ref || '—',
+    'Site Name':      j.siteName || '—',
+    'Company':        j.company || '—',
+    'Address':        j.address || '—',
+    'Postcode':       j.postcode || '—',
+    'Job Type':       j.type || '—',
+    'Status':         getStatusInfo(j.status).label,
+    'Booking Date':   formatDate(j.bookingDate),
+    'Engineers':      eng || 'Unassigned',
+    'Description':    j.description || '—',
+    'Started':        j.startedAt  ? formatDateTime(j.startedAt)  : '—',
+    'Finished':       j.finishedAt ? formatDateTime(j.finishedAt) : '—',
+    'Duration':       j.duration || '—',
+    'Job Value (£)':  (c.jobValue    || 0).toFixed(2),
+    'VAT (£)':        ((c.jobValue   || 0) * 0.2).toFixed(2),
+    'Labour (£)':     (c.labour      || 0).toFixed(2),
+    'Materials (£)':  (c.materials   || 0).toFixed(2),
+    'Markup (%)':     (c.markup      || 0),
+    'Parking (£)':    (c.parking     || 0).toFixed(2),
+    'Miles':          (c.miles       || 0),
+    'Fuel Cost (£)':  (c.fuelCost    || 0).toFixed(2),
+    'CIS Applied':    c.cis ? 'Yes' : 'No',
+    'Total Costs (£)':(c.totalCosts  || 0).toFixed(2),
+    'Net Profit (£)': (c.netProfit   || 0).toFixed(2),
+    'Comments':       comments || '—',
+    'Audit Log':      history  || '—',
+  };
+}
+
+function buildSheet(jobs) {
+  if (!jobs.length) return XLSX.utils.aoa_to_sheet([['No jobs in this category']]);
+  const rows = jobs.map(buildJobRow);
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // Set column widths
+  ws['!cols'] = [
+    {wch:10},{wch:20},{wch:22},{wch:30},{wch:12},{wch:18},{wch:14},
+    {wch:14},{wch:24},{wch:40},{wch:18},{wch:18},{wch:12},
+    {wch:12},{wch:10},{wch:12},{wch:14},{wch:10},{wch:12},{wch:8},
+    {wch:12},{wch:10},{wch:14},{wch:14},{wch:60},{wch:80},
+  ];
+  return ws;
+}
+
+function exportAllJobs() {
+  const jobs = appData.jobs;
+  if (!jobs.length) { showToast('No jobs to export.', 'error'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const statuses = [
+    { key: 'live',     label: '🟠 Live'           },
+    { key: 'pending',  label: '🟣 Pending Review'  },
+    { key: 'complete', label: '🟢 Completed'        },
+    { key: 'aborted',  label: '🔴 Aborted'          },
+  ];
+
+  statuses.forEach(s => {
+    const filtered = jobs.filter(j => j.status === s.key);
+    // Sheet names can't have special chars in xlsx
+    const sheetName = s.label.replace(/[^a-zA-Z0-9 ]/g, '').trim().substring(0, 31);
+    XLSX.utils.book_append_sheet(wb, buildSheet(filtered), sheetName);
+  });
+
+  // Summary sheet
+  const summaryData = [
+    ['Strike Point FSM — Job Export'],
+    ['Generated:', formatDateTime(new Date().toISOString())],
+    [''],
+    ['Status', 'Count', 'Total Job Value (£)', 'Total Costs (£)', 'Total Net Profit (£)'],
+  ];
+  statuses.forEach(s => {
+    const filtered = jobs.filter(j => j.status === s.key);
+    const totalValue  = filtered.reduce((sum, j) => sum + (j.costs?.jobValue   || 0), 0);
+    const totalCosts  = filtered.reduce((sum, j) => sum + (j.costs?.totalCosts || 0), 0);
+    const totalProfit = filtered.reduce((sum, j) => sum + (j.costs?.netProfit  || 0), 0);
+    summaryData.push([
+      s.label.replace(/[^a-zA-Z ]/g, '').trim(),
+      filtered.length,
+      totalValue.toFixed(2),
+      totalCosts.toFixed(2),
+      totalProfit.toFixed(2),
+    ]);
+  });
+  const allValue  = jobs.reduce((sum, j) => sum + (j.costs?.jobValue   || 0), 0);
+  const allCosts  = jobs.reduce((sum, j) => sum + (j.costs?.totalCosts || 0), 0);
+  const allProfit = jobs.reduce((sum, j) => sum + (j.costs?.netProfit  || 0), 0);
+  summaryData.push(['TOTAL', jobs.length, allValue.toFixed(2), allCosts.toFixed(2), allProfit.toFixed(2)]);
+
+  const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+  summaryWs['!cols'] = [{wch:20},{wch:8},{wch:22},{wch:18},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+  const date = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'StrikePoint_Jobs_' + date + '.xlsx');
+  showToast('Export downloaded ✓', 'success');
+}
+
+function exportByStatus(status) {
+  const jobs = appData.jobs.filter(j => j.status === status);
+  if (!jobs.length) { showToast('No ' + status + ' jobs to export.', 'error'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const label = getStatusInfo(status).label;
+  XLSX.utils.book_append_sheet(wb, buildSheet(jobs), label.substring(0,31));
+
+  const date = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'StrikePoint_' + label + '_' + date + '.xlsx');
+  showToast(label + ' jobs exported ✓', 'success');
 }
 
 // ── RENDER USERS ──────────────────────────────
@@ -351,15 +488,12 @@ function renderUsers() {
 }
 
 function renderUserList(role) {
-  const users   = appData.users.filter(u => u.role === role);
-  const listEl  = document.getElementById(role + '-list');
-  const isEng   = role === 'engineer';
-
+  const users  = appData.users.filter(u => u.role === role);
+  const listEl = document.getElementById(role + '-list');
   if (!users.length) {
     listEl.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:8px 0;">No ${role}s added yet.</div>`;
     return;
   }
-
   listEl.innerHTML = users.map(u => `
     <div class="user-item">
       <div class="user-info">
@@ -377,39 +511,24 @@ function renderUserList(role) {
     </div>`).join('');
 }
 
-// ── ADD USER ──────────────────────────────────
 function toggleAddForm(role) {
   const form = document.getElementById('add-' + (role === 'engineer' ? 'engineer' : 'manager') + '-form');
   form.classList.toggle('open');
 }
 
 function addUser(role) {
-  const isEng  = role === 'engineer';
-  const name   = document.getElementById(isEng ? 'new-eng-name'     : 'new-mgr-name').value.trim();
-  const uname  = document.getElementById(isEng ? 'new-eng-username'  : 'new-mgr-username').value.trim().toLowerCase();
-  const pass   = document.getElementById(isEng ? 'new-eng-password'  : 'new-mgr-password').value.trim();
-
+  const isEng = role === 'engineer';
+  const name  = document.getElementById(isEng ? 'new-eng-name'     : 'new-mgr-name').value.trim();
+  const uname = document.getElementById(isEng ? 'new-eng-username'  : 'new-mgr-username').value.trim().toLowerCase();
+  const pass  = document.getElementById(isEng ? 'new-eng-password'  : 'new-mgr-password').value.trim();
   if (!name)  { showToast('Please enter a name.', 'error'); return; }
   if (!uname) { showToast('Please enter a username.', 'error'); return; }
   if (!pass)  { showToast('Please enter a password.', 'error'); return; }
-
-  // Check username not already taken
   if (appData.users.find(u => u.username.toLowerCase() === uname)) {
     showToast('Username already exists.', 'error'); return;
   }
-
-  const newUser = {
-    id:       'u_' + Date.now(),
-    username: uname,
-    password: pass,
-    name,
-    role,
-  };
-
-  appData.users.push(newUser);
-  saveData();
-
-  // Clear form
+  appData.users.push({ id: 'u_' + Date.now(), username: uname, password: pass, name, role });
+  saveUsers();
   document.getElementById(isEng ? 'new-eng-name'     : 'new-mgr-name').value     = '';
   document.getElementById(isEng ? 'new-eng-username'  : 'new-mgr-username').value = '';
   document.getElementById(isEng ? 'new-eng-password'  : 'new-mgr-password').value = '';
@@ -418,7 +537,6 @@ function addUser(role) {
   showToast(name + ' added successfully ✓', 'success');
 }
 
-// ── EDIT USER ─────────────────────────────────
 function openEditUser(id) {
   const u = appData.users.find(x => x.id === id);
   if (!u) return;
@@ -434,37 +552,27 @@ function saveEditUser() {
   const name  = document.getElementById('edit-user-name').value.trim();
   const uname = document.getElementById('edit-user-username').value.trim().toLowerCase();
   const pass  = document.getElementById('edit-user-password').value.trim();
-
   if (!name)  { showToast('Please enter a name.', 'error'); return; }
   if (!uname) { showToast('Please enter a username.', 'error'); return; }
-
-  // Check username not taken by another user
   if (appData.users.find(u => u.username.toLowerCase() === uname && u.id !== id)) {
     showToast('Username already taken.', 'error'); return;
   }
-
   const u = appData.users.find(x => x.id === id);
   if (!u) return;
-  u.name     = name;
-  u.username = uname;
+  u.name = name; u.username = uname;
   if (pass) u.password = pass;
-
-  // Update session if editing self
   if (id === currentUser.id) {
-    currentUser.name = name;
-    currentUser.username = uname;
+    currentUser.name = name; currentUser.username = uname;
     setSession(currentUser);
-    document.getElementById('user-avatar').textContent      = name[0].toUpperCase();
+    document.getElementById('user-avatar').textContent       = name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = name;
   }
-
-  saveData();
+  saveUsers();
   closeModal('modal-edit-user');
   renderUsers();
   showToast('User updated ✓', 'success');
 }
 
-// ── DELETE USER ───────────────────────────────
 function openDeleteUser(id) {
   const u = appData.users.find(x => x.id === id);
   if (!u) return;
@@ -476,14 +584,13 @@ function openDeleteUser(id) {
 function deleteUser() {
   if (!pendingDeleteUserId) return;
   appData.users = appData.users.filter(u => u.id !== pendingDeleteUserId);
-  saveData();
+  saveUsers();
   pendingDeleteUserId = null;
   closeModal('modal-delete-user');
   renderUsers();
   showToast('User removed ✓', 'success');
 }
 
-// ── CLEAR ALL JOBS ────────────────────────────
 function confirmClearJobs() {
   document.getElementById('job-count-display').textContent = appData.jobs.length + ' job' + (appData.jobs.length !== 1 ? 's' : '');
   document.getElementById('clear-confirm-input').value = '';
@@ -493,13 +600,13 @@ function confirmClearJobs() {
 function clearAllJobs() {
   const input = document.getElementById('clear-confirm-input').value.trim();
   if (input !== 'DELETE') { showToast('Please type DELETE to confirm.', 'error'); return; }
-  appData.jobs = [];
-  saveData();
-  closeModal('modal-clear-jobs');
-  showToast('All jobs cleared ✓', 'success');
+  deleteAllJobs().then(() => {
+    closeModal('modal-clear-jobs');
+    updateExportStats();
+    showToast('All jobs cleared ✓', 'success');
+  });
 }
 
-// ── MODAL ─────────────────────────────────────
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 </script>
   <script>
