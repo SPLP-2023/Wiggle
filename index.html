@@ -441,11 +441,21 @@
 })();
 
   document.addEventListener('DOMContentLoaded', () => {
-  if (currentUser) {
-    document.getElementById('app').style.display = 'flex';
-    initApp();
-  }
-});
+    const session = getSession();
+    if (!session) { window.location.href = '/Wiggle/login.html'; return; }
+    currentUser = session;
+    showLoader();
+    setLoaderMsg('Loading jobs…');
+    initFirebase().then(() => {
+      hideLoader();
+      document.getElementById('app').style.display = 'flex';
+      initApp();
+    }).catch(err => {
+      hideLoader();
+      console.error('Firebase error', err);
+      showToast('Connection error — please refresh.', 'error');
+    });
+  });
 // ══════════════════════════════════════════════
 // DATA STORE
 // ══════════════════════════════════════════════
