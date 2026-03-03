@@ -398,6 +398,9 @@ function openNewQuote(preselectCid) {
   if (preselectCid) { currentCustomerId = preselectCid; onCustomerChange(); }
   else { document.getElementById('q-job-ref').value = ''; }
   addLine();
+  // Pre-fill description with standard BS text
+  lineItems[0].description = 'Test and inspection of lightning protection systems (tested in accordance with BS 6651, BS EN62305, NF C 17-102:2011 and BS 7430), visual roof inspection, where possible, and visual inspection of surge protection provisions.';
+  renderLines();
   recalc();
 }
 
