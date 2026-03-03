@@ -302,10 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var qid = params.get('id');
   currentCustomerId = params.get('customer');
 
-  document.getElementById('btn-back').onclick = function() {
-    if (currentCustomerId) window.location.href = '/Wiggle/crm-customer.html?id=' + currentCustomerId;
-    else window.location.href = '/Wiggle/customers.html';
-  };
 
   showLoader();
   initFirebase().then(function() {
