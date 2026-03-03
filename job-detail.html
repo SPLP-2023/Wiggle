@@ -1184,7 +1184,7 @@ function renderHistory(items) {
   noH.style.display = 'none'; banner.style.display = 'block';
   document.getElementById('history-site-name').textContent = job.siteName;
   list.innerHTML = items.map((h, i) => {
-    const s = h.snapshot; const isTI = s.type === 'Test & Inspection';
+    const s = h.snapshot || {}; const isTI = s.type === 'Test & Inspection';
     const details = `JOB DETAILS
 Reference:    #${s.jobRef}
 Site Name:    ${s.siteName}
