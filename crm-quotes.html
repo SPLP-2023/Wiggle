@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/Wiggle/manifest.json">
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SP FSM">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quotes - Strike Point CRM</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary:#f59e0b; --primary-dark:#d97706;
+      --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+      --text:#f1f5f9; --text-muted:#94a3b8;
+      --card-bg:#1e293b; --border:#334155;
+      --success:#22c55e; --danger:#ef4444; --info:#3b82f6; --pending:#a855f7;
+      --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
+    nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
+    .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
+    .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; }
+    .btn-primary { background:var(--primary); color:var(--dark); }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-secondary { background:var(--dark3); color:var(--text); }
+    .btn-secondary:hover { background:#475569; }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .btn-success { background:var(--success); color:#fff; }
+    .btn-sm { padding:7px 14px; font-size:12px; }
+    .btn-xs { padding:5px 10px; font-size:11px; }
+    main { max-width:1000px; margin:0 auto; padding:24px 20px 60px; }
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-title { font-size:22px; font-weight:800; }
+    .page-title span { color:var(--primary); }
+    .filter-bar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .filter-btn { padding:7px 16px; border-radius:20px; background:var(--dark2); border:1px solid var(--border); color:var(--text-muted); font-size:13px; cursor:pointer; transition:all 0.2s; }
+    .filter-btn.active { background:var(--primary); color:var(--dark); border-color:var(--primary); font-weight:600; }
+    .search-input { flex:1; min-width:200px; padding:8px 14px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; }
+    .search-input:focus { outline:none; border-color:var(--primary); }
+    .search-input::placeholder { color:var(--text-muted); }
+    .quote-row { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:16px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; transition:border-color 0.2s; margin-bottom:10px; }
+    .quote-row:hover { border-color:var(--primary); }
+    .quote-row-info { flex:1; min-width:200px; }
+    .qref { font-size:12px; font-weight:700; color:var(--primary); word-break:break-all; }
+    .qcompany { font-size:15px; font-weight:600; margin-top:2px; }
+    .qmeta { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    .quote-row-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .qtotal { font-size:16px; font-weight:700; }
+    .sbadge { font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; white-space:nowrap; }
+    .badge-draft    { background:rgba(148,163,184,0.2); color:#94a3b8; }
+    .badge-sent     { background:rgba(59,130,246,0.2);  color:#3b82f6; }
+    .badge-accepted { background:rgba(34,197,94,0.2);   color:#22c55e; }
+    .badge-declined { background:rgba(239,68,68,0.2);   color:#ef4444; }
+    .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+    .editor { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:24px; }
+    .editor-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+    .editor-title { font-size:18px; font-weight:800; }
+    .editor-ref { font-size:12px; color:var(--primary); margin-top:4px; word-break:break-all; }
+    .editor-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .sec-div { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; padding:10px 0 8px; border-bottom:1px solid var(--border); margin-bottom:16px; margin-top:4px; }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:7px; }
+    .form-input { width:100%; padding:10px 13px; background:var(--dark); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; }
+    .form-input:focus { outline:none; border-color:var(--primary); }
+    .form-input::placeholder { color:var(--text-muted); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    select.form-input { cursor:pointer; }
+    .li-table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+    .li-table th { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; padding:8px 8px; text-align:left; border-bottom:1px solid var(--border); }
+    .li-table td { padding:5px 5px; vertical-align:middle; }
+    .li-inp { width:100%; padding:7px 9px; background:var(--dark); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; font-family:inherit; }
+    .li-inp:focus { outline:none; border-color:var(--primary); }
+    .add-line-btn { font-size:13px; color:var(--primary); background:none; border:1px dashed var(--primary); border-radius:8px; padding:8px 16px; cursor:pointer; transition:background 0.2s; }
+    .add-line-btn:hover { background:rgba(245,158,11,0.08); }
+    .totals-box { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:16px 20px; max-width:300px; margin-left:auto; margin-top:16px; }
+    .tot-row { display:flex; justify-content:space-between; padding:5px 0; font-size:14px; }
+    .tot-row.grand { border-top:1px solid var(--border); margin-top:6px; padding-top:10px; font-size:17px; font-weight:800; color:var(--primary); }
+    .tot-row.cis-r { color:var(--primary); font-size:13px; }
+    .toggle-row { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .tslider { position:absolute; inset:0; background:var(--dark3); border-radius:24px; cursor:pointer; transition:0.3s; }
+    .tslider:before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:0.3s; }
+    .toggle input:checked + .tslider { background:var(--primary); }
+    .toggle input:checked + .tslider:before { transform:translateX(20px); }
+    .status-bar { display:flex; align-items:center; gap:10px; background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:16px; flex-wrap:wrap; }
+    .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; max-width:340px; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { border-color:var(--success); }
+    .toast.error { border-color:var(--danger); }
+    .hidden { display:none !important; }
+    @media(max-width:640px) { .form-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/customers.html'">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
+    <span>Strike Point CRM</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back">&#8592; Back</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">-</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <!-- LIST VIEW -->
+  <div id="view-list">
+    <div class="page-header">
+      <div class="page-title">&#128176; <span>Quotes</span></div>
+      <button class="btn btn-primary" onclick="openNewQuote(null)">&#43; New Quote</button>
+    </div>
+    <div class="filter-bar">
+      <input type="text" class="search-input" id="q-search" placeholder="Search quotes..." oninput="renderList()">
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('draft',this)">Draft</button>
+      <button class="filter-btn" onclick="setFilter('sent',this)">Sent</button>
+      <button class="filter-btn" onclick="setFilter('accepted',this)">Accepted</button>
+      <button class="filter-btn" onclick="setFilter('declined',this)">Declined</button>
+    </div>
+    <div id="quote-list"></div>
+    <div class="empty-state hidden" id="q-empty">
+      <div style="font-size:40px;margin-bottom:12px;">&#128176;</div>
+      <p>No quotes found.</p>
+    </div>
+  </div>
+
+  <!-- EDITOR VIEW -->
+  <div id="view-editor" class="hidden">
+    <div class="editor">
+      <div class="editor-header">
+        <div style="flex:1;min-width:0;">
+          <div class="editor-title" id="editor-title">New Quote</div>
+          <div class="editor-ref" id="editor-ref"></div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn btn-secondary btn-sm" onclick="closeEditor()">&#8592; Back</button>
+          <button class="btn btn-secondary btn-sm hidden" id="btn-pdf" onclick="generatePDF()">&#128438; PDF</button>
+          <button class="btn btn-primary btn-sm" id="btn-save" onclick="saveQuote()">Save Quote</button>
+        </div>
+      </div>
+
+      <!-- STATUS BAR -->
+      <div class="status-bar hidden" id="status-bar">
+        <span style="font-size:13px;color:var(--text-muted);">Status:</span>
+        <span class="sbadge" id="status-badge">Draft</span>
+        <div style="flex:1;"></div>
+        <button class="btn btn-xs btn-secondary" id="btn-sent"     onclick="setStatus('sent')">Mark Sent</button>
+        <button class="btn btn-xs btn-success"   id="btn-accepted" onclick="setStatus('accepted')">Mark Accepted</button>
+        <button class="btn btn-xs btn-danger"    id="btn-declined" onclick="setStatus('declined')">Mark Declined</button>
+      </div>
+
+      <!-- CUSTOMER + JOB INFO -->
+      <div class="sec-div">Customer &amp; Job Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer *</label>
+          <select class="form-input" id="q-customer" onchange="onCustomerChange()">
+            <option value="">-- Select Customer --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prepared For (Contact)</label>
+          <input type="text" class="form-input" id="q-prepared-for" placeholder="e.g. Paul Godfrey">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client Email</label>
+          <input type="email" class="form-input" id="q-email" placeholder="Contact email">
+        </div>
+        <div class="form-group">
+          <label>Prepared By</label>
+          <input type="text" class="form-input" id="q-prepared-by" placeholder="e.g. Luke Storey">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Service Address</label>
+          <input type="text" class="form-input" id="q-address" placeholder="Site / service address">
+        </div>
+        <div class="form-group">
+          <label>Job Type</label>
+          <select class="form-input" id="q-job-type" onchange="onJobTypeChange()">
+            <option value="T&amp;I">Test &amp; Inspection</option>
+            <option value="RPS">Remedial Repairs</option>
+            <option value="Installation">Installation</option>
+            <option value="Survey">Survey</option>
+            <option value="Risk Assessment">Risk Assessment</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Job Reference (auto-generated)</label>
+          <input type="text" class="form-input" id="q-job-ref" readonly style="opacity:0.6;cursor:not-allowed;">
+        </div>
+        <div class="form-group">
+          <label>Quote Date</label>
+          <input type="date" class="form-input" id="q-date">
+        </div>
+      </div>
+
+      <!-- LINE ITEMS -->
+      <div class="sec-div">Service Description</div>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="cis-toggle" onchange="recalc()">
+          <span class="tslider"></span>
+        </label>
+        <span style="font-size:14px;font-weight:500;">CIS Deduction (20% on labour)</span>
+      </div>
+      <table class="li-table">
+        <thead>
+          <tr>
+            <th style="width:42%;">Description</th>
+            <th style="width:14%;">Type</th>
+            <th style="width:10%;">Qty</th>
+            <th style="width:16%;">Unit Price</th>
+            <th style="width:12%;text-align:right;">Total</th>
+            <th style="width:6%;"></th>
+          </tr>
+        </thead>
+        <tbody id="li-body"></tbody>
+      </table>
+      <button class="add-line-btn" onclick="addLine()">&#43; Add Line Item</button>
+
+      <!-- TOTALS -->
+      <div class="totals-box">
+        <div class="tot-row"><span>Subtotal</span><span id="t-sub">&#163;0.00</span></div>
+        <div class="tot-row cis-r hidden" id="cis-row"><span>CIS Deduction</span><span id="t-cis">-&#163;0.00</span></div>
+        <div class="tot-row"><span>VAT (20%)</span><span id="t-vat">&#163;0.00</span></div>
+        <div class="tot-row grand"><span>Total</span><span id="t-total">&#163;0.00</span></div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="sec-div" style="margin-top:20px;">Additional Notes</div>
+      <div class="form-group">
+        <textarea class="form-input" id="q-notes" rows="3" style="resize:vertical;" placeholder="Any additional notes to include on the quote..."></textarea>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="/Wiggle/js/data.js"></script>
+<script>
+var currentUser;
+var allQuotes = [];
+var allCustomers = [];
+var lineItems = [];
+var currentQuoteId = null;
+var currentCustomerId = null;
+var filterStatus = 'all';
+
+var TERMS = '1) Validity of Quotation\nThis quotation is valid for 30 days from the date of issue. After this period, the terms and prices may be subject to change.\n\n'
+  + '2) Site Access and Wildlife Interference\nShould we attend the site and be unable to undertake the work due to the presence of nesting seagulls, pigeons, or other wildlife, the work will be rescheduled. A call-out fee of 25% of the quoted value will be charged.\n\n'
+  + '3) Site Access Denial and Abuse\nShould we attend the site and be unable to undertake the work due to being refused access by site staff, or if our staff are verbally or physically abused after confirmation has been given for attendance, the work will be rescheduled. An aborted fee of 25% of the quoted value will be charged.\n\n'
+  + '4) Health and Safety Documentation\nPrior to inspections, Strike Point Lightning Protection Ltd will provide Risk Assessments and Method Statements (RAMS), if requested, along with all associated site health and safety documentation as required.\n\n'
+  + '5) Edge Protection and Safety Materials\nUnless full edge protection is provided by the client, Strike Point Lightning Protection Ltd reserves the right to recharge additional necessary costs to the client for materials to ensure that teams are always working safely.\n\n'
+  + '6) Cancellation and Re-stocking Fees\nIf an agreed order for any job involving procurement is cancelled entirely within 5 working days of the start date/time, the client is required to pay a restocking fee of 30% of the order value.\n\n'
+  + '7) Amendments Based on Site Survey\nThe quoted price may be subject to change pending a site survey. Strike Point Lightning Protection Ltd reserves the right to amend and reissue the quotation based on survey findings if necessary.\n\n'
+  + '8) Certificate Hold Until Payment\nCertificates may be withheld until payment has been received in full, unless otherwise agreed.\n\n'
+  + '9) Access Equipment Charges\nIf access equipment is required and access to the work area is denied or is unable to be accessed, after prior confirmation from the client, the client will be charged in full for the access equipment. This includes, but is not limited to, MEWPs, Scaffold Towers, and Man Anchors.\n\n'
+  + '10) Client Obligations\nThe client agrees to provide all necessary information, materials, and access to the premises to enable us to perform the services. The client will ensure that the information provided is accurate and complete.\n\n'
+  + '11) Liability\nOur liability to the client for any breach of these terms and conditions or for any negligence in performing our services is limited to the amount of the fees paid for the services. We will not be liable for any indirect or consequential losses, including loss of profit, revenue, or business.\n\n'
+  + '12) Disputes\nAny disputes regarding the services or the quote must be communicated in writing or email within 7 days from the date of the quote. Failure to do so will result in the quote being deemed accepted. Any disputes that cannot be resolved amicably will be referred to mediation or arbitration in accordance with the laws of England and Wales.\n\n'
+  + '13) Payment Terms\nPayment is due within 30 days of the date specified on our invoice (30 days), unless otherwise agreed in writing. Payments should be made via bank transfer or cash (cheques will NOT be accepted).\n\n'
+  + '14) Late Payments\nIn the event of late payment, we reserve the right to charge statutory interest at 8% plus the Bank of England base rate, calculated daily from the due date until full payment is received.\n\n'
+  + '15) Debt Collection\nIf payment is not received within the specified terms or payment is refused, we reserve the right to recover any costs incurred through debt collection agencies. Any additional fees or expenses incurred in the collection process will be added to the outstanding amount.\n\n'
+  + '16) Acceptance\nBy accepting this quote, you acknowledge and agree to the above terms and conditions. Our liability to the client for any breach of these terms and conditions or for any negligence in performing our services is limited to the amount of the fees paid for the services. We will not be liable for any indirect or consequential losses, including loss of profit, revenue, or business.';
+
+var FOOTER = 'Strike Point Lightning Protection Ltd Registered office: Atkinson Evans Ltd, 10 Arnot Hill Road, Nottingham NG5 6LJ. Company No. 15114852, Registered in England and Wales. @: info@strikepoint.uk Tel: 01159903220';
+
+// ---- INIT ----
+document.addEventListener('DOMContentLoaded', function() {
+  currentUser = requireAuth();
+  if (!currentUser) return;
+  if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
+  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  document.getElementById('q-prepared-by').value = currentUser.name;
+
+  var params = new URLSearchParams(window.location.search);
+  var qid = params.get('id');
+  currentCustomerId = params.get('customer');
+
+  document.getElementById('btn-back').onclick = function() {
+    if (currentCustomerId) window.location.href = '/Wiggle/crm-customer.html?id=' + currentCustomerId;
+    else window.location.href = '/Wiggle/customers.html';
+  };
+
+  showLoader();
+  initFirebase().then(function() {
+    hideLoader();
+    loadCustomersDropdown(function() {
+      if (qid) { openExistingQuote(qid); }
+      else if (currentCustomerId) { openNewQuote(currentCustomerId); }
+      else { loadQuotes(); }
+    });
+  }).catch(function() { hideLoader(); showToast('Connection error - please refresh.', 'error'); });
+});
+
+// ---- LOAD CUSTOMERS ----
+function loadCustomersDropdown(cb) {
+  _db.collection('crm_customers').orderBy('company').get().then(function(snap) {
+    allCustomers = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    var sel = document.getElementById('q-customer');
+    sel.innerHTML = '<option value="">-- Select Customer --</option>';
+    allCustomers.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.company + (c.clientRef ? ' (#' + c.clientRef + ')' : '');
+      sel.appendChild(opt);
+    });
+    if (cb) cb();
+  }).catch(function() { if (cb) cb(); });
+}
+
+// ---- LOAD QUOTES ----
+function loadQuotes() {
+  _db.collection('crm_quotes').orderBy('createdAt', 'desc').get().then(function(snap) {
+    allQuotes = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    renderList();
+  }).catch(function(err) { console.error(err); showToast('Error loading quotes.', 'error'); });
+}
+
+// ---- LIST ----
+function setFilter(status, btn) {
+  filterStatus = status;
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderList();
+}
+
+function renderList() {
+  var q = (document.getElementById('q-search').value || '').toLowerCase();
+  var filtered = allQuotes.filter(function(qt) {
+    var ms = filterStatus === 'all' || qt.status === filterStatus;
+    var mq = !q || (qt.ref||'').toLowerCase().includes(q) || (qt.company||'').toLowerCase().includes(q) || (qt.serviceAddress||'').toLowerCase().includes(q);
+    return ms && mq;
+  });
+  var list = document.getElementById('quote-list');
+  var empty = document.getElementById('q-empty');
+  if (!filtered.length) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  var html = '';
+  filtered.forEach(function(qt) {
+    html += '<div class="quote-row">'
+      + '<div class="quote-row-info">'
+      +   '<div class="qref">' + esc(qt.ref || '-') + '</div>'
+      +   '<div class="qcompany">' + esc(qt.company || '-') + '</div>'
+      +   '<div class="qmeta">' + esc(qt.jobType || '') + ' &middot; ' + esc(qt.serviceAddress || '-') + ' &middot; ' + formatDate(qt.createdAt) + '</div>'
+      + '</div>'
+      + '<div class="quote-row-right">'
+      +   '<span class="sbadge badge-' + esc(qt.status) + '">' + cap(qt.status) + '</span>'
+      +   '<span class="qtotal">' + fmtMoney(qt.total || 0) + '</span>'
+      +   '<button class="btn btn-secondary btn-xs" onclick="openExistingQuote(\'' + esc(qt.id) + '\')">View</button>'
+      +   '<button class="btn btn-danger btn-xs" onclick="confirmDelete(\'' + esc(qt.id) + '\')">&#128465;</button>'
+      + '</div></div>';
+  });
+  list.innerHTML = html;
+}
+
+// ---- OPEN EDITOR ----
+function openNewQuote(preselectCid) {
+  currentQuoteId = null;
+  lineItems = [];
+  document.getElementById('view-list').classList.add('hidden');
+  document.getElementById('view-editor').classList.remove('hidden');
+  document.getElementById('editor-title').textContent = 'New Quote';
+  document.getElementById('editor-ref').textContent = '';
+  document.getElementById('status-bar').classList.add('hidden');
+  document.getElementById('btn-pdf').classList.add('hidden');
+  document.getElementById('btn-save').textContent = 'Save Quote';
+  document.getElementById('q-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('q-notes').value = '';
+  document.getElementById('q-address').value = '';
+  document.getElementById('q-prepared-by').value = currentUser.name;
+  document.getElementById('q-prepared-for').value = '';
+  document.getElementById('q-email').value = '';
+  document.getElementById('cis-toggle').checked = false;
+  document.getElementById('cis-row').classList.add('hidden');
+  document.getElementById('q-customer').value = preselectCid || '';
+  if (preselectCid) { currentCustomerId = preselectCid; onCustomerChange(); }
+  else { document.getElementById('q-job-ref').value = ''; }
+  addLine();
+  recalc();
+}
+
+function openExistingQuote(id) {
+  _db.collection('crm_quotes').doc(id).get().then(function(doc) {
+    if (!doc.exists) { showToast('Quote not found.', 'error'); return; }
+    var q = Object.assign({ id: doc.id }, doc.data());
+    currentQuoteId = id;
+    currentCustomerId = q.customerId || null;
+    document.getElementById('view-list').classList.add('hidden');
+    document.getElementById('view-editor').classList.remove('hidden');
+    document.getElementById('editor-title').textContent = q.ref || 'Quote';
+    document.getElementById('editor-ref').textContent = q.ref || '';
+    document.getElementById('btn-pdf').classList.remove('hidden');
+    document.getElementById('btn-save').textContent = 'Save Changes';
+    document.getElementById('status-bar').classList.remove('hidden');
+    updateStatusBadge(q.status || 'draft');
+    document.getElementById('q-customer').value     = q.customerId || '';
+    document.getElementById('q-prepared-for').value = q.preparedFor || '';
+    document.getElementById('q-email').value        = q.clientEmail || '';
+    document.getElementById('q-prepared-by').value  = q.preparedBy || '';
+    document.getElementById('q-address').value      = q.serviceAddress || '';
+    document.getElementById('q-job-type').value     = q.jobType || 'T&I';
+    document.getElementById('q-job-ref').value      = q.jobRef || '';
+    document.getElementById('q-date').value         = q.quoteDate || '';
+    document.getElementById('q-notes').value        = q.notes || '';
+    document.getElementById('cis-toggle').checked   = q.cis || false;
+    document.getElementById('cis-row').classList.toggle('hidden', !q.cis);
+    lineItems = (q.lineItems || []).map(function(li) { return Object.assign({}, li); });
+    renderLines();
+    recalc();
+  }).catch(function(err) { console.error(err); showToast('Error loading quote.', 'error'); });
+}
+
+function closeEditor() {
+  document.getElementById('view-editor').classList.add('hidden');
+  document.getElementById('view-list').classList.remove('hidden');
+  currentQuoteId = null;
+  loadQuotes();
+}
+
+// ---- CUSTOMER CHANGE ----
+function onCustomerChange() {
+  var cid = document.getElementById('q-customer').value;
+  if (!cid) { document.getElementById('q-job-ref').value = ''; document.getElementById('editor-ref').textContent = ''; return; }
+  var c = allCustomers.find(function(x) { return x.id === cid; });
+  if (!c) return;
+  currentCustomerId = cid;
+  if (c.contact) document.getElementById('q-prepared-for').value = c.contact;
+  if (c.email)   document.getElementById('q-email').value = c.email;
+  buildRef(c);
+}
+
+function onJobTypeChange() {
+  var cid = document.getElementById('q-customer').value;
+  if (!cid) return;
+  var c = allCustomers.find(function(x) { return x.id === cid; });
+  if (c) buildRef(c);
+}
+
+function buildRef(c) {
+  var rand3 = String(Math.floor(Math.random() * 900) + 100);
+  var jobRef = (c.clientRef || '') + rand3;
+  var jobType = document.getElementById('q-job-type').value;
+  var d = new Date();
+  var dd = String(d.getDate()).padStart(2,'0');
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  var yy = String(d.getFullYear()).slice(-2);
+  var dateStr = dd + mm + yy;
+  var quoteRef = 'Q' + (c.clientRef||'') + '-' + jobType + '-' + jobRef + '-' + c.company + ' ' + dateStr;
+  document.getElementById('q-job-ref').value = jobRef;
+  document.getElementById('editor-ref').textContent = quoteRef;
+}
+
+// ---- LINE ITEMS ----
+function addLine() {
+  lineItems.push({ description: '', type: 'labour', qty: 1, unitPrice: 0 });
+  renderLines();
+}
+
+function renderLines() {
+  var tbody = document.getElementById('li-body');
+  if (!lineItems.length) { tbody.innerHTML = ''; return; }
+  var html = '';
+  lineItems.forEach(function(li, i) {
+    var tot = (parseFloat(li.qty)||0) * (parseFloat(li.unitPrice)||0);
+    html += '<tr>'
+      + '<td><input class="li-inp" type="text" value="' + esc(li.description) + '" placeholder="Description of work..." onchange="updateLI(' + i + ',\'description\',this.value)" oninput="updateLI(' + i + ',\'description\',this.value)"></td>'
+      + '<td><select class="li-inp" onchange="updateLI(' + i + ',\'type\',this.value)">'
+      +   '<option value="labour"'    + (li.type==='labour'   ?' selected':'') + '>Labour</option>'
+      +   '<option value="materials"' + (li.type==='materials'?' selected':'') + '>Materials</option>'
+      +   '<option value="other"'     + (li.type==='other'    ?' selected':'') + '>Other</option>'
+      + '</select></td>'
+      + '<td><input class="li-inp" type="number" min="0.01" step="0.01" value="' + (li.qty||1) + '" style="text-align:center;" onchange="updateLI(' + i + ',\'qty\',this.value)"></td>'
+      + '<td><input class="li-inp" type="number" min="0" step="0.01" value="' + (li.unitPrice||'') + '" placeholder="0.00" onchange="updateLI(' + i + ',\'unitPrice\',this.value)"></td>'
+      + '<td style="text-align:right;font-weight:600;padding-right:8px;">' + fmtMoney(tot) + '</td>'
+      + '<td style="text-align:center;"><button class="btn btn-danger btn-xs" onclick="removeLI(' + i + ')">&#10005;</button></td>'
+      + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function updateLI(i, field, val) {
+  if (field === 'qty' || field === 'unitPrice') lineItems[i][field] = parseFloat(val) || 0;
+  else lineItems[i][field] = val;
+  renderLines();
+  recalc();
+}
+
+function removeLI(i) { lineItems.splice(i,1); renderLines(); recalc(); }
+
+// ---- RECALC ----
+function recalc() {
+  var cis = document.getElementById('cis-toggle').checked;
+  var subtotal = 0, cisDeduction = 0;
+  lineItems.forEach(function(li) {
+    var t = (parseFloat(li.qty)||0) * (parseFloat(li.unitPrice)||0);
+    subtotal += t;
+    if (cis && li.type === 'labour') cisDeduction += t * 0.20;
+  });
+  var vatBase = subtotal - cisDeduction;
+  var vat = vatBase * 0.20;
+  var total = vatBase + vat;
+  document.getElementById('t-sub').textContent   = fmtMoney(subtotal);
+  document.getElementById('t-cis').textContent   = '-' + fmtMoney(cisDeduction);
+  document.getElementById('t-vat').textContent   = fmtMoney(vat);
+  document.getElementById('t-total').textContent = fmtMoney(total);
+  document.getElementById('cis-row').classList.toggle('hidden', !cis);
+  return { subtotal:subtotal, cisDeduction:cisDeduction, vat:vat, total:total };
+}
+
+// ---- SAVE ----
+function saveQuote() {
+  var cid = document.getElementById('q-customer').value;
+  if (!cid) { showToast('Please select a customer.', 'error'); return; }
+  if (!lineItems.length) { showToast('Please add at least one line item.', 'error'); return; }
+  var c = allCustomers.find(function(x) { return x.id === cid; }) || {};
+  var totals = recalc();
+  var jobType = document.getElementById('q-job-type').value;
+  var jobRef  = document.getElementById('q-job-ref').value;
+  var ref     = document.getElementById('editor-ref').textContent || jobRef;
+  var data = {
+    customerId:     cid,
+    company:        c.company || '',
+    clientRef:      c.clientRef || '',
+    preparedFor:    document.getElementById('q-prepared-for').value.trim(),
+    clientEmail:    document.getElementById('q-email').value.trim(),
+    preparedBy:     document.getElementById('q-prepared-by').value.trim(),
+    serviceAddress: document.getElementById('q-address').value.trim(),
+    jobType:        jobType,
+    jobRef:         jobRef,
+    ref:            ref,
+    quoteDate:      document.getElementById('q-date').value,
+    notes:          document.getElementById('q-notes').value.trim(),
+    cis:            document.getElementById('cis-toggle').checked,
+    lineItems:      lineItems,
+    subtotal:       totals.subtotal,
+    cisDeduction:   totals.cisDeduction,
+    vat:            totals.vat,
+    total:          totals.total,
+    updatedAt:      new Date().toISOString()
+  };
+  var btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  var promise = currentQuoteId
+    ? _db.collection('crm_quotes').doc(currentQuoteId).update(data)
+    : _db.collection('crm_quotes').add(Object.assign({ status:'draft', createdAt: new Date().toISOString() }, data));
+  promise.then(function(docRef) {
+    if (!currentQuoteId && docRef) {
+      currentQuoteId = docRef.id;
+      document.getElementById('editor-title').textContent = ref;
+      document.getElementById('btn-pdf').classList.remove('hidden');
+      document.getElementById('btn-save').textContent = 'Save Changes';
+      document.getElementById('status-bar').classList.remove('hidden');
+      updateStatusBadge('draft');
+    }
+    showToast('Quote saved', 'success');
+  }).catch(function(err) { console.error(err); showToast('Error saving quote.', 'error'); })
+    .finally(function() { btn.disabled = false; btn.textContent = currentQuoteId ? 'Save Changes' : 'Save Quote'; });
+}
+
+// ---- STATUS ----
+function setStatus(status) {
+  if (!currentQuoteId) { showToast('Save the quote first.', 'error'); return; }
+  _db.collection('crm_quotes').doc(currentQuoteId).update({ status:status, updatedAt: new Date().toISOString() }).then(function() {
+    updateStatusBadge(status);
+    showToast('Status updated to ' + cap(status), 'success');
+  }).catch(function(err) { console.error(err); showToast('Error updating status.', 'error'); });
+}
+
+function updateStatusBadge(status) {
+  var badge = document.getElementById('status-badge');
+  badge.textContent = cap(status);
+  badge.className = 'sbadge badge-' + status;
+  document.getElementById('btn-sent').style.display     = (status === 'draft')    ? 'inline-flex' : 'none';
+  document.getElementById('btn-accepted').style.display = (status === 'sent')     ? 'inline-flex' : 'none';
+  document.getElementById('btn-declined').style.display = (status === 'sent')     ? 'inline-flex' : 'none';
+}
+
+// ---- DELETE ----
+function confirmDelete(id) {
+  if (!confirm('Delete this quote? This cannot be undone.')) return;
+  _db.collection('crm_quotes').doc(id).delete().then(function() {
+    showToast('Quote deleted', 'success'); loadQuotes();
+  }).catch(function(err) { console.error(err); showToast('Error deleting.', 'error'); });
+}
+
+// ---- PDF ----
+function generatePDF() {
+  var cid = document.getElementById('q-customer').value;
+  var c   = allCustomers.find(function(x) { return x.id === cid; }) || {};
+  var totals = recalc();
+  var ref = document.getElementById('editor-ref').textContent || document.getElementById('q-job-ref').value;
+  var data = {
+    quoteRef:       ref,
+    company:        c.company || '',
+    clientRef:      c.clientRef || '',
+    preparedFor:    document.getElementById('q-prepared-for').value,
+    preparedBy:     document.getElementById('q-prepared-by').value,
+    clientEmail:    document.getElementById('q-email').value,
+    serviceAddress: document.getElementById('q-address').value,
+    jobRef:         document.getElementById('q-job-ref').value,
+    jobType:        document.getElementById('q-job-type').value,
+    quoteDate:      document.getElementById('q-date').value,
+    notes:          document.getElementById('q-notes').value,
+    cis:            document.getElementById('cis-toggle').checked,
+    lineItems:      lineItems,
+    subtotal:       totals.subtotal,
+    cisDeduction:   totals.cisDeduction,
+    vat:            totals.vat,
+    total:          totals.total
+  };
+  var logoUrl = 'https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png';
+  var btn = document.getElementById('btn-pdf');
+  btn.disabled = true; btn.textContent = 'Building PDF...';
+  loadImgB64(logoUrl, function(logoB64) {
+    try {
+      var pdf = new window.jspdf.jsPDF();
+      buildPDF(pdf, data, logoB64);
+      pdf.save((ref || 'quote') + '.pdf');
+    } catch(e) { console.error(e); showToast('PDF error - check console.', 'error'); }
+    btn.disabled = false; btn.textContent = '&#128438; PDF';
+    btn.innerHTML = '&#128438; PDF';
+  });
+}
+
+function buildPDF(pdf, d, logoB64) {
+  var lm = 20, pw = 170;
+
+  // PAGE 1
+  pdf.setFontSize(10); pdf.setFont(undefined,'bold');
+  pdf.text('Strike Point Lightning Protection Ltd', lm, 18);
+  pdf.setFont(undefined,'normal');
+  pdf.text('Atkinson & Evans', lm, 24);
+  pdf.text('10 Arnot Hill Road', lm, 30);
+  pdf.text('Arnold, Nottingham NG5 6LJ', lm, 36);
+  if (logoB64) pdf.addImage(logoB64, 'PNG', 148, 10, 42, 32);
+
+  pdf.setFontSize(26); pdf.setFont(undefined,'bold');
+  pdf.text('Quotation', 105, 56, { align:'center' });
+
+  pdf.setFontSize(11); pdf.setFont(undefined,'bold');
+  pdf.text('Date:', lm, 69);
+  pdf.setFont(undefined,'normal');
+  pdf.text(fmtDateDisplay(d.quoteDate), lm+18, 69);
+
+  var iy = 80;
+  var labels = ['Quote Ref:','Prepared by:','Prepared for:','Client Email:','Client Name:','Client Ref #:'];
+  var values = [d.quoteRef, d.preparedBy, d.preparedFor, d.clientEmail, d.company, d.clientRef];
+  pdf.setFontSize(10);
+  for (var i=0; i<labels.length; i++) {
+    pdf.setFont(undefined,'bold'); pdf.text(labels[i], lm+10, iy + i*8);
+    pdf.setFont(undefined,'normal');
+    var vlines = pdf.splitTextToSize(String(values[i]||''), 100);
+    pdf.text(vlines[0], lm+44, iy + i*8);
+  }
+
+  var iy2 = iy + labels.length*8 + 10;
+  pdf.setFontSize(11); pdf.setFont(undefined,'bolditalic');
+  pdf.text('We would like to offer the following services for your consideration', 105, iy2, { align:'center' });
+  iy2 += 10;
+  pdf.setFontSize(10); pdf.setFont(undefined,'bold');
+  pdf.text('Service Address:', lm, iy2); pdf.setFont(undefined,'normal');
+  pdf.text(d.serviceAddress||'', lm+36, iy2);
+  iy2 += 8;
+  pdf.setFont(undefined,'bold'); pdf.text('Job Reference:', lm, iy2); pdf.setFont(undefined,'normal');
+  pdf.text(String(d.jobRef||''), lm+30, iy2);
+  iy2 += 12;
+
+  pdf.setFont(undefined,'bold'); pdf.setFontSize(11); pdf.text('Service Description', lm, iy2);
+  iy2 += 7;
+  pdf.setFont(undefined,'bold'); pdf.setFontSize(10); pdf.text(d.jobType||'', lm+8, iy2);
+  iy2 += 8; pdf.setFont(undefined,'normal');
+
+  for (var j=0; j<d.lineItems.length; j++) {
+    var li = d.lineItems[j];
+    if (!li.description) continue;
+    var dlines = pdf.splitTextToSize(li.description, pw-8);
+    for (var k=0; k<dlines.length; k++) {
+      if (iy2 > 218) { iy2 = 20; pdf.addPage(); }
+      pdf.text(dlines[k], lm, iy2); iy2 += 6;
+    }
+  }
+
+  if (d.notes) {
+    iy2 += 4;
+    var nlines = pdf.splitTextToSize(d.notes, pw-8);
+    for (var n=0; n<nlines.length; n++) {
+      if (iy2 > 218) { iy2 = 20; pdf.addPage(); }
+      pdf.text(nlines[n], lm, iy2); iy2 += 6;
+    }
+  }
+
+  // Totals bottom right
+  var ty = 238;
+  pdf.setFontSize(10); pdf.setFont(undefined,'italic');
+  pdf.text('Subtotal:', 118, ty); pdf.setFont(undefined,'normal'); pdf.text(fmtMoney(d.subtotal), 188, ty, {align:'right'});
+  ty += 7;
+  if (d.cis && d.cisDeduction > 0) {
+    pdf.setFont(undefined,'italic'); pdf.text('CIS Deduction:', 118, ty); pdf.setFont(undefined,'normal'); pdf.text('-'+fmtMoney(d.cisDeduction), 188, ty, {align:'right'}); ty += 7;
+  }
+  pdf.setFont(undefined,'italic'); pdf.text('VAT:', 118, ty); pdf.setFont(undefined,'normal'); pdf.text(fmtMoney(d.vat), 188, ty, {align:'right'});
+  ty += 7;
+  pdf.setFontSize(12); pdf.setFont(undefined,'bold');
+  pdf.text('Total:', 118, ty); pdf.text(fmtMoney(d.total), 188, ty, {align:'right'});
+  pdf.setLineWidth(0.5); pdf.line(118, ty+2, 190, ty+2);
+
+  pdf.setFontSize(8); pdf.setFont(undefined,'italic');
+  pdf.text('Strike Point to provide post completion system inspection report for your records.', 105, ty+10, {align:'center'});
+
+  addFooter(pdf, 1, 2, FOOTER);
+
+  // PAGE 2 - TERMS
+  pdf.addPage();
+  if (logoB64) pdf.addImage(logoB64, 'PNG', 148, 10, 42, 32);
+  pdf.setFontSize(16); pdf.setFont(undefined,'bold');
+  pdf.text('Terms & Conditions', 105, 25, {align:'center'});
+
+  var ty2 = 38;
+  var termLines = TERMS.split('\n');
+  pdf.setFontSize(9);
+  for (var t=0; t<termLines.length; t++) {
+    var tl = termLines[t];
+    if (!tl.trim()) { ty2 += 3; continue; }
+    var isBold = /^\d+\)/.test(tl);
+    pdf.setFont(undefined, isBold ? 'bold' : 'normal');
+    var wrapped = pdf.splitTextToSize(tl, pw);
+    for (var w=0; w<wrapped.length; w++) {
+      if (ty2 > 268) {
+        addFooter(pdf, 2, 2, FOOTER);
+        pdf.addPage(); ty2 = 20; pdf.setFontSize(9);
+      }
+      pdf.text(wrapped[w], lm, ty2); ty2 += isBold ? 6 : 5;
+    }
+  }
+  addFooter(pdf, 2, 2, FOOTER);
+}
+
+function addFooter(pdf, page, total, footer) {
+  pdf.setFontSize(8); pdf.setFont(undefined,'normal');
+  pdf.text('Page ' + page + ' of ' + total, 105, 278, {align:'center'});
+  var fl = pdf.splitTextToSize(footer, 170);
+  pdf.text(fl, 105, 283, {align:'center'});
+}
+
+function fmtDateDisplay(ds) {
+  if (!ds) return '';
+  var p = ds.split('-');
+  if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+  return ds;
+}
+
+function loadImgB64(url, cb) {
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    var c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    c.getContext('2d').drawImage(img,0,0);
+    cb(c.toDataURL('image/png'));
+  };
+  img.onerror = function() { cb(null); };
+  img.src = url;
+}
+
+// ---- HELPERS ----
+function fmtMoney(v) { return '\u00a3' + parseFloat(v||0).toFixed(2); }
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'success');
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Wiggle/sw.js');
+  }
+</script>
+</body>
+</html>
