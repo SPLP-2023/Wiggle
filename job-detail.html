@@ -535,21 +535,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!currentUser) return;
 
   const params = new URLSearchParams(window.location.search);
-  const id = params.get('id');
-  job = appData.jobs.find(j => j.id === id);
+  const jobId = params.get('id');
 
-  if (!job) {
-    document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8;"><h2>Job not found</h2><a href="/Wiggle/index.html" style="color:#f59e0b;">← Back to Dashboard</a></div>';
-    return;
-  }
-
-  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
-  document.getElementById('user-name-display').textContent = currentUser.name;
-  document.getElementById('main-content').style.display = 'block';
-
-  renderPage();
-  setupActionButtons();
-  if (job.startedAt && !job.finishedAt) startTimer();
+  showLoader();
+  setLoaderMsg('Loading job…');
+  initFirebase().then(() => {
+    hideLoader();
+    job = appData.jobs.find(j => j.id === jobId);
+    if (!job) {
+      document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8;"><h2>Job not found</h2><a href="/Wiggle/index.html" style="color:#f59e0b;">← Back to Dashboard</a></div>';
+      return;
+    }
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    document.getElementById('main-content').style.display = 'block';
+    renderPage();
+    setupActionButtons();
+    if (job.startedAt && !job.finishedAt) startTimer();
+  }).catch(err => {
+    hideLoader();
+    console.error('Firebase error', err);
+    showToast('Connection error — please refresh.', 'error');
+  });
 });
 
 function goBack() { window.location.href = '/Wiggle/index.html'; }
