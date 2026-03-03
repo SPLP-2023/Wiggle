@@ -497,8 +497,10 @@ function buildNav() {
     ...(isManager ? [{ label: '⚙️ Settings', page: 'settings' }] : []),
   ];
   const html = links.map(l =>
-    `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
-  ).join('') + `<button class="nav-link" onclick="doLogout()">🚪 Logout</button>`;
+  l.page === 'settings'
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/settings.html'">${l.label}</button>`
+    : `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
+).join('') + `<button class="nav-link" onclick="doLogout()">🚪 Logout</button>`;
 
   document.getElementById('nav-links').innerHTML = html;
   document.getElementById('mobile-menu').innerHTML = html;
