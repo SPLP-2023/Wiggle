@@ -1,11 +1,13 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Detail — Strike Point</title>
 <style>
@@ -194,9 +196,6 @@
     .costs-grid { grid-template-columns:1fr; }
   }
 </style>
-  <!-- Firebase compat SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -255,7 +254,7 @@
       <button class="btn btn-secondary"id="btn-reject"   onclick="rejectToLive()"       >↩ Reject to Live</button>
       <!-- Both -->
       <button class="btn btn-danger"   id="btn-abort"    onclick="confirmAbort()"       >✕ Abort Job</button>
-      <button class="btn btn-info"     id="btn-export"   onclick="exportTxt()"          >⬇ Export .txt</button>
+      <button class="btn btn-info"     id="btn-save-history" onclick="saveToHistory()">📁 Save to History</button>
       <button class="btn btn-danger" id="btn-delete" onclick="confirmDelete()">🗑 Delete Job</button>
     </div>
   </div>
@@ -471,16 +470,14 @@
        TAB 4 — HISTORY
   ═══════════════════════════════════════ -->
   <div class="tab-panel" id="tab-history">
-    <div class="import-zone hidden" id="import-zone" onclick="document.getElementById('history-file-input').click()">
-      <div style="font-size:32px;">📂</div>
-      <p>Click to import a previous job .txt file</p>
-      <p style="font-size:12px;margin-top:4px;">Matched by postcode</p>
+    <div id="history-site-banner" style="display:none;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text-muted);">
+      📍 Showing all saved history for site: <strong id="history-site-name" style="color:var(--text);"></strong>
     </div>
-    <input type="file" id="history-file-input" accept=".txt" style="display:none;" onchange="importHistory(event)">
     <div id="history-list"></div>
     <div id="no-history" style="text-align:center;padding:60px 20px;color:var(--text-muted);">
       <div style="font-size:40px;margin-bottom:12px;">📁</div>
-      <div>No history files attached yet.</div>
+      <div>No history saved for this site yet.</div>
+      <div style="font-size:12px;margin-top:8px;">Click "Save to History" to create the first entry.</div>
     </div>
   </div>
 
@@ -522,6 +519,23 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Cancel</button>
       <button class="btn btn-danger" onclick="deleteJob()">Permanently Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE HISTORY MODAL -->
+<div class="modal-overlay hidden" id="modal-delete-history">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗑 Delete History Entry</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete-history')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to permanently delete this history entry? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete-history')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteHistoryEntry()">Delete Entry</button>
     </div>
   </div>
 </div>
@@ -573,7 +587,7 @@ function renderPage() {
   renderDetails();
   renderCosts();
   renderComments();
-  renderHistory();
+  loadAndRenderHistory();
   renderAuditLog();
 }
 
@@ -647,7 +661,7 @@ function saveSiteName() {
   if (!val) { showToast('Site name cannot be empty.', 'error'); return; }
   job.siteName = val;
   addAuditEntry(job, 'Site name updated to: ' + val, currentUser.name);
-  saveData();
+  saveJob(job);
   cancelSiteName();
   document.getElementById('d-sitename').textContent = val;
   document.getElementById('h-sitename').textContent = val;
@@ -672,9 +686,8 @@ function setupActionButtons() {
   show('btn-reject',       isManager  && s === 'pending');
   show('btn-abort',        (isManager || (isEngineer && isAssigned)) && (s === 'live' || s === 'pending'));
   show('btn-delete', isManager);
-  // History import: manager only
-  const iz = document.getElementById('import-zone');
-  if (iz) iz.classList.toggle('hidden', !isManager);
+  // Save to History: visible to both roles when job is active or complete
+  show('btn-save-history', (isManager || (isEngineer && isAssigned)) && (s === 'live' || s === 'pending' || s === 'complete'));
 }
 
 function show(id, condition) {
@@ -690,7 +703,7 @@ function startJob() {
   if (job.startedAt) return;
   job.startedAt = new Date().toISOString();
   addAuditEntry(job, 'Job started', currentUser.name);
-  saveData(); renderHeader(); renderDetails(); setupActionButtons(); startTimer();
+  saveJob(job); renderHeader(); renderDetails(); setupActionButtons(); startTimer();
   showToast('Job started — timer running ▶', 'success');
 }
 
@@ -701,7 +714,7 @@ function finishJob() {
   job.duration = fmtDuration(ms);
   stopTimer();
   addAuditEntry(job, 'Job timer stopped. Duration: ' + job.duration, currentUser.name);
-  saveData(); renderDetails(); setupActionButtons();
+  saveJob(job); renderDetails(); setupActionButtons();
   showToast('Timer stopped. Duration: ' + job.duration, 'success');
 }
 
@@ -714,7 +727,7 @@ function engineerComplete() {
   job.status = 'pending';
   addAuditEntry(job, 'Marked complete by engineer — awaiting manager review', currentUser.name);
   if (!job.finishedAt && job.startedAt) finishJob();
-  saveData(); renderHeader(); setupActionButtons();
+  saveJob(job); renderHeader(); setupActionButtons();
   showToast('Job marked complete — awaiting manager approval ✓', 'success');
 }
 
@@ -722,14 +735,14 @@ function approveComplete() {
   job.status = 'complete';
   job.completedAt = new Date().toISOString();
   addAuditEntry(job, 'Approved and marked complete by manager', currentUser.name);
-  saveData(); renderHeader(); setupActionButtons();
+  saveJob(job); renderHeader(); setupActionButtons();
   showToast('Job approved and completed ✅', 'success');
 }
 
 function rejectToLive() {
   job.status = 'live';
   addAuditEntry(job, 'Rejected back to live by manager', currentUser.name);
-  saveData(); renderHeader(); setupActionButtons();
+  saveJob(job); renderHeader(); setupActionButtons();
   showToast('Job rejected back to live ↩', 'success');
 }
 
@@ -739,7 +752,7 @@ function abortJob() {
   const reason = document.getElementById('abort-reason').value.trim();
   job.status = 'aborted';
   addAuditEntry(job, 'Job aborted' + (reason ? ': ' + reason : ''), currentUser.name);
-  saveData(); renderHeader(); setupActionButtons();
+  saveJob(job); renderHeader(); setupActionButtons();
   closeModal('modal-abort');
   showToast('Job aborted 🔴', 'success');
 }
@@ -792,7 +805,7 @@ function cancelDesc() {
 function saveDesc() {
   job.description = document.getElementById('desc-textarea').value.trim();
   addAuditEntry(job, 'Job description updated', currentUser.name);
-  saveData(); cancelDesc();
+  saveJob(job); cancelDesc();
   document.getElementById('d-desc').textContent = job.description || 'No description.';
   showToast('Description updated ✓', 'success');
 }
@@ -808,7 +821,7 @@ function addEngineer() {
   job.engineers.push(id);
   job.isNew = true;
   addAuditEntry(job, 'Engineer added: ' + getUserName(id), currentUser.name);
-  saveData(); renderEngineerChips(); setupActionButtons();
+  saveJob(job); renderEngineerChips(); setupActionButtons();
   showToast(getUserName(id) + ' added to job ✓', 'success');
 }
 
@@ -817,7 +830,7 @@ function removeEngineer(id) {
   const name = getUserName(id);
   job.engineers = job.engineers.filter(e => e !== id);
   addAuditEntry(job, 'Engineer removed: ' + name, currentUser.name);
-  saveData(); renderEngineerChips();
+  saveJob(job); renderEngineerChips();
   showToast(name + ' removed from job', 'success');
 }
 
@@ -899,7 +912,7 @@ function saveCosts() {
     c.netProfit = parseFloat((c.jobValue - c.labour - c.materials - c.parking - c.fuelCost - extraTotal).toFixed(2));
   }
 
-  saveData();
+  saveJob(job);
   renderProfitSummary();
 }
 
@@ -952,7 +965,7 @@ function renderExtraCosts() {
 function addExtraCost() {
   if (!job.costs.extraCosts) job.costs.extraCosts = [];
   job.costs.extraCosts.push({ desc: '', amount: 0 });
-  saveData(); renderExtraCosts();
+  saveJob(job); renderExtraCosts();
 }
 
 function updateExtra(i, field, val) {
@@ -993,7 +1006,7 @@ function postComment() {
   if (!job.comments) job.comments = [];
   job.comments.push({ author: currentUser.name, ts: new Date().toISOString(), text });
   input.value = '';
-  saveData(); renderComments();
+  saveJob(job); renderComments();
   showToast('Comment posted ✓', 'success');
 }
 
@@ -1008,59 +1021,145 @@ function linkify(t) {
 // ════════════════════════════════════════════
 // HISTORY
 // ════════════════════════════════════════════
-function renderHistory() {
+// ════════════════════════════════════════════
+// HISTORY — Save to History (Firebase)
+// ════════════════════════════════════════════
+function buildSnapshot() {
+  const c = job.costs || {};
+  const isTI = job.type === 'Test & Inspection';
+  const engineers = (job.engineers||[]).map(id => getUserName(id)).join(', ');
+  const extraCosts = (c.extraCosts||[]).map(x => `  ${x.desc}: £${parseFloat(x.amount).toFixed(2)}`).join('\n');
+  return {
+    jobId: job.id, jobRef: job.ref, siteName: job.siteName || '—',
+    company: job.company, address: job.address, postcode: job.postcode,
+    type: job.type, status: getStatusInfo(job.status).label,
+    bookingDate: formatDate(job.bookingDate), engineers,
+    description: job.description || 'None',
+    startedAt: job.startedAt ? formatDateTime(job.startedAt) : 'N/A',
+    finishedAt: job.finishedAt ? formatDateTime(job.finishedAt) : 'N/A',
+    duration: job.duration || 'N/A',
+    costs: {
+      jobValue: (c.jobValue||0).toFixed(2), vat: ((c.jobValue||0)*0.2).toFixed(2),
+      labour: isTI ? null : (c.labour||0).toFixed(2),
+      materials: isTI ? null : (c.materials||0).toFixed(2),
+      markup: isTI ? null : (c.markup||0),
+      parking: (c.parking||0).toFixed(2), miles: c.miles||0,
+      fuelCost: (c.fuelCost||0).toFixed(2), cis: c.cis ? 'Yes' : 'No',
+      extraCosts, totalCosts: (c.totalCosts||0).toFixed(2), netProfit: (c.netProfit||0).toFixed(2),
+    },
+    comments: (job.comments||[]).map(cm => `[${formatDateTime(cm.ts)}] ${cm.author}: ${cm.text}`).join('\n') || 'None',
+    auditLog: (job.auditLog||[]).map(e => `[${formatDateTime(e.ts)}] ${e.user}: ${e.action}`).join('\n') || 'None',
+  };
+}
+
+function saveToHistory() {
+  if (!job.siteName || !job.siteName.trim()) {
+    showToast('Please set a site name before saving to history.', 'error'); return;
+  }
+  const entry = { siteKey: job.siteName.trim(), savedAt: new Date().toISOString(), savedBy: currentUser.name, snapshot: buildSnapshot() };
+  _db.collection('siteHistory').add(entry).then(() => {
+    addAuditEntry(job, 'Saved to site history by ' + currentUser.name, currentUser.name);
+    saveJob(job);
+    showToast('Saved to history ✓', 'success');
+    loadAndRenderHistory();
+  }).catch(err => { console.error(err); showToast('Error saving to history.', 'error'); });
+}
+
+function loadAndRenderHistory() {
+  if (!_db || !job.siteName) return;
+  _db.collection('siteHistory').where('siteKey', '==', job.siteName.trim())
+    .orderBy('savedAt', 'desc').get()
+    .then(snap => renderHistory(snap.docs.map(doc => ({ _docId: doc.id, ...doc.data() }))))
+    .catch(err => console.error('History load error', err));
+}
+
+function renderHistory(items) {
   const list = document.getElementById('history-list');
   const noH  = document.getElementById('no-history');
-  const items = job.history || [];
-  noH.style.display  = items.length ? 'none' : 'block';
-  list.innerHTML = items.map((h,i) => `
-    <div class="history-item">
+  const banner = document.getElementById('history-site-banner');
+  const isManager = currentUser.role === 'manager';
+  if (!items || !items.length) {
+    noH.style.display = 'block'; list.innerHTML = ''; banner.style.display = 'none'; return;
+  }
+  noH.style.display = 'none'; banner.style.display = 'block';
+  document.getElementById('history-site-name').textContent = job.siteName;
+  list.innerHTML = items.map((h, i) => {
+    const s = h.snapshot; const isTI = s.type === 'Test & Inspection';
+    const details = `JOB DETAILS
+Reference:    #${s.jobRef}
+Site Name:    ${s.siteName}
+Company:      ${s.company}
+Address:      ${s.address}
+Postcode:     ${s.postcode}
+Job Type:     ${s.type}
+Booking Date: ${s.bookingDate}
+Status:       ${s.status}
+Engineers:    ${s.engineers}
+
+DESCRIPTION
+${s.description}
+
+TIME TRACKING
+Started:      ${s.startedAt}
+Finished:     ${s.finishedAt}
+Duration:     ${s.duration}
+
+FINANCIALS
+Job Value:    £${s.costs.jobValue} (ex VAT)
+VAT (20%):    £${s.costs.vat}
+${!isTI ? `Labour:       £${s.costs.labour}
+Materials:    £${s.costs.materials}
+Markup:       ${s.costs.markup}%
+` : ''}Parking:      £${s.costs.parking}
+Miles:        ${s.costs.miles}
+Fuel Cost:    £${s.costs.fuelCost}
+CIS Applied:  ${s.costs.cis}
+${s.costs.extraCosts ? 'Additional:\n' + s.costs.extraCosts + '\n' : ''}Total Costs:  £${s.costs.totalCosts}
+Net Profit:   £${s.costs.netProfit}
+
+COMMENTS
+${s.comments}
+
+AUDIT LOG
+${s.auditLog}`;
+    return `<div class="history-item">
       <div class="history-header" onclick="toggleHistory(${i})">
         <div>
-          <div class="history-title">📄 Job #${h.jobRef} — ${h.company}</div>
-          <div class="history-sub">Imported ${formatDate(h.importedAt)} · ${h.postcode}</div>
+          <div class="history-title">📄 ${s.siteName} — Job #${s.jobRef} — ${formatDate(h.savedAt)}</div>
+          <div class="history-sub">Saved by ${h.savedBy} · ${s.type} · ${s.status}</div>
         </div>
-        <span class="chevron" id="hchev-${i}">▼</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${isManager ? `<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();confirmDeleteHistory('${h._docId}')" title="Delete">🗑</button>` : ''}
+          <span class="chevron" id="hchev-${i}">▼</span>
+        </div>
       </div>
-      <div class="history-body" id="hbody-${i}">${escHtml(h.content)}</div>
-    </div>`).join('');
+      <div class="history-body" id="hbody-${i}">${escHtml(details)}</div>
+    </div>`;
+  }).join('');
 }
 
 function toggleHistory(i) {
-  const body  = document.getElementById('hbody-' + i);
-  const chev  = document.getElementById('hchev-' + i);
-  const open  = body.classList.toggle('open');
+  const body = document.getElementById('hbody-' + i);
+  const chev = document.getElementById('hchev-' + i);
+  const open = body.classList.toggle('open');
   chev.classList.toggle('open', open);
 }
 
-function importHistory(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const content = e.target.result;
-    // Extract postcode from file
-    const pcMatch = content.match(/Postcode:\s*([A-Z0-9 ]+)/i);
-    const filePC  = pcMatch ? pcMatch[1].trim().toUpperCase() : '';
-    if (filePC && filePC !== job.postcode.toUpperCase()) {
-      if (!confirm(`Postcode in file (${filePC}) differs from this job (${job.postcode}). Import anyway?`)) return;
-    }
-    const refMatch  = content.match(/Job Ref:\s*(\S+)/i);
-    const compMatch = content.match(/Company:\s*(.+)/i);
-    if (!job.history) job.history = [];
-    job.history.push({
-      jobRef:     refMatch  ? refMatch[1]  : 'Unknown',
-      company:    compMatch ? compMatch[1] : 'Unknown',
-      postcode:   filePC || job.postcode,
-      importedAt: new Date().toISOString(),
-      content,
-    });
-    addAuditEntry(job, 'History file imported: Job #' + (refMatch?refMatch[1]:'?'), currentUser.name);
-    saveData(); renderHistory();
-    showToast('History file imported ✓', 'success');
-  };
-  reader.readAsText(file);
-  event.target.value = '';
+let _pendingDeleteHistoryDocId = null;
+function confirmDeleteHistory(docId) {
+  _pendingDeleteHistoryDocId = docId;
+  document.getElementById('modal-delete-history').classList.remove('hidden');
+}
+function deleteHistoryEntry() {
+  if (!_pendingDeleteHistoryDocId) return;
+  _db.collection('siteHistory').doc(_pendingDeleteHistoryDocId).delete().then(() => {
+    _pendingDeleteHistoryDocId = null;
+    closeModal('modal-delete-history');
+    showToast('History entry deleted ✓', 'success');
+    addAuditEntry(job, 'History entry deleted by ' + currentUser.name, currentUser.name);
+    saveJob(job);
+    loadAndRenderHistory();
+  }).catch(err => { console.error(err); showToast('Error deleting entry.', 'error'); });
 }
 
 // ════════════════════════════════════════════
@@ -1084,71 +1183,7 @@ function toggleAudit() {
   chev.classList.toggle('open', open);
 }
 
-// ════════════════════════════════════════════
-// EXPORT .TXT
-// ════════════════════════════════════════════
-function exportTxt() {
-  const c = job.costs || {};
-  const isTI = job.type === 'Test & Inspection';
-  const engineers = (job.engineers||[]).map(id => getUserName(id)).join(', ');
-  const extraCosts = (c.extraCosts||[]).map(x => `    ${x.desc}: £${parseFloat(x.amount).toFixed(2)}`).join('\n');
 
-  let txt = `STRIKE POINT LIGHTNING PROTECTION LTD
-Job Record Export
-Generated: ${formatDateTime(new Date().toISOString())}
-${'='.repeat(50)}
-
-JOB DETAILS
-Job Ref:        ${job.ref}
-Site Name:      ${job.siteName || '—'}
-Company:        ${job.company}
-Site Rep:       ${job.rep || 'N/A'}
-Address:        ${job.address}
-Postcode:       ${job.postcode}
-Job Type:       ${job.type}
-Booking Date:   ${formatDate(job.bookingDate)}
-Status:         ${getStatusInfo(job.status).label}
-Engineers:      ${engineers}
-
-DESCRIPTION
-${job.description || 'None'}
-
-TIME TRACKING
-Started:        ${job.startedAt  ? formatDateTime(job.startedAt)  : 'N/A'}
-Finished:       ${job.finishedAt ? formatDateTime(job.finishedAt) : 'N/A'}
-Duration:       ${job.duration   || 'N/A'}
-
-FINANCIALS
-Job Value:      £${(c.jobValue||0).toFixed(2)} (ex VAT)
-VAT (20%):      £${((c.jobValue||0)*0.2).toFixed(2)}
-${!isTI ? `Labour:         £${(c.labour||0).toFixed(2)}
-Materials:      £${(c.materials||0).toFixed(2)}
-Markup:         ${c.markup||0}%
-` : ''}Parking:        £${(c.parking||0).toFixed(2)}
-Miles:          ${c.miles||0}
-Fuel Cost:      £${(c.fuelCost||0).toFixed(2)}
-CIS Applied:    ${c.cis ? 'Yes' : 'No'}
-${extraCosts ? 'Additional:\n' + extraCosts + '\n' : ''}Total Costs:    £${(c.totalCosts||0).toFixed(2)}
-Net Profit:     £${(c.netProfit||0).toFixed(2)}
-
-COMMENTS (${(job.comments||[]).length})
-${(job.comments||[]).map(cm => `[${formatDateTime(cm.ts)}] ${cm.author}:\n${cm.text}`).join('\n\n') || 'None'}
-
-AUDIT LOG
-${(job.auditLog||[]).map(e => `[${formatDateTime(e.ts)}] ${e.user}: ${e.action}`).join('\n') || 'None'}
-
-${'='.repeat(50)}
-End of Record`;
-
-  const blob = new Blob([txt], { type: 'text/plain' });
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = `SP_Job_${job.ref}_${job.company.replace(/\s+/g,'_')}.txt`;
-  a.click();
-  addAuditEntry(job, 'Job record exported as .txt', currentUser.name);
-  saveData();
-  showToast('Export downloaded ✓', 'success');
-}
 
 // ════════════════════════════════════════════
 // TABS
