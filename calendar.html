@@ -416,7 +416,7 @@ function openJobPopup(id) {
   const over = isOverdue(j);
   const eng  = (j.engineers||[]).map(id => getUserName(id));
 
-  document.getElementById('popup-ref').textContent          = '#' + j.ref;
+  document.getElementById('popup-ref').textContent          = (j.siteName || j.company) + ' #' + j.ref;
   document.getElementById('popup-type').textContent         = j.type;
   document.getElementById('popup-company').textContent      = j.company;
   document.getElementById('popup-date').textContent         = formatDate(j.bookingDate);
