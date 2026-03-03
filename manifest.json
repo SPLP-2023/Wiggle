@@ -1,0 +1,19 @@
+{
+  "name": "Strike Point FSM",
+  "short_name": "SP FSM",
+  "description": "Strike Point Lightning Protection — Field Service Management",
+  "start_url": "/Wiggle/login.html",
+  "scope": "/Wiggle/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
