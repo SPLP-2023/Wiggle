@@ -776,7 +776,7 @@ function buildPDF(pdf, d, logoB64, footerB64) {
   pdf.setDrawColor(0,0,0); pdf.setLineWidth(0.2);
 
   pdf.setFontSize(8); pdf.setFont(undefined,'italic');
-  pdf.text('Strike Point to provide post completion system inspection report for your records.', 105, ty+10, {align:'center'});
+  pdf.text('Strike Point to provide post completion system inspection report for your records.', 105, ty+6, {align:'center'});
 
   addFooter(pdf, 1, 2, footerB64);
 
@@ -786,14 +786,17 @@ function buildPDF(pdf, d, logoB64, footerB64) {
   pdf.setFontSize(15); pdf.setFont(undefined,'bold');
   pdf.text('Terms & Conditions', 105, 22, {align:'center'});
 
-  // Tighter spacing to fit all 16 clauses on one page
+  // Strip blank lines between clauses — only keep content lines
   var ty2 = 32;
   var termLines = TERMS.split('\n');
+  var prevWasBold = false;
   pdf.setFontSize(8);
   for (var t = 0; t < termLines.length; t++) {
     var tl = termLines[t];
-    if (!tl.trim()) { ty2 += 1.5; continue; }  // reduced blank line gap
+    if (!tl.trim()) continue;  // skip ALL blank lines entirely
     var isBold = /^\d+\)/.test(tl);
+    // Small gap before each new numbered clause (except the first)
+    if (isBold && prevWasBold === false && ty2 > 32) { ty2 += 2; }
     pdf.setFont(undefined, isBold ? 'bold' : 'normal');
     var wrapped = pdf.splitTextToSize(tl, pw);
     for (var w = 0; w < wrapped.length; w++) {
@@ -802,8 +805,9 @@ function buildPDF(pdf, d, logoB64, footerB64) {
         pdf.addPage(); ty2 = 20; pdf.setFontSize(8);
       }
       pdf.text(wrapped[w], lm, ty2);
-      ty2 += isBold ? 5 : 4.5;  // tighter line spacing
+      ty2 += isBold ? 5 : 4.5;
     }
+    prevWasBold = isBold;
   }
   addFooter(pdf, 2, 2, footerB64);
 }
