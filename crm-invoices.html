@@ -174,8 +174,15 @@
         <tbody id="li-body"></tbody>
       </table>
       <button class="add-line-btn" onclick="addLine()">&#43; Add Line Item</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="cis-toggle" onchange="recalc()" style="width:16px;height:16px;accent-color:var(--primary);">
+          <span>CIS Deduction (20%) — Reverse Charge</span>
+        </label>
+      </div>
       <div class="totals-box">
         <div class="tot-row"><span>Subtotal</span><span id="t-sub">&#163;0.00</span></div>
+        <div class="tot-row" id="t-cis-row" style="display:none;color:#ef4444;"><span>CIS Deduction (20%)</span><span id="t-cis">&#8722;&#163;0.00</span></div>
         <div class="tot-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
         <div class="tot-row grand"><span>Total Due</span><span id="t-total">&#163;0.00</span></div>
       </div>
@@ -293,6 +300,8 @@ function openNewInvoice(preselectCid){
   document.getElementById('btn-save').textContent='Save Invoice';
   document.getElementById('entity-site-group').classList.add('hidden');
   document.getElementById('co-indicator').classList.add('hidden');
+  document.getElementById('cis-toggle').checked=false;
+  document.getElementById('t-cis-row').style.display='none';
   var now=new Date(),due=new Date(now);due.setDate(due.getDate()+30);
   document.getElementById('i-date').value=now.toISOString().split('T')[0];
   document.getElementById('i-due-date').value=due.toISOString().split('T')[0];
@@ -333,6 +342,7 @@ function openExistingInvoice(id){
     document.getElementById('i-client-email').value=inv.clientEmail||'';
     document.getElementById('i-client-address').value=inv.clientAddress||'';
     document.getElementById('i-notes').value=inv.notes||'';
+    document.getElementById('cis-toggle').checked=inv.cis||false;
     // Restore c/o indicator if this invoice had an entity
     if(inv.entityCustomerId){
       document.getElementById('i-entity-site').value=inv.entityCustomerId;
@@ -466,10 +476,15 @@ function recalc(){
     var net=(parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0);
     sub+=net;vat+=net*((parseFloat(li.vatRate)||0)/100);
   });
+  var cis=document.getElementById('cis-toggle').checked;
+  var cisAmt=cis?sub*0.20:0;
+  var cisRow=document.getElementById('t-cis-row');
+  cisRow.style.display=cis?'flex':'none';
   document.getElementById('t-sub').textContent=fmtMoney(sub);
+  document.getElementById('t-cis').textContent='\u2212'+fmtMoney(cisAmt);
   document.getElementById('t-vat').textContent=fmtMoney(vat);
-  document.getElementById('t-total').textContent=fmtMoney(sub+vat);
-  return{subtotal:sub,vat:vat,total:sub+vat};
+  document.getElementById('t-total').textContent=fmtMoney(sub-cisAmt+vat);
+  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:sub-cisAmt+vat};
 }
 
 function saveInvoice(){
@@ -480,10 +495,12 @@ function saveInvoice(){
   if(!number){showToast('Please enter an invoice number.','error');return;}
   var c=allCustomers.find(function(x){return x.id===cid;})||{};
   var entityId=document.getElementById('i-entity-site').value||null;
+  var cis=document.getElementById('cis-toggle').checked;
   var t=recalc();
   var data={
     customerId:cid,company:c.company||'',clientRef:c.clientRef||'',
     entityCustomerId:entityId||null,
+    cis:cis,cisDeduction:t.cisDeduction,
     number:number,ref:number,
     siteName:document.getElementById('i-site-name').value.trim(),
     orderRef:document.getElementById('i-order-ref').value.trim(),
@@ -554,6 +571,7 @@ function generatePDF(){
   var cid=document.getElementById('i-customer').value;
   var c=allCustomers.find(function(x){return x.id===cid;})||{};
   var entityId=document.getElementById('i-entity-site').value||null;
+  var cis=document.getElementById('cis-toggle').checked;
   var t=recalc();
   var d={
     number:document.getElementById('i-number').value,
@@ -567,6 +585,7 @@ function generatePDF(){
     notes:document.getElementById('i-notes').value,
     company:c.company||'',clientRef:c.clientRef||'',
     isEntity:!!entityId,parentCompany:c.company||'',
+    cis:cis,cisDeduction:t.cisDeduction,
     lineItems:lineItems,subtotal:t.subtotal,vat:t.vat,total:t.total
   };
   var btn=document.getElementById('btn-pdf');btn.disabled=true;btn.textContent='Building...';
@@ -673,10 +692,22 @@ function buildPDF(pdf,d,logo,footerImg){
 
   // ── Totals ──
   ty+=4;
+  // CIS reverse charge notice — printed just above totals
+  if(d.cis){
+    pdf.setFontSize(8.5);pdf.setFont(undefined,'bold');
+    pdf.text('REVERSE CHARGE SUPPLY - CUSTOMER TO PAY THE VAT TO HMRC.',lm,ty);ty+=5;
+    pdf.setFont(undefined,'normal');
+    pdf.text('VAT PAYABLE ON THIS SUPPLY AMOUNTS TO '+fmtMoney(d.vat),lm,ty);ty+=8;
+  }
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty,rm,ty);
   pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);ty+=7;
   pdf.setFontSize(9);pdf.setFont(undefined,'normal');
   pdf.text('Subtotal:',148,ty,{align:'right'});pdf.text(fmtMoney(d.subtotal),rm,ty,{align:'right'});ty+=7;
+  if(d.cis&&d.cisDeduction>0){
+    pdf.setTextColor(220,38,38);
+    pdf.text('CIS Deduction (20%):',148,ty,{align:'right'});pdf.text('-'+fmtMoney(d.cisDeduction),rm,ty,{align:'right'});ty+=7;
+    pdf.setTextColor(0,0,0);
+  }
   pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;
   pdf.setFontSize(11);pdf.setFont(undefined,'bold');
   pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(d.total),rm,ty,{align:'right'});
