@@ -59,12 +59,22 @@
     .stat-val { font-size:24px; font-weight:800; color:var(--primary); }
     .stat-label { font-size:12px; color:var(--text-muted); margin-top:2px; }
 
-    .search-bar { margin-bottom:20px; }
-    .search-input { width:100%; padding:11px 16px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; }
+    .search-bar { margin-bottom:20px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .search-input { flex:1; min-width:180px; padding:11px 16px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; }
     .search-input:focus { outline:none; border-color:var(--primary); }
     .search-input::placeholder { color:var(--text-muted); }
+    .sort-select { padding:10px 12px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:13px; cursor:pointer; }
+    .view-btn { padding:10px 14px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:15px; cursor:pointer; transition:all 0.2s; }
+    .view-btn:hover, .view-btn.active { border-color:var(--primary); color:var(--primary); }
 
     .customer-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+    .customer-grid.list-view { display:flex; flex-direction:column; gap:6px; }
+    .customer-grid.list-view .customer-card { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:8px; }
+    .customer-grid.list-view .customer-card-top { margin-bottom:0; flex:1; min-width:0; }
+    .customer-grid.list-view .customer-avatar { width:32px; height:32px; font-size:12px; flex-shrink:0; }
+    .customer-grid.list-view .customer-detail { display:none; }
+    .customer-grid.list-view .customer-meta { display:none; }
+    .customer-grid.list-view .customer-actions { flex-shrink:0; margin-top:0; }
     .customer-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:18px; transition:all 0.2s; }
     .customer-card:hover { border-color:var(--primary); transform:translateY(-2px); box-shadow:var(--shadow); }
     .customer-card-top { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; }
@@ -144,7 +154,7 @@
 
 <nav>
   <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
-    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
@@ -188,7 +198,12 @@
   </div>
 
   <div class="search-bar">
-    <input type="text" class="search-input" id="search-input" placeholder="Search by company, contact, email or city..." oninput="filterCustomers()">
+    <input type="text" class="search-input" id="search-input" placeholder="Search by name, contact, email, city or client ref..." oninput="filterCustomers()">
+    <select class="sort-select" id="sort-select" onchange="filterCustomers()">
+      <option value="name">Sort: Name A–Z</option>
+      <option value="ref">Sort: Client # ↑</option>
+    </select>
+    <button class="view-btn" id="view-btn" onclick="toggleView()" title="Toggle list/grid view">&#9783;</button>
   </div>
 
   <div class="customer-grid" id="customer-grid"></div>
@@ -441,6 +456,7 @@ function toggleShowEntities() {
 
 function filterCustomers() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const sortBy = document.getElementById('sort-select').value;
   let base = showEntities ? allCustomers : allCustomers.filter(c => !c.parentCustomerId);
   filteredCustomers = q ? base.filter(c =>
     (c.company||'').toLowerCase().includes(q) ||
@@ -450,8 +466,33 @@ function filterCustomers() {
     (c.city||'').toLowerCase().includes(q) ||
     (c.clientRef||'').toString().includes(q)
   ) : base;
+  // Apply sort
+  filteredCustomers = filteredCustomers.slice().sort((a,b) => {
+    if (sortBy === 'ref') {
+      return (parseInt(a.clientRef)||0) - (parseInt(b.clientRef)||0);
+    }
+    return (a.company||'').localeCompare(b.company||'');
+  });
   currentPage = 1;
   renderCustomers();
+}
+
+var listViewActive = false;
+function toggleView() {
+  listViewActive = !listViewActive;
+  const grid = document.getElementById('customer-grid');
+  const btn = document.getElementById('view-btn');
+  if (listViewActive) {
+    grid.classList.add('list-view');
+    btn.classList.add('active');
+    btn.title = 'Switch to grid view';
+    btn.innerHTML = '&#9783;';
+  } else {
+    grid.classList.remove('list-view');
+    btn.classList.remove('active');
+    btn.title = 'Switch to list view';
+    btn.innerHTML = '&#9783;';
+  }
 }
 
 // ════════════════════════════════════════════
