@@ -636,137 +636,185 @@ function generatePDF() {
     vat:            totals.vat,
     total:          totals.total
   };
-  var logoUrl = 'https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png';
+  var LOGO = 'https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png';
+  var FOOTER_IMG = 'https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/es12.png';
   var btn = document.getElementById('btn-pdf');
   btn.disabled = true; btn.textContent = 'Building PDF...';
-  loadImgB64(logoUrl, function(logoB64) {
-    try {
-      var pdf = new window.jspdf.jsPDF();
-      buildPDF(pdf, data, logoB64);
-      pdf.save((ref || 'quote') + '.pdf');
-    } catch(e) { console.error(e); showToast('PDF error - check console.', 'error'); }
-    btn.disabled = false; btn.textContent = '&#128438; PDF';
-    btn.innerHTML = '&#128438; PDF';
+  loadImgB64(LOGO, function(logoB64) {
+    loadImgB64(FOOTER_IMG, function(footerB64) {
+      try {
+        var pdf = new window.jspdf.jsPDF();
+        buildPDF(pdf, data, logoB64, footerB64);
+        pdf.save((ref || 'quote') + '.pdf');
+      } catch(e) { console.error(e); showToast('PDF error - check console.', 'error'); }
+      btn.disabled = false;
+      btn.innerHTML = '&#128438; PDF';
+    });
   });
 }
 
-function buildPDF(pdf, d, logoB64) {
-  var lm = 20, pw = 170;
+function addImgAspect(pdf, imgData, x, y, maxW, maxH) {
+  // Preserves aspect ratio — same technique as t&i-pdf-generator.js
+  if (!imgData) return;
+  try {
+    var props = pdf.getImageProperties(imgData);
+    var ratio = props.width / props.height;
+    var finalW, finalH;
+    if (ratio > maxW / maxH) { finalW = maxW; finalH = maxW / ratio; }
+    else { finalH = maxH; finalW = maxH * ratio; }
+    var fmt = imgData.indexOf('data:image/jpeg') === 0 ? 'JPEG' : 'PNG';
+    pdf.addImage(imgData, fmt, x, y, finalW, finalH);
+  } catch(e) { console.error('Image render error:', e); }
+}
 
-  // PAGE 1
+function buildPDF(pdf, d, logoB64, footerB64) {
+  var lm = 20, pw = 170, rm = lm + pw;
+
+  // ── PAGE 1 ──
+
+  // Header: company address left, logo top-right (aspect-ratio preserved)
+  addImgAspect(pdf, logoB64, 148, 6, 52, 28);
   pdf.setFontSize(10); pdf.setFont(undefined,'bold');
-  pdf.text('Strike Point Lightning Protection Ltd', lm, 18);
-  pdf.setFont(undefined,'normal');
-  pdf.text('Atkinson & Evans', lm, 24);
-  pdf.text('10 Arnot Hill Road', lm, 30);
-  pdf.text('Arnold, Nottingham NG5 6LJ', lm, 36);
-  if (logoB64) pdf.addImage(logoB64, 'PNG', 148, 10, 42, 32);
+  pdf.text('Strike Point Lightning Protection Ltd', lm, 14);
+  pdf.setFont(undefined,'normal'); pdf.setFontSize(9);
+  pdf.text('10 Arnot Hill Road, Arnold, Nottingham NG5 6LJ', lm, 20);
+  pdf.text('Company No: 15114852  |  VAT No: 448 8105 74', lm, 26);
+  pdf.text('Tel: 0115 990 3220  |  info@strikepoint.uk', lm, 32);
 
+  // Quotation title
   pdf.setFontSize(26); pdf.setFont(undefined,'bold');
-  pdf.text('Quotation', 105, 56, { align:'center' });
+  pdf.text('Quotation', 105, 46, { align:'center' });
 
-  pdf.setFontSize(11); pdf.setFont(undefined,'bold');
-  pdf.text('Date:', lm, 69);
+  // Date line
+  pdf.setFontSize(10); pdf.setFont(undefined,'bold');
+  pdf.text('Date:', lm, 57);
   pdf.setFont(undefined,'normal');
-  pdf.text(fmtDateDisplay(d.quoteDate), lm+18, 69);
+  pdf.text(fmtDateDisplay(d.quoteDate), lm+18, 57);
 
-  var iy = 80;
+  // Info block — quote ref wraps if long, values truncated with splitTextToSize
+  var iy = 68;
   var labels = ['Quote Ref:','Prepared by:','Prepared for:','Client Email:','Client Name:','Client Ref #:'];
   var values = [d.quoteRef, d.preparedBy, d.preparedFor, d.clientEmail, d.company, d.clientRef];
-  pdf.setFontSize(10);
-  for (var i=0; i<labels.length; i++) {
-    pdf.setFont(undefined,'bold'); pdf.text(labels[i], lm+10, iy + i*8);
+  pdf.setFontSize(9);
+  for (var i = 0; i < labels.length; i++) {
+    pdf.setFont(undefined,'bold'); pdf.text(labels[i], lm+10, iy);
     pdf.setFont(undefined,'normal');
-    var vlines = pdf.splitTextToSize(String(values[i]||''), 100);
-    pdf.text(vlines[0], lm+44, iy + i*8);
+    // Allow up to 2 lines for long values (quote ref, company name)
+    var vlines = pdf.splitTextToSize(String(values[i]||''), 108);
+    pdf.text(vlines[0], lm+44, iy);
+    if (vlines.length > 1) {
+      iy += 5;
+      pdf.text(vlines[1], lm+44, iy);
+    }
+    iy += 7;
   }
 
-  var iy2 = iy + labels.length*8 + 10;
-  pdf.setFontSize(11); pdf.setFont(undefined,'bolditalic');
-  pdf.text('We would like to offer the following services for your consideration', 105, iy2, { align:'center' });
-  iy2 += 10;
-  pdf.setFontSize(10); pdf.setFont(undefined,'bold');
-  pdf.text('Service Address:', lm, iy2); pdf.setFont(undefined,'normal');
-  pdf.text(d.serviceAddress||'', lm+36, iy2);
-  iy2 += 8;
-  pdf.setFont(undefined,'bold'); pdf.text('Job Reference:', lm, iy2); pdf.setFont(undefined,'normal');
-  pdf.text(String(d.jobRef||''), lm+30, iy2);
-  iy2 += 12;
+  // Offer line
+  pdf.setFontSize(10); pdf.setFont(undefined,'bolditalic');
+  pdf.text('We would like to offer the following services for your consideration', 105, iy + 2, { align:'center' });
+  iy += 10;
 
-  pdf.setFont(undefined,'bold'); pdf.setFontSize(11); pdf.text('Service Description', lm, iy2);
-  iy2 += 7;
-  pdf.setFont(undefined,'bold'); pdf.setFontSize(10); pdf.text(d.jobType||'', lm+8, iy2);
-  iy2 += 8; pdf.setFont(undefined,'normal');
+  // Service address — wraps properly
+  pdf.setFont(undefined,'bold'); pdf.setFontSize(9);
+  pdf.text('Service Address:', lm, iy);
+  pdf.setFont(undefined,'normal');
+  var addrLines = pdf.splitTextToSize(d.serviceAddress||'', pw - 38);
+  pdf.text(addrLines[0], lm+36, iy);
+  if (addrLines.length > 1) {
+    for (var a = 1; a < addrLines.length; a++) {
+      iy += 5;
+      pdf.text(addrLines[a], lm+36, iy);
+    }
+  }
+  iy += 7;
 
-  for (var j=0; j<d.lineItems.length; j++) {
+  // Job reference
+  pdf.setFont(undefined,'bold'); pdf.text('Job Reference:', lm, iy);
+  pdf.setFont(undefined,'normal'); pdf.text(String(d.jobRef||''), lm+30, iy);
+  iy += 10;
+
+  // Service description section
+  pdf.setFont(undefined,'bold'); pdf.setFontSize(10); pdf.text('Service Description', lm, iy);
+  iy += 6;
+  pdf.setFont(undefined,'bold'); pdf.setFontSize(9); pdf.text(d.jobType||'', lm+6, iy);
+  iy += 7; pdf.setFont(undefined,'normal');
+
+  for (var j = 0; j < d.lineItems.length; j++) {
     var li = d.lineItems[j];
     if (!li.description) continue;
     var dlines = pdf.splitTextToSize(li.description, pw-8);
-    for (var k=0; k<dlines.length; k++) {
-      if (iy2 > 218) { iy2 = 20; pdf.addPage(); }
-      pdf.text(dlines[k], lm, iy2); iy2 += 6;
+    for (var k = 0; k < dlines.length; k++) {
+      if (iy > 218) { addFooter(pdf, 1, 2, footerB64); pdf.addPage(); iy = 20; }
+      pdf.text(dlines[k], lm, iy); iy += 6;
     }
   }
 
   if (d.notes) {
-    iy2 += 4;
+    iy += 4;
     var nlines = pdf.splitTextToSize(d.notes, pw-8);
-    for (var n=0; n<nlines.length; n++) {
-      if (iy2 > 218) { iy2 = 20; pdf.addPage(); }
-      pdf.text(nlines[n], lm, iy2); iy2 += 6;
+    for (var n = 0; n < nlines.length; n++) {
+      if (iy > 218) { addFooter(pdf, 1, 2, footerB64); pdf.addPage(); iy = 20; }
+      pdf.text(nlines[n], lm, iy); iy += 6;
     }
   }
 
-  // Totals bottom right
+  // Totals — fixed to bottom right
   var ty = 238;
-  pdf.setFontSize(10); pdf.setFont(undefined,'italic');
-  pdf.text('Subtotal:', 118, ty); pdf.setFont(undefined,'normal'); pdf.text(fmtMoney(d.subtotal), 188, ty, {align:'right'});
+  pdf.setFontSize(9); pdf.setFont(undefined,'italic');
+  pdf.text('Subtotal:', 128, ty); pdf.setFont(undefined,'normal'); pdf.text(fmtMoney(d.subtotal), rm, ty, {align:'right'});
   ty += 7;
   if (d.cis && d.cisDeduction > 0) {
-    pdf.setFont(undefined,'italic'); pdf.text('CIS Deduction:', 118, ty); pdf.setFont(undefined,'normal'); pdf.text('-'+fmtMoney(d.cisDeduction), 188, ty, {align:'right'}); ty += 7;
+    pdf.setFont(undefined,'italic'); pdf.text('CIS Deduction:', 128, ty);
+    pdf.setFont(undefined,'normal'); pdf.text('-'+fmtMoney(d.cisDeduction), rm, ty, {align:'right'}); ty += 7;
   }
-  pdf.setFont(undefined,'italic'); pdf.text('VAT:', 118, ty); pdf.setFont(undefined,'normal'); pdf.text(fmtMoney(d.vat), 188, ty, {align:'right'});
+  pdf.setFont(undefined,'italic'); pdf.text('VAT:', 128, ty);
+  pdf.setFont(undefined,'normal'); pdf.text(fmtMoney(d.vat), rm, ty, {align:'right'});
   ty += 7;
-  pdf.setFontSize(12); pdf.setFont(undefined,'bold');
-  pdf.text('Total:', 118, ty); pdf.text(fmtMoney(d.total), 188, ty, {align:'right'});
-  pdf.setLineWidth(0.5); pdf.line(118, ty+2, 190, ty+2);
+  pdf.setFontSize(11); pdf.setFont(undefined,'bold');
+  pdf.text('Total:', 128, ty); pdf.text(fmtMoney(d.total), rm, ty, {align:'right'});
+  pdf.setDrawColor(51,102,153); pdf.setLineWidth(0.5); pdf.line(128, ty+2, rm, ty+2);
+  pdf.setDrawColor(0,0,0); pdf.setLineWidth(0.2);
 
   pdf.setFontSize(8); pdf.setFont(undefined,'italic');
   pdf.text('Strike Point to provide post completion system inspection report for your records.', 105, ty+10, {align:'center'});
 
-  addFooter(pdf, 1, 2, FOOTER);
+  addFooter(pdf, 1, 2, footerB64);
 
-  // PAGE 2 - TERMS
+  // ── PAGE 2 — TERMS & CONDITIONS ──
   pdf.addPage();
-  if (logoB64) pdf.addImage(logoB64, 'PNG', 148, 10, 42, 32);
-  pdf.setFontSize(16); pdf.setFont(undefined,'bold');
-  pdf.text('Terms & Conditions', 105, 25, {align:'center'});
+  addImgAspect(pdf, logoB64, 148, 6, 52, 28);
+  pdf.setFontSize(15); pdf.setFont(undefined,'bold');
+  pdf.text('Terms & Conditions', 105, 22, {align:'center'});
 
-  var ty2 = 38;
-  var termLines = TERMS.split('\n');
-  pdf.setFontSize(9);
-  for (var t=0; t<termLines.length; t++) {
+  // Tighter spacing to fit all 16 clauses on one page
+  var ty2 = 32;
+  var termLines = TERMS.split('
+');
+  pdf.setFontSize(8);
+  for (var t = 0; t < termLines.length; t++) {
     var tl = termLines[t];
-    if (!tl.trim()) { ty2 += 3; continue; }
+    if (!tl.trim()) { ty2 += 1.5; continue; }  // reduced blank line gap
     var isBold = /^\d+\)/.test(tl);
     pdf.setFont(undefined, isBold ? 'bold' : 'normal');
     var wrapped = pdf.splitTextToSize(tl, pw);
-    for (var w=0; w<wrapped.length; w++) {
+    for (var w = 0; w < wrapped.length; w++) {
       if (ty2 > 268) {
-        addFooter(pdf, 2, 2, FOOTER);
-        pdf.addPage(); ty2 = 20; pdf.setFontSize(9);
+        addFooter(pdf, 2, 2, footerB64);
+        pdf.addPage(); ty2 = 20; pdf.setFontSize(8);
       }
-      pdf.text(wrapped[w], lm, ty2); ty2 += isBold ? 6 : 5;
+      pdf.text(wrapped[w], lm, ty2);
+      ty2 += isBold ? 5 : 4.5;  // tighter line spacing
     }
   }
-  addFooter(pdf, 2, 2, FOOTER);
+  addFooter(pdf, 2, 2, footerB64);
 }
 
-function addFooter(pdf, page, total, footer) {
-  pdf.setFontSize(8); pdf.setFont(undefined,'normal');
+function addFooter(pdf, page, total, footerB64) {
+  if (footerB64) { try { pdf.addImage(footerB64, 'PNG', 60, 258, 90, 22); } catch(e) {} }
+  pdf.setFontSize(7.5); pdf.setFont(undefined,'normal'); pdf.setTextColor(80,80,80);
   pdf.text('Page ' + page + ' of ' + total, 105, 278, {align:'center'});
-  var fl = pdf.splitTextToSize(footer, 170);
-  pdf.text(fl, 105, 283, {align:'center'});
+  pdf.text('Strike Point Lightning Protection Ltd  |  Company No. 15114852  |  VAT No. 448 8105 74  |  Registered in England and Wales', 105, 283, {align:'center'});
+  pdf.setTextColor(0,0,0);
 }
 
 function fmtDateDisplay(ds) {
