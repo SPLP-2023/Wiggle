@@ -149,10 +149,6 @@
         <div class="form-group"><label>Order Reference</label><input type="text" class="form-input" id="i-order-ref" placeholder="Purchase order number"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Site Reference</label><input type="text" class="form-input" id="i-site-ref" placeholder="Site reference"></div>
-        <div class="form-group"></div>
-      </div>
-      <div class="form-row">
         <div class="form-group"><label>Invoice Date</label><input type="date" class="form-input" id="i-date"></div>
         <div class="form-group"><label>Due Date (30 days)</label><input type="date" class="form-input" id="i-due-date"></div>
       </div>
@@ -275,7 +271,7 @@ function renderList(){
     return '<div class="inv-row">'
       +'<div class="inv-row-info"><div class="iref">'+esc(inv.number||'-')+'</div>'
       +'<div class="icompany">'+esc(inv.company||'-')+'</div>'
-      +'<div class="imeta">Due: '+formatDate(inv.dueDate)+' &middot; '+esc(inv.siteRef||'-')+'</div></div>'
+      +'<div class="imeta">Due: '+formatDate(inv.dueDate)+' &middot; '+esc(inv.siteName||inv.siteRef||'-')+'</div></div>'
       +'<div class="inv-row-right">'
       +'<span class="sbadge badge-'+esc(inv.status)+'">'+cap(inv.status)+'</span>'
       +'<span class="itotal" style="'+col+'">'+fmtMoney(inv.totalDue||0)+'</span>'
@@ -301,7 +297,7 @@ function openNewInvoice(preselectCid){
   document.getElementById('i-date').value=now.toISOString().split('T')[0];
   document.getElementById('i-due-date').value=due.toISOString().split('T')[0];
   document.getElementById('i-number').value='INV-'+String(invoiceCounter).padStart(4,'0');
-  ['i-site-ref','i-site-name','i-order-ref','i-client-name','i-client-email','i-client-address','i-notes'].forEach(function(id){document.getElementById(id).value='';});
+  ['i-site-name','i-order-ref','i-client-name','i-client-email','i-client-address','i-notes'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('i-customer').value=preselectCid||'';
   if(preselectCid){currentCustomerId=preselectCid;onCustomerChange();}
   addLine();recalc();
@@ -329,7 +325,6 @@ function openExistingInvoice(id){
     // Rebuild entity site dropdown for this customer
     if(inv.customerId) onCustomerChange();
     document.getElementById('i-number').value=inv.number||'';
-    document.getElementById('i-site-ref').value=inv.siteRef||'';
     document.getElementById('i-site-name').value=inv.siteName||'';
     document.getElementById('i-order-ref').value=inv.orderRef||'';
     document.getElementById('i-date').value=inv.invoiceDate||'';
@@ -491,7 +486,6 @@ function saveInvoice(){
     entityCustomerId:entityId||null,
     number:number,ref:number,
     siteName:document.getElementById('i-site-name').value.trim(),
-    siteRef:document.getElementById('i-site-ref').value.trim(),
     orderRef:document.getElementById('i-order-ref').value.trim(),
     invoiceDate:document.getElementById('i-date').value,
     dueDate:document.getElementById('i-due-date').value,
@@ -564,7 +558,6 @@ function generatePDF(){
   var d={
     number:document.getElementById('i-number').value,
     siteName:document.getElementById('i-site-name').value,
-    siteRef:document.getElementById('i-site-ref').value,
     orderRef:document.getElementById('i-order-ref').value,
     invoiceDate:document.getElementById('i-date').value,
     dueDate:document.getElementById('i-due-date').value,
@@ -592,75 +585,76 @@ function generatePDF(){
 }
 
 function buildPDF(pdf,d,logo,footerImg){
-  var lm=20,pw=170,rm=lm+pw;
+  var lm=20, pw=170, rm=lm+pw;
 
-  // Header
-  if(logo){try{pdf.addImage(logo,'PNG',130,6,60,24);}catch(e){}}
+  // ── TOP: Company address left, logo right ──
+  // Logo: use natural aspect ratio, constrained to fit top-right
+  if(logo){try{pdf.addImage(logo,'PNG',148,8,52,20);}catch(e){}}
   pdf.setFontSize(10);pdf.setFont(undefined,'bold');
   pdf.text('Strike Point Lightning Protection Ltd',lm,14);
   pdf.setFont(undefined,'normal');pdf.setFontSize(9);
-  pdf.text('Company No: 15114852  |  VAT No: 448 8105 74',lm,20);
-  pdf.text('info@strikepoint.uk  |  accounts@strikepoint.uk  |  Tel: 0115 990 3220',lm,25);
+  pdf.text('10 Arnot Hill Road, Arnold, Nottingham NG5 6LJ',lm,20);
+  pdf.text('Company No: 15114852  |  VAT No: 448 8105 74',lm,26);
+  pdf.text('Tel: 0115 990 3220  |  accounts@strikepoint.uk',lm,32);
 
-  // Amber divider
-  pdf.setDrawColor(245,158,11);pdf.setLineWidth(0.8);pdf.line(lm,30,rm,30);
-  pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);
+  // ── INVOICE title centred ──
+  pdf.setFontSize(28);pdf.setFont(undefined,'bold');
+  pdf.text('INVOICE',105,48,{align:'center'});
 
-  // INVOICE title
-  pdf.setFontSize(26);pdf.setFont(undefined,'bold');
-  pdf.text('INVOICE',rm,44,{align:'right'});
-
-  // Left meta block
-  var my=38;
-  var labs=['Invoice No:','Site Name:','Site Ref:','Order Ref:','Invoice Date:','Due Date:'];
-  var vals=[d.number,d.siteName,d.siteRef,d.orderRef,fmtDate(d.invoiceDate),fmtDate(d.dueDate)];
+  // ── Two-column info block ──
+  // Left: invoice meta
+  var ly=60;
+  var labs=['Invoice No:','Site Name:','Order Ref:','Invoice Date:','Due Date:'];
+  var vals=[d.number,d.siteName,d.orderRef,fmtDate(d.invoiceDate),fmtDate(d.dueDate)];
   pdf.setFontSize(9);
   for(var i=0;i<labs.length;i++){
     if(!vals[i])continue;
-    pdf.setFont(undefined,'bold');pdf.text(labs[i],lm,my);
-    pdf.setFont(undefined,'normal');pdf.text(String(vals[i]),lm+28,my);
-    my+=6;
+    pdf.setFont(undefined,'bold');pdf.text(labs[i],lm,ly);
+    pdf.setFont(undefined,'normal');pdf.text(String(vals[i]),lm+28,ly);
+    ly+=7;
   }
 
-  // Bill To block (right side)
-  var cx=110,cy=38;
-  pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Bill To:',cx,cy);cy+=6;
+  // Right: Bill To
+  var cx=110,cy=60;
+  pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Bill To:',cx,cy);cy+=7;
   pdf.setFont(undefined,'normal');
   if(d.clientName){
     var nameLines=pdf.splitTextToSize(d.clientName,82);
-    nameLines.forEach(function(l){pdf.text(l,cx,cy);cy+=5;});
+    nameLines.forEach(function(l){pdf.text(l,cx,cy);cy+=6;});
   }
-  if(d.isEntity&&d.parentCompany){
-    pdf.setFont(undefined,'italic');pdf.setTextColor(100,100,100);
-    pdf.text('c/o '+d.parentCompany,cx,cy);cy+=5;
-    pdf.setFont(undefined,'normal');pdf.setTextColor(0,0,0);
-  }
-  if(d.clientEmail){pdf.text(d.clientEmail,cx,cy);cy+=5;}
+  if(d.clientEmail){pdf.text(d.clientEmail,cx,cy);cy+=6;}
   if(d.clientAddress){
     var addrLines=pdf.splitTextToSize(d.clientAddress,82);
-    addrLines.forEach(function(l){pdf.text(l,cx,cy);cy+=5;});
+    addrLines.forEach(function(l){pdf.text(l,cx,cy);cy+=6;});
   }
 
-  // Line items table
-  var ty=Math.max(my,cy)+8;
-  pdf.setFillColor(30,41,59);pdf.rect(lm,ty-5,pw,9,'F');
-  pdf.setTextColor(241,245,249);pdf.setFont(undefined,'bold');pdf.setFontSize(9);
-  pdf.text('Description',lm+2,ty);
-  pdf.text('Qty',116,ty,{align:'right'});
-  pdf.text('Unit Price',138,ty,{align:'right'});
+  // ── Divider then table ──
+  var ty=Math.max(ly,cy)+6;
+  // Thin separator line
+  pdf.setDrawColor(200,200,200);pdf.setLineWidth(0.3);pdf.line(lm,ty,rm,ty);
+  ty+=6;
+
+  // Table header bar — #336699
+  pdf.setFillColor(51,102,153);pdf.rect(lm,ty-5,pw,9,'F');
+  pdf.setTextColor(255,255,255);pdf.setFont(undefined,'bold');pdf.setFontSize(9);
+  pdf.text('Service Description',lm+2,ty);
+  pdf.text('Quantity',108,ty,{align:'right'});
+  pdf.text('Price',138,ty,{align:'right'});
   pdf.text('VAT',156,ty,{align:'right'});
   pdf.text('Amount Due',rm,ty,{align:'right'});
   pdf.setTextColor(0,0,0);ty+=8;
+
+  // Line items
   pdf.setFont(undefined,'normal');pdf.setFontSize(9);
   var alt=false;
   d.lineItems.forEach(function(li){
     var net=(parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0);
     var vat=net*((parseFloat(li.vatRate)||0)/100);
-    if(alt){pdf.setFillColor(248,249,250);pdf.rect(lm,ty-5,pw,8,'F');}
+    if(alt){pdf.setFillColor(240,245,252);pdf.rect(lm,ty-5,pw,8,'F');}
     alt=!alt;
     var dl=pdf.splitTextToSize(li.description||'',78);
     pdf.text(dl[0]||'',lm+2,ty);
-    pdf.text(String(li.qty||1),116,ty,{align:'right'});
+    pdf.text(String(li.qty||1),108,ty,{align:'right'});
     pdf.text(fmtMoney(li.unitPrice||0),138,ty,{align:'right'});
     pdf.text((li.vatRate||0)+'%',156,ty,{align:'right'});
     pdf.text(fmtMoney(net+vat),rm,ty,{align:'right'});
@@ -668,24 +662,27 @@ function buildPDF(pdf,d,logo,footerImg){
     if(ty>230){addFtr(pdf,footerImg);pdf.addPage();ty=20;}
   });
 
-  // Totals
+  // ── Totals (right-aligned) ──
   ty+=4;
-  pdf.setDrawColor(245,158,11);pdf.setLineWidth(0.5);pdf.line(120,ty,rm,ty);
-  pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);ty+=6;
+  pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty,rm,ty);
+  pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);ty+=7;
   pdf.setFontSize(9);pdf.setFont(undefined,'normal');
-  pdf.text('Subtotal:',148,ty,{align:'right'});pdf.text(fmtMoney(d.subtotal),rm,ty,{align:'right'});ty+=6;
-  pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=6;
+  pdf.text('Subtotal:',148,ty,{align:'right'});pdf.text(fmtMoney(d.subtotal),rm,ty,{align:'right'});ty+=7;
+  pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;
   pdf.setFontSize(11);pdf.setFont(undefined,'bold');
-  pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(d.total),rm,ty,{align:'right'});ty+=10;
+  pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(d.total),rm,ty,{align:'right'});
+  pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty+2,rm,ty+2);
+  pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);ty+=12;
 
-  // Payment details
-  pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Details',lm,ty);ty+=6;
+  // ── Payment details ──
+  pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Methods',lm,ty);ty+=6;
   pdf.setFont(undefined,'normal');
   pdf.text('Bank Transfer or Cash only (cheques will NOT be accepted)',lm,ty);ty+=5;
   pdf.text('Account Name: Strike Point Lightning Protection Ltd',lm,ty);ty+=5;
-  pdf.text('Account No: 21842273  |  Sort Code: 04-06-05',lm,ty);ty+=7;
+  pdf.text('Account Number: 21842273',lm,ty);ty+=5;
+  pdf.text('Sort Code: 04-06-05',lm,ty);ty+=8;
   pdf.setFont(undefined,'italic');pdf.setFontSize(8);
-  pdf.text('Payment strictly 30 days from invoice date. Late payments subject to statutory interest at 8% + BoE base rate.',lm,ty,{maxWidth:pw});
+  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for terms & conditions)',lm,ty,{maxWidth:pw});
   if(d.notes){
     ty+=10;pdf.setFont(undefined,'bold');pdf.setFontSize(9);pdf.text('Notes:',lm,ty);ty+=5;
     pdf.setFont(undefined,'normal');
@@ -693,7 +690,6 @@ function buildPDF(pdf,d,logo,footerImg){
   }
   addFtr(pdf,footerImg);
 }
-
 function addFtr(pdf,footerImg){
   if(footerImg){try{pdf.addImage(footerImg,'PNG',60,258,90,22);}catch(e){}}
   pdf.setFontSize(7.5);pdf.setFont(undefined,'normal');pdf.setTextColor(80,80,80);
