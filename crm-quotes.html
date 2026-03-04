@@ -775,39 +775,33 @@ function buildPDF(pdf, d, logoB64, footerB64) {
   pdf.setDrawColor(51,102,153); pdf.setLineWidth(0.5); pdf.line(128, ty+2, rm, ty+2);
   pdf.setDrawColor(0,0,0); pdf.setLineWidth(0.2);
 
-  pdf.setFontSize(8); pdf.setFont(undefined,'italic');
-  pdf.text('Strike Point to provide post completion system inspection report for your records.', 105, ty+6, {align:'center'});
-
   addFooter(pdf, 1, 2, footerB64);
 
   // ── PAGE 2 — TERMS & CONDITIONS ──
   pdf.addPage();
   addImgAspect(pdf, logoB64, 148, 6, 52, 28);
-  pdf.setFontSize(15); pdf.setFont(undefined,'bold');
-  pdf.text('Terms & Conditions', 105, 22, {align:'center'});
+  pdf.setFontSize(14); pdf.setFont(undefined,'bold');
+  pdf.text('Terms & Conditions', 105, 20, {align:'center'});
 
-  // Strip blank lines between clauses — only keep content lines
-  var ty2 = 32;
+  var ty2 = 28;
   var termLines = TERMS.split('\n');
-  var prevWasBold = false;
-  pdf.setFontSize(8);
+  pdf.setFontSize(7.5);
   for (var t = 0; t < termLines.length; t++) {
     var tl = termLines[t];
-    if (!tl.trim()) continue;  // skip ALL blank lines entirely
+    if (!tl.trim()) continue;  // skip all blank lines
     var isBold = /^\d+\)/.test(tl);
-    // Small gap before each new numbered clause (except the first)
-    if (isBold && prevWasBold === false && ty2 > 32) { ty2 += 2; }
+    // 1.5mm gap before each numbered heading except the first
+    if (isBold && ty2 > 28) { ty2 += 1.5; }
     pdf.setFont(undefined, isBold ? 'bold' : 'normal');
     var wrapped = pdf.splitTextToSize(tl, pw);
     for (var w = 0; w < wrapped.length; w++) {
-      if (ty2 > 268) {
+      if (ty2 > 252) {
         addFooter(pdf, 2, 2, footerB64);
-        pdf.addPage(); ty2 = 20; pdf.setFontSize(8);
+        pdf.addPage(); ty2 = 20; pdf.setFontSize(7.5);
       }
       pdf.text(wrapped[w], lm, ty2);
-      ty2 += isBold ? 5 : 4.5;
+      ty2 += isBold ? 4.5 : 4;
     }
-    prevWasBold = isBold;
   }
   addFooter(pdf, 2, 2, footerB64);
 }
