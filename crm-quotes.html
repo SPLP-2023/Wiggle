@@ -788,8 +788,7 @@ function buildPDF(pdf, d, logoB64, footerB64) {
 
   // Tighter spacing to fit all 16 clauses on one page
   var ty2 = 32;
-  var termLines = TERMS.split('
-');
+  var termLines = TERMS.split('\n');
   pdf.setFontSize(8);
   for (var t = 0; t < termLines.length; t++) {
     var tl = termLines[t];
