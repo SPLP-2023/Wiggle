@@ -584,12 +584,25 @@ function generatePDF(){
   });
 }
 
+function addImgAspect(pdf, imgData, x, y, maxW, maxH) {
+  // Same technique as t&i-pdf-generator.js — use getImageProperties to preserve aspect ratio
+  if (!imgData) return;
+  try {
+    var props = pdf.getImageProperties(imgData);
+    var ratio = props.width / props.height;
+    var finalW, finalH;
+    if (ratio > maxW / maxH) { finalW = maxW; finalH = maxW / ratio; }
+    else { finalH = maxH; finalW = maxH * ratio; }
+    var fmt = imgData.indexOf('data:image/jpeg') === 0 ? 'JPEG' : 'PNG';
+    pdf.addImage(imgData, fmt, x, y, finalW, finalH);
+  } catch(e) { console.error('Logo render error:', e); }
+}
+
 function buildPDF(pdf,d,logo,footerImg){
   var lm=20, pw=170, rm=lm+pw;
 
-  // ── TOP: Company address left, logo right ──
-  // Logo: use natural aspect ratio, constrained to fit top-right
-  if(logo){try{pdf.addImage(logo,'PNG',148,8,52,20);}catch(e){}}
+  // ── TOP: Company address left, logo top-right (aspect-ratio preserved) ──
+  addImgAspect(pdf, logo, 148, 6, 52, 28);
   pdf.setFontSize(10);pdf.setFont(undefined,'bold');
   pdf.text('Strike Point Lightning Protection Ltd',lm,14);
   pdf.setFont(undefined,'normal');pdf.setFontSize(9);
@@ -602,7 +615,6 @@ function buildPDF(pdf,d,logo,footerImg){
   pdf.text('INVOICE',105,48,{align:'center'});
 
   // ── Two-column info block ──
-  // Left: invoice meta
   var ly=60;
   var labs=['Invoice No:','Site Name:','Order Ref:','Invoice Date:','Due Date:'];
   var vals=[d.number,d.siteName,d.orderRef,fmtDate(d.invoiceDate),fmtDate(d.dueDate)];
@@ -614,27 +626,24 @@ function buildPDF(pdf,d,logo,footerImg){
     ly+=7;
   }
 
-  // Right: Bill To
+  // Bill To (right column)
   var cx=110,cy=60;
   pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Bill To:',cx,cy);cy+=7;
   pdf.setFont(undefined,'normal');
   if(d.clientName){
-    var nameLines=pdf.splitTextToSize(d.clientName,82);
-    nameLines.forEach(function(l){pdf.text(l,cx,cy);cy+=6;});
+    pdf.splitTextToSize(d.clientName,82).forEach(function(l){pdf.text(l,cx,cy);cy+=6;});
+  }
+  if(d.clientAddress){
+    pdf.splitTextToSize(d.clientAddress,82).forEach(function(l){pdf.text(l,cx,cy);cy+=6;});
   }
   if(d.clientEmail){pdf.text(d.clientEmail,cx,cy);cy+=6;}
-  if(d.clientAddress){
-    var addrLines=pdf.splitTextToSize(d.clientAddress,82);
-    addrLines.forEach(function(l){pdf.text(l,cx,cy);cy+=6;});
-  }
 
-  // ── Divider then table ──
+  // ── Thin separator + table ──
   var ty=Math.max(ly,cy)+6;
-  // Thin separator line
   pdf.setDrawColor(200,200,200);pdf.setLineWidth(0.3);pdf.line(lm,ty,rm,ty);
   ty+=6;
 
-  // Table header bar — #336699
+  // Table header — #336699
   pdf.setFillColor(51,102,153);pdf.rect(lm,ty-5,pw,9,'F');
   pdf.setTextColor(255,255,255);pdf.setFont(undefined,'bold');pdf.setFontSize(9);
   pdf.text('Service Description',lm+2,ty);
@@ -659,10 +668,10 @@ function buildPDF(pdf,d,logo,footerImg){
     pdf.text((li.vatRate||0)+'%',156,ty,{align:'right'});
     pdf.text(fmtMoney(net+vat),rm,ty,{align:'right'});
     ty+=8;
-    if(ty>230){addFtr(pdf,footerImg);pdf.addPage();ty=20;}
+    if(ty>210){addFtr(pdf,footerImg);pdf.addPage();ty=20;}
   });
 
-  // ── Totals (right-aligned) ──
+  // ── Totals ──
   ty+=4;
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty,rm,ty);
   pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);ty+=7;
@@ -672,21 +681,23 @@ function buildPDF(pdf,d,logo,footerImg){
   pdf.setFontSize(11);pdf.setFont(undefined,'bold');
   pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(d.total),rm,ty,{align:'right'});
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty+2,rm,ty+2);
-  pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);ty+=12;
+  pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);
 
-  // ── Payment details ──
-  pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Methods',lm,ty);ty+=6;
+  // ── Payment methods — anchored near bottom (min Y=195) ──
+  // Payment block height is approx 42mm — anchor so it sits above footer
+  var payY = Math.max(ty + 20, 195);
+  pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Methods',lm,payY);payY+=6;
   pdf.setFont(undefined,'normal');
-  pdf.text('Bank Transfer or Cash only (cheques will NOT be accepted)',lm,ty);ty+=5;
-  pdf.text('Account Name: Strike Point Lightning Protection Ltd',lm,ty);ty+=5;
-  pdf.text('Account Number: 21842273',lm,ty);ty+=5;
-  pdf.text('Sort Code: 04-06-05',lm,ty);ty+=8;
+  pdf.text('Bank Transfer or Cash only (cheques will NOT be accepted)',lm,payY);payY+=5;
+  pdf.text('Account Name: Strike Point Lightning Protection Ltd',lm,payY);payY+=5;
+  pdf.text('Account Number: 21842273',lm,payY);payY+=5;
+  pdf.text('Sort Code: 04-06-05',lm,payY);payY+=8;
   pdf.setFont(undefined,'italic');pdf.setFontSize(8);
-  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for terms & conditions)',lm,ty,{maxWidth:pw});
+  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for terms & conditions)',lm,payY,{maxWidth:pw});
   if(d.notes){
-    ty+=10;pdf.setFont(undefined,'bold');pdf.setFontSize(9);pdf.text('Notes:',lm,ty);ty+=5;
+    payY+=10;pdf.setFont(undefined,'bold');pdf.setFontSize(9);pdf.text('Notes:',lm,payY);payY+=5;
     pdf.setFont(undefined,'normal');
-    pdf.splitTextToSize(d.notes,pw).forEach(function(nl){pdf.text(nl,lm,ty);ty+=5;});
+    pdf.splitTextToSize(d.notes,pw).forEach(function(nl){pdf.text(nl,lm,payY);payY+=5;});
   }
   addFtr(pdf,footerImg);
 }
