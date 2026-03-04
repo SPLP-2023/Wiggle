@@ -866,6 +866,7 @@ function fmtExportDate(d){
 }
 
 
+function showToast(msg,type){
   var t=document.getElementById('toast');t.textContent=msg;
   t.className='toast show '+(type||'success');
   setTimeout(function(){t.classList.remove('show');},3500);
