@@ -98,7 +98,10 @@
   <div id="view-list">
     <div class="page-header">
       <div class="page-title">&#129534; <span>Invoices</span></div>
-      <button class="btn btn-primary" onclick="openNewInvoice(null)">&#43; New Invoice</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="exportToCSV()">&#11123; Export CSV</button>
+        <button class="btn btn-primary" onclick="openNewInvoice(null)">&#43; New Invoice</button>
+      </div>
     </div>
     <div class="filter-bar">
       <input type="text" class="search-input" id="i-search" placeholder="Search invoices..." oninput="renderList()">
@@ -736,12 +739,12 @@ function buildPDF(pdf,d,logo,footerImg){
   var payY = Math.max(ty + 20, 195);
   pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Methods',lm,payY);payY+=6;
   pdf.setFont(undefined,'normal');
-  pdf.text('Bank Transfer or Cash ONLY',lm,payY);payY+=5;
+  pdf.text('Bank Transfer or Cash only (cheques will NOT be accepted)',lm,payY);payY+=5;
   pdf.text('Account Name: Strike Point Lightning Protection Ltd',lm,payY);payY+=5;
   pdf.text('Account Number: 21842273',lm,payY);payY+=5;
   pdf.text('Sort Code: 04-06-05',lm,payY);payY+=8;
   pdf.setFont(undefined,'italic');pdf.setFontSize(8);
-  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for full terms & conditions)',lm,payY,{maxWidth:pw});
+  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for terms & conditions)',lm,payY,{maxWidth:pw});
   if(d.notes){
     payY+=10;pdf.setFont(undefined,'bold');pdf.setFontSize(9);pdf.text('Notes:',lm,payY);payY+=5;
     pdf.setFont(undefined,'normal');
@@ -765,7 +768,104 @@ function loadImgB64(url,cb){
 function fmtMoney(v){return'\u00a3'+parseFloat(v||0).toFixed(2);}
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function showToast(msg,type){
+function exportToCSV(){
+  // Columns matching InvoiceTracker.xlsx
+  var headers = [
+    'Invoice #','Company','Invoice sent date','PO #','Site Ref',
+    'Project description','Net Amount','VAT','Deductions','CIS','Gross',
+    'Due Date','Status','Date Paid','Overdue Days','Chased No.',
+    '','Initial Chase','Chase Date 1','Chase Date 2','Chase Date 3',
+    'Chase Date 4','Chase Date 5','Chase Date 6','Chase Date 7',
+    'Chase Date 8','Chase Date 9','Chase Date 10','Chase Date 11',
+    'Chase Date 12','Chase Date 13'
+  ];
+
+  var today = new Date();
+
+  var rows = allInvoices.map(function(inv){
+    var invoiceDate = inv.invoiceDate ? new Date(inv.invoiceDate) : null;
+    var dueDate     = inv.dueDate     ? new Date(inv.dueDate)     : null;
+    var datePaid    = inv.datePaid    ? new Date(inv.datePaid)    : null;
+
+    // Status
+    var status = inv.status || '';
+    if(!status){
+      if(datePaid) status = 'PAID';
+      else if(dueDate && dueDate < today) status = 'OVERDUE';
+    }
+
+    // Overdue days (blank if paid or not yet due)
+    var overdueDays = '';
+    if(!datePaid && dueDate && dueDate < today){
+      overdueDays = Math.floor((today - dueDate) / 86400000);
+    }
+
+    // CIS deduction — negative value like the spreadsheet
+    var cisAmt = inv.cisDeduction ? -Math.abs(inv.cisDeduction) : 0;
+    var gross  = (inv.subtotal||0) + cisAmt + (inv.vat||0);
+
+    // Project description — first line item description, or notes
+    var desc = '';
+    if(inv.lineItems && inv.lineItems.length){
+      desc = inv.lineItems[0].description || '';
+    }
+
+    return [
+      inv.number        || '',
+      inv.company       || '',
+      invoiceDate       ? fmtExportDate(invoiceDate) : '',
+      inv.orderRef      || '',
+      inv.siteName      || '',
+      desc,
+      (inv.subtotal     || 0).toFixed(2),
+      (inv.vat          || 0).toFixed(2),
+      inv.cisDeduction  ? (-Math.abs(inv.cisDeduction)).toFixed(2) : '0.00',  // Deductions col
+      cisAmt            ? cisAmt.toFixed(2) : '0.00',                          // CIS col
+      gross.toFixed(2),
+      dueDate           ? fmtExportDate(dueDate) : '',
+      status,
+      datePaid          ? fmtExportDate(datePaid) : '',
+      overdueDays,
+      ''  // Chased No. — manual
+      // remaining chase date columns left blank
+    ];
+  });
+
+  // Sort by invoice number
+  rows.sort(function(a,b){ return a[0].localeCompare(b[0]); });
+
+  var csv = [headers].concat(rows).map(function(row){
+    return row.map(function(cell){
+      var s = String(cell==null?'':cell);
+      // Quote cells that contain commas, quotes or newlines
+      if(s.indexOf(',')>-1||s.indexOf('"')>-1||s.indexOf('\n')>-1){
+        s = '"'+s.replace(/"/g,'""')+'"';
+      }
+      return s;
+    }).join(',');
+  }).join('\r\n');
+
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'InvoiceTracker_'+fmtExportDate(today).replace(/\//g,'-')+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported '+rows.length+' invoices to CSV','success');
+}
+
+function fmtExportDate(d){
+  if(!d) return '';
+  var dd=String(d.getDate()).padStart(2,'0');
+  var mm=String(d.getMonth()+1).padStart(2,'0');
+  var yyyy=d.getFullYear();
+  return dd+'/'+mm+'/'+yyyy;
+}
+
+
   var t=document.getElementById('toast');t.textContent=msg;
   t.className='toast show '+(type||'success');
   setTimeout(function(){t.classList.remove('show');},3500);
