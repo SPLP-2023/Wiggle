@@ -106,10 +106,6 @@
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .section-divider { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; padding:10px 0 8px; border-bottom:1px solid var(--border); margin-bottom:14px; }
 
-    .site-address-item { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
-    .site-addr-text { flex:1; }
-    .site-addr-name { font-weight:600; font-size:13px; }
-    .site-addr-addr { color:var(--text-muted); font-size:12px; margin-top:2px; }
     .add-site-btn { font-size:13px; color:var(--primary); background:none; border:1px dashed var(--primary); border-radius:8px; padding:8px 14px; cursor:pointer; width:100%; margin-top:4px; transition:background 0.2s; }
     .add-site-btn:hover { background:rgba(245,158,11,0.08); }
     .site-form { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:8px; }
@@ -127,6 +123,21 @@
 
     .hidden { display:none !important; }
     @media(max-width:600px) { .form-row { grid-template-columns:1fr; } .customer-grid { grid-template-columns:1fr; } }
+
+    /* Entity linking */
+    .entity-tag { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(168,85,247,0.15); color:#a855f7; font-weight:600; margin-top:4px; }
+    .site-entity-badge { font-size:11px; color:#a855f7; margin-top:3px; display:flex; align-items:center; gap:4px; }
+    .site-address-item { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+    .site-addr-row { display:flex; align-items:center; gap:10px; }
+    .site-addr-text { flex:1; }
+    .site-addr-name { font-weight:600; font-size:13px; }
+    .site-addr-addr { color:var(--text-muted); font-size:12px; margin-top:2px; }
+    .entity-link-row { margin-top:6px; padding-top:6px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .entity-link-label { font-size:11px; color:var(--text-muted); white-space:nowrap; }
+    .entity-link-select { flex:1; min-width:160px; padding:5px 8px; background:var(--dark2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; }
+    .entity-link-select:focus { outline:none; border-color:#a855f7; }
+    .show-entities-toggle { font-size:12px; color:var(--text-muted); background:none; border:1px solid var(--border); border-radius:20px; padding:5px 14px; cursor:pointer; transition:all 0.2s; }
+    .show-entities-toggle.active { background:rgba(168,85,247,0.15); color:#a855f7; border-color:#a855f7; }
   </style>
 </head>
 <body>
@@ -152,6 +163,7 @@
   <div class="page-header">
     <div class="page-title">&#128101; <span>Customers</span></div>
     <div class="header-actions">
+      <button class="show-entities-toggle" id="entities-toggle-btn" onclick="toggleShowEntities()">&#128279; Show Entities</button>
       <button class="btn btn-secondary" onclick="document.getElementById('excel-import-input').click()">&#8679; Import from Excel</button>
       <input type="file" id="excel-import-input" accept=".xlsx,.xls" style="display:none;" onchange="importFromExcel(event)">
       <button class="btn btn-primary" onclick="openNewCustomer()">+ New Customer</button>
@@ -160,6 +172,7 @@
 
   <div class="stats-row">
     <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total Customers</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-entities">0</div><div class="stat-label">Linked Entities</div></div>
     <div class="stat-card"><div class="stat-val" id="stat-quotes">0</div><div class="stat-label">Open Quotes</div></div>
     <div class="stat-card"><div class="stat-val" id="stat-invoices">0</div><div class="stat-label">Outstanding Invoices</div></div>
     <div class="stat-card"><div class="stat-val" id="stat-jobs">0</div><div class="stat-label">Linked FSM Jobs</div></div>
@@ -286,6 +299,7 @@ let deletingCustomerId = null;
 let tempSiteAddresses = [];
 const PAGE_SIZE = 30;
 let currentPage = 1;
+let showEntities = false;
 
 // ════════════════════════════════════════════
 // INIT
@@ -307,14 +321,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadCustomers() {
   _db.collection('crm_customers').orderBy('company').get().then(snap => {
     allCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    filteredCustomers = allCustomers;
+    filteredCustomers = showEntities ? allCustomers : allCustomers.filter(c => !c.parentCustomerId);
     renderCustomers();
     updateStats();
   }).catch(err => { console.error(err); showToast('Error loading customers.', 'error'); });
 }
 
 function updateStats() {
-  document.getElementById('stat-total').textContent = allCustomers.length;
+  const parentCustomers = allCustomers.filter(c => !c.parentCustomerId);
+  const entityCustomers = allCustomers.filter(c => c.parentCustomerId);
+  document.getElementById('stat-total').textContent = parentCustomers.length;
+  document.getElementById('stat-entities').textContent = entityCustomers.length;
   const jobCount = allCustomers.reduce((acc, c) => {
     return acc + (appData.jobs || []).filter(j =>
       j.company && c.company && j.company.toLowerCase() === c.company.toLowerCase()
@@ -352,13 +369,17 @@ function renderCustomers() {
       j.company && j.company.toLowerCase() === (c.company || '').toLowerCase()
     ).length;
     const siteCount = (c.siteAddresses || []).length;
+    const isEntity = !!c.parentCustomerId;
+    const parentCustomer = isEntity ? allCustomers.find(x => x.id === c.parentCustomerId) : null;
+    const entitySiteCount = isEntity ? 0 : (c.siteAddresses || []).filter(s => s.entityCustomerId).length;
     return `
-    <div class="customer-card">
+    <div class="customer-card" style="${isEntity ? 'border-color:rgba(168,85,247,0.4);' : ''}">
       <div class="customer-card-top">
-        <div class="customer-avatar">${initials}</div>
+        <div class="customer-avatar" style="${isEntity ? 'background:#a855f7;' : ''}">${initials}</div>
         <div style="flex:1;min-width:0;">
           <div class="customer-name">${c.company}</div>
           <div class="customer-contact">${c.contact || '&#8212;'}</div>
+          ${isEntity ? `<div class="entity-tag">&#128279; c/o ${parentCustomer ? parentCustomer.company : 'Linked Entity'}</div>` : ''}
         </div>
         ${c.clientRef ? `<span class="meta-chip" style="flex-shrink:0;">#${c.clientRef}</span>` : ''}
       </div>
@@ -368,11 +389,13 @@ function renderCustomers() {
       <div class="customer-meta">
         ${linkedJobs ? `<span class="meta-chip highlight">&#9889; ${linkedJobs} job${linkedJobs>1?'s':''}</span>` : ''}
         ${siteCount ? `<span class="meta-chip blue">&#128205; ${siteCount} site${siteCount>1?'s':''}</span>` : ''}
+        ${entitySiteCount ? `<span class="meta-chip" style="background:rgba(168,85,247,0.15);color:#a855f7;">&#128279; ${entitySiteCount} entit${entitySiteCount>1?'ies':'y'}</span>` : ''}
       </div>
       <div class="customer-actions">
         <button class="btn btn-secondary btn-xs" onclick="window.location.href='/Wiggle/crm-customer.html?id=${c.id}'">&#128065; View</button>
         <button class="btn btn-secondary btn-xs" onclick="openEditCustomer('${c.id}')">&#9998; Edit</button>
-        <button class="btn btn-xs" style="background:rgba(59,130,246,0.2);color:#3b82f6;border-radius:var(--radius);" onclick="window.location.href='/Wiggle/crm-quotes.html?customer=${c.id}'">&#128176; Quote</button>
+        ${!isEntity ? `<button class="btn btn-xs" style="background:rgba(59,130,246,0.2);color:#3b82f6;border-radius:var(--radius);" onclick="window.location.href='/Wiggle/crm-quotes.html?customer=${c.id}'">&#128176; Quote</button>` : ''}
+        ${isEntity ? `<button class="btn btn-xs" style="background:rgba(168,85,247,0.15);color:#a855f7;border-radius:var(--radius);" onclick="unlinkEntity('${c.id}')">&#128279; Unlink</button>` : ''}
         <button class="btn btn-danger btn-xs" onclick="confirmDelete('${c.id}', '${escAttr(c.company)}')">&#128465;</button>
       </div>
     </div>`;
@@ -408,16 +431,25 @@ function goPage(p) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function toggleShowEntities() {
+  showEntities = !showEntities;
+  const btn = document.getElementById('entities-toggle-btn');
+  btn.classList.toggle('active', showEntities);
+  btn.textContent = showEntities ? '🔗 Hide Entities' : '🔗 Show Entities';
+  filterCustomers();
+}
+
 function filterCustomers() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
-  filteredCustomers = q ? allCustomers.filter(c =>
+  let base = showEntities ? allCustomers : allCustomers.filter(c => !c.parentCustomerId);
+  filteredCustomers = q ? base.filter(c =>
     (c.company||'').toLowerCase().includes(q) ||
     (c.contact||'').toLowerCase().includes(q) ||
     (c.email||'').toLowerCase().includes(q) ||
     (c.invoiceEmail||'').toLowerCase().includes(q) ||
     (c.city||'').toLowerCase().includes(q) ||
     (c.clientRef||'').toString().includes(q)
-  ) : allCustomers;
+  ) : base;
   currentPage = 1;
   renderCustomers();
 }
@@ -531,14 +563,36 @@ function uploadCustomersBatch(customers, offset, fill, status, banner, filename)
 function renderSiteAddressList() {
   const list = document.getElementById('site-address-list');
   if (!tempSiteAddresses.length) { list.innerHTML = ''; return; }
-  list.innerHTML = tempSiteAddresses.map((s, i) => `
+  // Build entity options from allCustomers (excluding current editing customer and already-parented ones)
+  const entityOptions = allCustomers
+    .filter(c => c.id !== editingCustomerId && !c.parentCustomerId)
+    .sort((a,b) => (a.company||'').localeCompare(b.company||''));
+
+  list.innerHTML = tempSiteAddresses.map((s, i) => {
+    const linkedEntity = s.entityCustomerId ? allCustomers.find(c => c.id === s.entityCustomerId) : null;
+    const opts = entityOptions.map(c =>
+      `<option value="${c.id}" ${s.entityCustomerId === c.id ? 'selected' : ''}>${c.company}</option>`
+    ).join('');
+    return `
     <div class="site-address-item">
-      <div class="site-addr-text">
-        <div class="site-addr-name">${s.name || 'Unnamed site'}</div>
-        <div class="site-addr-addr">${s.address}${s.postcode ? ', ' + s.postcode : ''}</div>
+      <div class="site-addr-row">
+        <div class="site-addr-text">
+          <div class="site-addr-name">${s.name || 'Unnamed site'}</div>
+          <div class="site-addr-addr">${s.address}${s.postcode ? ', ' + s.postcode : ''}</div>
+          ${linkedEntity ? `<div class="site-entity-badge">&#128279; Entity: ${linkedEntity.company}</div>` : ''}
+        </div>
+        <button class="btn btn-danger btn-xs" onclick="removeSiteAddress(${i})">&#10005;</button>
       </div>
-      <button class="btn btn-danger btn-xs" onclick="removeSiteAddress(${i})">&#10005;</button>
-    </div>`).join('');
+      <div class="entity-link-row">
+        <span class="entity-link-label">&#128279; Invoice entity:</span>
+        <select class="entity-link-select" onchange="setSiteEntity(${i}, this.value)">
+          <option value="">-- None (invoice parent directly) --</option>
+          ${opts}
+        </select>
+        ${linkedEntity ? `<button class="btn btn-xs btn-secondary" onclick="setSiteEntity(${i},'')">Unlink</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function addSiteAddressForm() {
@@ -561,6 +615,18 @@ function addSiteAddressForm() {
       <button class="btn btn-secondary btn-xs" onclick="document.getElementById('${formId}').remove()">Cancel</button>
     </div>`;
   list.appendChild(div);
+}
+
+function setSiteEntity(index, entityId) {
+  tempSiteAddresses[index].entityCustomerId = entityId || null;
+  renderSiteAddressList();
+}
+
+function unlinkEntity(entityId) {
+  if (!confirm('Unlink this entity? It will reappear in the main customer list.')) return;
+  _db.collection('crm_customers').doc(entityId).update({ parentCustomerId: null })
+    .then(() => { showToast('Entity unlinked ✓', 'success'); loadCustomers(); })
+    .catch(err => { console.error(err); showToast('Error unlinking entity.', 'error'); });
 }
 
 function confirmSiteAddress(formId) {
@@ -597,7 +663,7 @@ function openEditCustomer(id) {
   const c = allCustomers.find(x => x.id === id);
   if (!c) return;
   editingCustomerId = id;
-  tempSiteAddresses = [...(c.siteAddresses || [])];
+  tempSiteAddresses = (c.siteAddresses || []).map(s => ({...s}));
   document.getElementById('modal-title').textContent = 'Edit Customer';
   document.getElementById('save-btn').textContent = 'Update Customer';
   document.getElementById('f-company').value = c.company || '';
@@ -638,10 +704,38 @@ function saveCustomer() {
   };
   const btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = 'Saving...';
+
   const promise = editingCustomerId
     ? _db.collection('crm_customers').doc(editingCustomerId).update(data)
     : _db.collection('crm_customers').add({ ...data, createdAt: new Date().toISOString() });
-  promise.then(() => {
+
+  promise.then(docRef => {
+    const parentId = editingCustomerId || docRef.id;
+
+    // Collect all entity IDs currently linked to this parent's sites
+    const nowLinkedEntityIds = tempSiteAddresses
+      .filter(s => s.entityCustomerId)
+      .map(s => s.entityCustomerId);
+
+    // Find previously linked entities that are no longer linked (to unlink them)
+    const prevLinkedEntities = allCustomers.filter(c =>
+      c.parentCustomerId === parentId && !nowLinkedEntityIds.includes(c.id)
+    );
+
+    const batch = _db.batch();
+
+    // Set parentCustomerId on newly linked entities
+    nowLinkedEntityIds.forEach(eid => {
+      batch.update(_db.collection('crm_customers').doc(eid), { parentCustomerId: parentId });
+    });
+
+    // Clear parentCustomerId from unlinked entities
+    prevLinkedEntities.forEach(c => {
+      batch.update(_db.collection('crm_customers').doc(c.id), { parentCustomerId: null });
+    });
+
+    return batch.commit();
+  }).then(() => {
     closeModal();
     showToast(editingCustomerId ? 'Customer updated ✓' : 'Customer added ✓', 'success');
     loadCustomers();
