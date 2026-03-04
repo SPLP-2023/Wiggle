@@ -376,10 +376,20 @@ function loadJobs() {
 }
 
 function loadQuotes() {
-  _db.collection('crm_quotes').where('customerId','==',customerId).orderBy('createdAt','desc').get().then(function(snap) {
-    var quotes = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+  var byId = _db.collection('crm_quotes').where('customerId','==',customerId).get();
+  var byCompany = customer.company
+    ? _db.collection('crm_quotes').where('company','==',customer.company).get()
+    : Promise.resolve({docs:[]});
+  Promise.all([byId, byCompany]).then(function(results) {
+    var seen = {}, quotes = [];
+    results.forEach(function(snap) {
+      snap.docs.forEach(function(d) {
+        if (!seen[d.id]) { seen[d.id] = true; quotes.push(Object.assign({id:d.id}, d.data())); }
+      });
+    });
+    quotes.sort(function(a,b) { return (b.createdAt||0)-(a.createdAt||0); });
     document.getElementById('s-quotes').textContent = quotes.length;
-    document.getElementById('quotes-badge').textContent = quotes.length ? ' (' + quotes.length + ')' : '';
+    document.getElementById('quotes-badge').textContent = quotes.length ? ' ('+quotes.length+')' : '';
     renderQuotes(quotes);
   }).catch(function() { renderQuotes([]); });
 }
@@ -396,8 +406,8 @@ function renderQuotes(quotes) {
       +     '<span class="doc-ref">' + esc(q.ref || '-') + '</span>'
       +     '<span class="sbadge badge-' + esc(q.status) + '">' + cap(q.status) + '</span>'
       +   '</div>'
-      +   '<div class="doc-desc">' + esc(q.description || 'No description') + '</div>'
-      +   '<div class="doc-meta">' + formatDate(q.createdAt) + ' &middot; ' + esc(q.siteName || '-') + '</div>'
+      +   '<div class="doc-desc">' + esc(q.jobType || q.serviceAddress || '-') + '</div>'
+      +   '<div class="doc-meta">' + formatDate(q.quoteDate || q.createdAt) + ' &middot; ' + esc(q.serviceAddress || q.preparedFor || '-') + '</div>'
       + '</div>'
       + '<div style="text-align:right;flex-shrink:0;">'
       +   '<div style="font-size:15px;font-weight:700;">' + fmtMoney(q.total || 0) + '</div>'
@@ -409,13 +419,23 @@ function renderQuotes(quotes) {
 }
 
 function loadInvoices() {
-  _db.collection('crm_invoices').where('customerId','==',customerId).orderBy('createdAt','desc').get().then(function(snap) {
-    var invs = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-    var outstanding = invs.filter(function(i) { return i.status === 'sent' || i.status === 'overdue'; })
-      .reduce(function(acc,i) { return acc + parseFloat(i.totalDue || 0); }, 0);
+  var byId = _db.collection('crm_invoices').where('customerId','==',customerId).get();
+  var byCompany = customer.company
+    ? _db.collection('crm_invoices').where('company','==',customer.company).get()
+    : Promise.resolve({docs:[]});
+  Promise.all([byId, byCompany]).then(function(results) {
+    var seen = {}, invs = [];
+    results.forEach(function(snap) {
+      snap.docs.forEach(function(d) {
+        if (!seen[d.id]) { seen[d.id] = true; invs.push(Object.assign({id:d.id}, d.data())); }
+      });
+    });
+    invs.sort(function(a,b) { return (b.createdAt||0)-(a.createdAt||0); });
+    var outstanding = invs.filter(function(i) { return i.status==='sent'||i.status==='overdue'; })
+      .reduce(function(acc,i) { return acc+parseFloat(i.total||i.totalDue||0); }, 0);
     document.getElementById('s-invoices').textContent = invs.length;
     document.getElementById('s-outstanding').textContent = fmtMoney(outstanding);
-    document.getElementById('inv-badge').textContent = invs.length ? ' (' + invs.length + ')' : '';
+    document.getElementById('inv-badge').textContent = invs.length ? ' ('+invs.length+')' : '';
     renderInvoices(invs);
   }).catch(function() { renderInvoices([]); });
 }
@@ -433,11 +453,11 @@ function renderInvoices(invs) {
       +     '<span class="doc-ref">' + esc(inv.ref || '-') + '</span>'
       +     '<span class="sbadge badge-' + esc(inv.status) + '">' + cap(inv.status) + '</span>'
       +   '</div>'
-      +   '<div class="doc-desc">' + esc(inv.description || 'No description') + '</div>'
-      +   '<div class="doc-meta">' + formatDate(inv.createdAt) + ' &middot; Due: ' + formatDate(inv.dueDate) + '</div>'
+      +   '<div class="doc-desc">' + esc((inv.lineItems&&inv.lineItems[0]?inv.lineItems[0].description:'')||'-') + '</div>'
+      +   '<div class="doc-meta">' + formatDate(inv.invoiceDate||inv.createdAt) + ' &middot; Due: ' + formatDate(inv.dueDate) + ' &middot; ' + esc(inv.siteName||'-') + '</div>'
       + '</div>'
       + '<div style="text-align:right;flex-shrink:0;">'
-      +   '<div style="font-size:15px;font-weight:700;color:' + col + ';">' + fmtMoney(inv.totalDue || 0) + '</div>'
+      +   '<div style="font-size:15px;font-weight:700;color:' + col + ';">' + fmtMoney(inv.total||inv.totalDue||0) + '</div>'
       +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
       +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-invoices.html?id=' + esc(inv.id) + '\'">View</button></div>'
       + '</div></div>';
