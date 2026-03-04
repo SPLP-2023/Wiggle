@@ -736,12 +736,12 @@ function buildPDF(pdf,d,logo,footerImg){
   var payY = Math.max(ty + 20, 195);
   pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Methods',lm,payY);payY+=6;
   pdf.setFont(undefined,'normal');
-  pdf.text('Bank Transfer or Cash only (cheques will NOT be accepted)',lm,payY);payY+=5;
+  pdf.text('Bank Transfer or Cash ONLY',lm,payY);payY+=5;
   pdf.text('Account Name: Strike Point Lightning Protection Ltd',lm,payY);payY+=5;
   pdf.text('Account Number: 21842273',lm,payY);payY+=5;
   pdf.text('Sort Code: 04-06-05',lm,payY);payY+=8;
   pdf.setFont(undefined,'italic');pdf.setFontSize(8);
-  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for terms & conditions)',lm,payY,{maxWidth:pw});
+  pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for full terms & conditions)',lm,payY,{maxWidth:pw});
   if(d.notes){
     payY+=10;pdf.setFont(undefined,'bold');pdf.setFontSize(9);pdf.text('Notes:',lm,payY);payY+=5;
     pdf.setFont(undefined,'normal');
