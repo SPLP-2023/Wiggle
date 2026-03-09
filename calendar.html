@@ -562,7 +562,7 @@ function openJobPopup(id) {
 
 function openFullJob() {
   if (!selectedJobId) return;
-  window.location.href = '/Wiggle/job-detail.html?id=' + selectedJobId;
+  window.location.href = '/Wiggle/job-detail.html?id=' + selectedJobId + '&from=calendar';
 }
 
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
