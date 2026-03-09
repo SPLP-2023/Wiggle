@@ -786,11 +786,11 @@ function updateBackButton() {
     const params = new URLSearchParams(window.location.search);
     const from   = params.get('from');
     const btn    = document.getElementById('btn-back');
-    if (!btn) return;
-    if (from === 'customer')   btn.textContent = '← Back to Customer';
+    if (!btn || !from) return;
+    btn.style.display = 'inline-flex';
+    if (from === 'customer')       btn.textContent = '← Back to Customer';
     else if (from === 'calendar')  btn.textContent = '← Calendar';
     else if (from === 'customers') btn.textContent = '← Customers';
-    else                           btn.textContent = '← Dashboard';
 }
 
 function loadCompanyList() {
