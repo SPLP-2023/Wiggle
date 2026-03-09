@@ -13,7 +13,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Calendar — Strike Point</title>
 <style>
   :root {
@@ -116,12 +116,48 @@
   .badge-overdue { font-size:11px; padding:3px 9px; border-radius:20px; background:var(--danger); color:#fff; font-weight:700; }
   .hidden { display:none !important; }
 
-  /* MOBILE */
+  /* JOB PILL — compact dot-only mode on small screens */
+  .pill-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .pill-dot-live     { background:var(--warning); }
+  .pill-dot-pending  { background:var(--pending); }
+  .pill-dot-complete { background:var(--success); }
+  .pill-dot-aborted  { background:var(--danger);  }
+
+  /* TABLET — slightly tighter */
+  @media(max-width:900px) {
+    .cal-cell { min-height:90px; padding:5px; }
+  }
+
+  /* MOBILE PORTRAIT */
   @media(max-width:640px) {
-    .cal-cell { min-height:70px; padding:4px; }
-    .cal-job-pill { font-size:10px; padding:2px 5px; }
-    .cal-day-name { padding:8px 4px; font-size:10px; }
-    .cal-month-label { font-size:15px; min-width:140px; }
+    main { padding:12px 8px 40px; }
+    .cal-cell { min-height:0; height:auto; padding:3px 2px; }
+    .cal-date-num { font-size:11px; width:20px; height:20px; margin-bottom:3px; }
+    /* Single-letter day names */
+    .cal-day-name { padding:6px 2px; font-size:10px; }
+    .cal-day-name::after { content: attr(data-short); }
+    .cal-day-name span { display:none; }
+    .cal-month-label { font-size:14px; min-width:120px; }
+    /* Pills become dot + short ref only */
+    .cal-job-pill { font-size:10px; padding:2px 4px; gap:3px; margin-bottom:2px; }
+    .cal-job-pill .pill-text { display:none; }
+    .cal-job-pill .pill-ref  { display:inline; font-size:9px; }
+    .cal-more-btn { font-size:10px; }
+    .cal-header h2 { font-size:17px; }
+  }
+
+  /* MOBILE LANDSCAPE */
+  @media(max-width:900px) and (orientation:landscape) {
+    main { padding:8px 10px 20px; }
+    .cal-cell { min-height:0; height:auto; padding:3px; }
+    .cal-date-num { font-size:11px; width:18px; height:18px; margin-bottom:2px; }
+    .cal-job-pill { font-size:9px; padding:1px 4px; gap:3px; margin-bottom:2px; }
+    .cal-job-pill .pill-text { display:none; }
+    .cal-job-pill .pill-ref  { display:inline; font-size:9px; }
+    .cal-day-name { padding:5px 3px; font-size:10px; }
+    .cal-month-label { font-size:14px; min-width:110px; }
+    .cal-header { margin-bottom:10px; }
+    .cal-legend { display:none; } /* hide legend in landscape to save space */
   }
 </style>
   <!-- Firebase compat SDK -->
@@ -167,13 +203,13 @@
   <!-- CALENDAR GRID -->
   <div class="cal-grid">
     <div class="cal-days-header">
-      <div class="cal-day-name">Mon</div>
-      <div class="cal-day-name">Tue</div>
-      <div class="cal-day-name">Wed</div>
-      <div class="cal-day-name">Thu</div>
-      <div class="cal-day-name">Fri</div>
-      <div class="cal-day-name">Sat</div>
-      <div class="cal-day-name">Sun</div>
+      <div class="cal-day-name" data-short="M"><span>Mon</span></div>
+      <div class="cal-day-name" data-short="T"><span>Tue</span></div>
+      <div class="cal-day-name" data-short="W"><span>Wed</span></div>
+      <div class="cal-day-name" data-short="T"><span>Thu</span></div>
+      <div class="cal-day-name" data-short="F"><span>Fri</span></div>
+      <div class="cal-day-name" data-short="S"><span>Sat</span></div>
+      <div class="cal-day-name" data-short="S"><span>Sun</span></div>
     </div>
     <div class="cal-cells" id="cal-cells"></div>
   </div>
@@ -345,8 +381,10 @@ function renderCalendar() {
     let pillsHtml = '';
     dayJobs.slice(0, MAX_SHOW).forEach(j => {
       pillsHtml += `
-        <div class="cal-job-pill pill-${j.status}" onclick="event.stopPropagation();openJobPopup('${j.id}')">
-          <span style="overflow:hidden;text-overflow:ellipsis;">${j.siteName || j.company} #${j.ref}</span>
+        <div class="cal-job-pill pill-${j.status}" onclick="event.stopPropagation();openJobPopup('${j.id}')" title="${j.siteName || j.company} #${j.ref}">
+          <span class="pill-dot pill-dot-${j.status}"></span>
+          <span class="pill-text" style="overflow:hidden;text-overflow:ellipsis;">${j.siteName || j.company}</span>
+          <span class="pill-ref">#${j.ref}</span>
         </div>`;
     });
     if (dayJobs.length > MAX_SHOW) {
