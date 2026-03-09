@@ -410,6 +410,15 @@ function renderCalendar() {
     if (!jobMap[j.bookingDate]) jobMap[j.bookingDate] = [];
     jobMap[j.bookingDate].push(j);
   });
+  // Sort each day's jobs: timed jobs first (ascending), untimed jobs at end
+  Object.keys(jobMap).forEach(d => {
+    jobMap[d].sort((a, b) => {
+      if (a.jobTime && b.jobTime) return a.jobTime.localeCompare(b.jobTime);
+      if (a.jobTime) return -1;
+      if (b.jobTime) return 1;
+      return 0;
+    });
+  });
 
   // First day — Mon = 0
   const firstDay = new Date(currentYear, currentMonth, 1);
@@ -454,9 +463,10 @@ function renderCalendar() {
         const pc    = getPillColour(j.engineers);
         const style = pillStyle(pc.colour);
         const dc    = dotClass(j.status);
+        const timePrefix = j.jobTime ? `<span style="font-size:9px;opacity:0.8;flex-shrink:0;margin-right:2px;">${j.jobTime}</span>` : '';
         pillsHtml += `<div class="cal-job-pill" style="${style}" onclick="event.stopPropagation();openJobPopup('${j.id}')" title="${label}">
           <div class="pill-status-dot ${dc}"></div>
-          <span class="pill-text">${label}</span>
+          ${timePrefix}<span class="pill-text">${label}</span>
         </div>`;
       });
       if (dayJobs.length > MAX_SHOW) {
@@ -516,7 +526,7 @@ function openDateModal(dateStr) {
           </div>
         </div>
         <div class="date-job-company">${j.company}</div>
-        <div class="date-job-type">${j.type}</div>
+        <div class="date-job-type">${j.type}${j.jobTime ? ` · <span style="color:var(--primary);font-weight:600;">⏰ ${j.jobTime}</span>` : ''}</div>
         <div class="date-job-engineers">&#128119; ${eng || 'Unassigned'}</div>
       </div>
       <span style="color:var(--primary);font-size:18px;">&#8250;</span>
