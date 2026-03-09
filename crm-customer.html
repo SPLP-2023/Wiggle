@@ -370,9 +370,23 @@ function loadJobs() {
       + '<div style="text-align:right;">'
       +   '<div style="font-size:14px;font-weight:700;color:var(--success);">' + val + '</div>'
       +   '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">profit: ' + pft + '</div>'
+      +   (j.status === 'complete' ? '<button class="btn btn-primary btn-xs" style="margin-top:6px;" onclick="event.stopPropagation();invoiceFromJob(\'' + esc(j.id) + '\',\'' + esc(j.ref) + '\')">🧾 Invoice</button>' : '')
       + '</div></div>';
   }
   list.innerHTML = html;
+}
+
+  function invoiceFromJob(jobId, jobRef) {
+  var j = appData.jobs.find(function(x){ return x.id === jobId; });
+  if (!j) { alert('Job data not loaded — please refresh.'); return; }
+  var poLine = j.poRef ? ' | PO: ' + j.poRef : '';
+  var desc   = (j.type || '') + ' — ' + (j.siteName || j.company || '') + ' (Job Ref: #' + (j.ref || '') + poLine + ')';
+  var value  = (j.costs && j.costs.jobValue) ? j.costs.jobValue : 0;
+  var url = '/Wiggle/crm-invoices.html?fromjob=' + jobId;
+  url += '&desc='    + encodeURIComponent(desc);
+  url += '&value='   + encodeURIComponent(value);
+  url += '&from=customer&cid=' + customerId;
+  window.location.href = url;
 }
 
 function loadQuotes() {
