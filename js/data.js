@@ -228,6 +228,7 @@ function getStatusInfo(status) {
     pending:  { dot: 'status-pending',  label: 'Pending Review', color: '#a855f7' },
     complete: { dot: 'status-complete', label: 'Completed',      color: '#22c55e' },
     aborted:  { dot: 'status-aborted',  label: 'Aborted',        color: '#ef4444' },
+    notconfirmed: { dot: 'status-notconfirmed',  label: 'Not Confirmed',  color: '#ef4444' },
   };
   return map[status] || map.live;
 }
