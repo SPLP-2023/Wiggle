@@ -383,6 +383,22 @@
           </div>
         </div>
 
+        <!-- Job Time (editable) -->
+        <div class="detail-item" id="field-time">
+          <label>Job Time</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-time">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('time')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-time">
+            <input type="time" class="edit-input" id="input-time">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('time')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('time')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Company (editable) -->
         <div class="detail-item" id="field-company">
           <label>Company</label>
@@ -893,6 +909,7 @@ function renderDetails() {
   document.getElementById('d-address').textContent = job.address;
   document.getElementById('d-desc').textContent    = job.description || 'No description provided.';
   document.getElementById('d-po').textContent      = job.poRef || '—';
+  document.getElementById('d-time').textContent    = job.jobTime ? formatJobTime(job.jobTime) : '—';
   // Time tracking
   document.getElementById('d-started').textContent  = job.startedAt  ? formatDateTime(job.startedAt)  : 'Not started';
   document.getElementById('d-finished').textContent = job.finishedAt ? formatDateTime(job.finishedAt) : '—';
@@ -1474,7 +1491,17 @@ const _fieldMap = {
   postcode: { jobKey: 'postcode',    display: 'd-postcode', header: 'h-postcode',  type: 'text' },
   address:  { jobKey: 'address',     display: 'd-address',  header: null,          type: 'text' },
   po:       { jobKey: 'poRef',       display: 'd-po',       header: null,          type: 'text' },
+  time:     { jobKey: 'jobTime',     display: 'd-time',     header: null,          type: 'time' },
 };
+
+function formatJobTime(t) {
+  if (!t) return '—';
+  try {
+    const [h, m] = t.split(':');
+    const date = new Date(); date.setHours(+h, +m);
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  } catch(e) { return t; }
+}
 
 function inlineEdit(field) {
   const fm = _fieldMap[field];
@@ -1527,6 +1554,12 @@ function saveInline(field) {
   if (field === 'address' || field === 'postcode') {
     document.getElementById('h-address').textContent =
       (job.address || '') + (job.postcode ? ', ' + job.postcode : '');
+  }
+
+  // Special: time — store raw value, display formatted
+  if (field === 'time') {
+    const displayEl = document.getElementById(fm.display);
+    displayEl.textContent = val ? formatJobTime(val) : '—';
   }
 
   // Special: type change may affect costs panel visibility
