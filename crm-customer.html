@@ -275,9 +275,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var params = new URLSearchParams(window.location.search);
   customerId = params.get('id');
   if (!customerId) { window.location.href = '/Wiggle/customers.html'; return; }
-  document.getElementById('btn-new-quote').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId; };
-  document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId; };
-  document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/Wiggle/crm-invoices.html?customer=' + customerId; };
+  document.getElementById('btn-new-quote').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
+  document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
+  document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/Wiggle/crm-invoices.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
   showLoader();
   initFirebase().then(function() { hideLoader(); loadCustomer(); })
     .catch(function() { hideLoader(); showToast('Connection error - please refresh.', 'error'); });
@@ -357,7 +357,7 @@ function loadJobs() {
     var si = getStatusInfo(j.status);
     var val = (j.costs && j.costs.jobValue)   ? fmtMoney(j.costs.jobValue)   : '-';
     var pft = (j.costs && j.costs.netProfit != null) ? fmtMoney(j.costs.netProfit) : '-';
-    html += '<div class="job-item" onclick="window.location.href=\'/Wiggle/job-detail.html?id=' + esc(j.id) + '\'">'
+    html += '<div class="job-item" onclick="window.location.href=\'/Wiggle/job-detail.html?id=' + esc(j.id) + '&from=customer&cid=' + customerId + '\'">'
       + '<div class="job-dot dot-' + esc(j.status) + '"></div>'
       + '<div class="job-info">'
       +   '<div style="display:flex;align-items:center;gap:8px;">'
@@ -412,7 +412,7 @@ function renderQuotes(quotes) {
       + '<div style="text-align:right;flex-shrink:0;">'
       +   '<div style="font-size:15px;font-weight:700;">' + fmtMoney(q.total || 0) + '</div>'
       +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
-      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-quotes.html?id=' + esc(q.id) + '\'">View</button></div>'
+      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-quotes.html?id=' + esc(q.id) + '&from=customer&cid=' + customerId + '\'">View</button></div>'
       + '</div></div>';
   }
   list.innerHTML = html;
@@ -459,7 +459,7 @@ function renderInvoices(invs) {
       + '<div style="text-align:right;flex-shrink:0;">'
       +   '<div style="font-size:15px;font-weight:700;color:' + col + ';">' + fmtMoney(inv.total||inv.totalDue||0) + '</div>'
       +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
-      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-invoices.html?id=' + esc(inv.id) + '\'">View</button></div>'
+      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-invoices.html?id=' + esc(inv.id) + '&from=customer&cid=' + customerId + '\'">View</button></div>'
       + '</div></div>';
   }
   list.innerHTML = html;
