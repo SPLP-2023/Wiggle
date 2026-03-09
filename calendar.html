@@ -2,19 +2,18 @@
 <html lang="en">
 <head>
   <link rel="manifest" href="/Wiggle/manifest.json">
-<meta name="theme-color" content="#f59e0b">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SP FSM">
-<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
-<meta charset="UTF-8">
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SP FSM">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+  <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>Calendar — Strike Point</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Calendar — Strike Point</title>
 <style>
   :root {
     --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
@@ -31,7 +30,6 @@
   /* NAV */
   nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
   .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
-  .nav-brand .bolt { font-size:22px; }
   .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
   .nav-right { display:flex; align-items:center; gap:10px; }
   .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
@@ -45,8 +43,8 @@
   .btn-secondary:hover { background:#475569; }
   .btn-sm { padding:7px 14px; font-size:12px; }
 
-  /* MAIN */
-  main { max-width:1100px; margin:0 auto; padding:24px 20px 60px; }
+  /* MAIN — full width */
+  main { width:100%; padding:24px 16px 60px; }
 
   /* CALENDAR HEADER */
   .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
@@ -59,31 +57,60 @@
   .cal-today-btn:hover { border-color:var(--primary); color:var(--primary); }
 
   /* LEGEND */
-  .cal-legend { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+  .cal-legend { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
   .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
   .legend-dot { width:10px; height:10px; border-radius:50%; }
 
+  /* SCROLL HINT — mobile only */
+  .cal-scroll-hint { display:none; text-align:center; font-size:11px; color:var(--text-muted); padding:0 0 8px; letter-spacing:0.3px; }
+
+  /* SCROLL WRAPPER — enables horizontal swipe on mobile */
+  .cal-scroll-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:14px; }
+
   /* CALENDAR GRID */
-  .cal-grid { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
-  .cal-days-header { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); }
+  .cal-grid { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; overflow:hidden; min-width:560px; }
+
+  /* Day name header row — sticky within horizontal scroll */
+  .cal-days-header { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--card-bg); }
   .cal-day-name { padding:12px 8px; text-align:center; font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+
   .cal-cells { display:grid; grid-template-columns:repeat(7,1fr); }
-  .cal-cell { min-height:110px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px; position:relative; transition:background 0.15s; vertical-align:top; }
+
+  /*
+   * UNIFORM CELL HEIGHT
+   * 22px date num + 4px gap
+   * 3x pills @ 22px each + 2px gap = 72px
+   * +more row @ 20px
+   * top/bottom padding 10px
+   * Total = ~128px
+   */
+  .cal-cell {
+    height:128px;
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    padding:6px 5px 4px;
+    position:relative;
+    transition:background 0.15s;
+    overflow:hidden;
+  }
   .cal-cell:nth-child(7n) { border-right:none; }
   .cal-cell.other-month { opacity:0.35; }
   .cal-cell.today { background:rgba(245,158,11,0.07); }
-  .cal-cell.today .cal-date-num { background:var(--primary); color:var(--dark); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
-  .cal-date-num { font-size:13px; font-weight:600; color:var(--text-muted); margin-bottom:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
+  .cal-cell.today .cal-date-num { background:var(--primary); color:var(--dark); border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
+  .cal-date-num { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
 
-  /* JOB PILLS ON CALENDAR */
-  .cal-job-pill { display:flex; align-items:center; gap:5px; padding:3px 7px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin-bottom:3px; transition:opacity 0.15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  /* JOB PILLS */
+  .cal-job-pill { display:flex; align-items:center; padding:2px 6px; border-radius:5px; font-size:11px; font-weight:600; cursor:pointer; margin-bottom:2px; transition:opacity 0.15s; overflow:hidden; white-space:nowrap; max-width:100%; }
+  .cal-job-pill span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
   .cal-job-pill:hover { opacity:0.8; }
   .pill-live     { background:rgba(245,158,11,0.2); color:var(--warning); border:1px solid rgba(245,158,11,0.3); }
   .pill-pending  { background:rgba(168,85,247,0.2); color:var(--pending); border:1px solid rgba(168,85,247,0.3); }
   .pill-complete { background:rgba(34,197,94,0.2);  color:var(--success); border:1px solid rgba(34,197,94,0.3); }
   .pill-aborted  { background:rgba(239,68,68,0.2);  color:var(--danger);  border:1px solid rgba(239,68,68,0.3); }
-  .cal-more-btn { font-size:11px; color:var(--primary); cursor:pointer; padding:2px 4px; font-weight:600; }
-  .cal-more-btn:hover { text-decoration:underline; }
+
+  /* +X MORE button */
+  .cal-more-btn { display:inline-flex; align-items:center; font-size:10px; font-weight:700; color:var(--primary); background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:5px; padding:2px 7px; cursor:pointer; transition:background 0.15s; margin-top:1px; }
+  .cal-more-btn:hover { background:rgba(245,158,11,0.18); }
 
   /* MODALS */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
@@ -93,7 +120,7 @@
   .modal-close { background:var(--dark3); border:none; color:var(--text); width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
   .modal-body { padding:22px; }
 
-  /* JOB LIST MODAL (multiple jobs on a date) */
+  /* DATE MODAL JOB LIST */
   .date-job-item { display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--dark); border:1px solid var(--border); border-radius:10px; margin-bottom:10px; cursor:pointer; transition:border-color 0.2s; gap:12px; }
   .date-job-item:hover { border-color:var(--primary); }
   .date-job-ref { font-size:16px; font-weight:700; color:var(--primary); }
@@ -116,56 +143,37 @@
   .badge-overdue { font-size:11px; padding:3px 9px; border-radius:20px; background:var(--danger); color:#fff; font-weight:700; }
   .hidden { display:none !important; }
 
-  /* JOB COUNT BADGE */
-  .cal-job-count {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 28px; height: 28px; border-radius: 8px;
-    font-size: 13px; font-weight: 700; cursor: pointer; padding: 0 6px;
-    transition: opacity 0.15s, transform 0.1s; margin-top: 2px;
-  }
-  .cal-job-count:hover { opacity: 0.8; transform: scale(1.05); }
-  .count-live     { background:rgba(245,158,11,0.2); color:var(--warning); border:1px solid rgba(245,158,11,0.4); }
-  .count-pending  { background:rgba(168,85,247,0.2); color:var(--pending); border:1px solid rgba(168,85,247,0.4); }
-  .count-aborted  { background:rgba(239,68,68,0.2);  color:var(--danger);  border:1px solid rgba(239,68,68,0.4); }
-  .count-complete { background:rgba(34,197,94,0.2);  color:var(--success); border:1px solid rgba(34,197,94,0.4); }
-
-  /* TABLET */
-  @media(max-width:900px) {
-    .cal-cell { min-height:80px; padding:5px; }
-  }
   /* MOBILE PORTRAIT */
   @media(max-width:640px) {
-    main { padding:12px 8px 40px; }
-    .cal-cell { min-height:0; height:auto; padding:3px 2px; }
-    .cal-date-num { font-size:11px; width:20px; height:20px; margin-bottom:2px; }
-    .cal-day-name { padding:6px 2px; font-size:10px; }
-    .cal-day-name::after { content: attr(data-short); }
-    .cal-day-name span { display:none; }
-    .cal-month-label { font-size:14px; min-width:120px; }
-    .cal-job-count { min-width:22px; height:22px; font-size:11px; border-radius:6px; }
+    main { padding:10px 8px 40px; }
     .cal-header h2 { font-size:17px; }
+    .cal-month-label { font-size:14px; min-width:130px; }
+    .cal-nav-btn { width:30px; height:30px; font-size:15px; }
+    .cal-day-name { padding:8px 4px; font-size:10px; }
+    .cal-job-pill { font-size:10px; padding:2px 4px; }
+    .cal-more-btn { font-size:9px; padding:1px 5px; }
+    .cal-date-num { font-size:11px; }
+    .cal-scroll-hint { display:block; }
   }
-  /* MOBILE LANDSCAPE — max-height catches all phones regardless of width */
+
+  /* MOBILE LANDSCAPE */
   @media(max-height:500px) and (orientation:landscape) {
     main { padding:6px 8px 10px; }
     nav { height:44px; }
     .cal-header { margin-bottom:8px; }
     .cal-header h2 { font-size:15px; }
     .cal-legend { display:none; }
-    .cal-cell { min-height:0; height:auto; padding:2px; }
-    .cal-date-num { font-size:10px; width:16px; height:16px; margin-bottom:1px; }
-    .cal-day-name { padding:4px 2px; font-size:9px; }
-    .cal-day-name::after { content: attr(data-short); }
-    .cal-day-name span { display:none; }
+    .cal-date-num { font-size:10px; width:16px; height:16px; }
+    .cal-day-name { padding:5px 3px; font-size:9px; }
     .cal-month-label { font-size:13px; min-width:100px; }
     .cal-nav-btn { width:28px; height:28px; font-size:15px; }
     .cal-today-btn { padding:4px 10px; font-size:11px; }
-    .cal-job-count { min-width:20px; height:20px; font-size:10px; border-radius:5px; padding:0 4px; }
+    .cal-job-pill { font-size:9px; padding:1px 4px; }
     .btn-sm { padding:5px 10px; font-size:11px; }
     .user-badge { padding:3px 8px; font-size:12px; }
+    .cal-scroll-hint { display:block; }
   }
 </style>
-  <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
@@ -177,27 +185,25 @@
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="goBack()">← Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="goBack()">&#8592; Dashboard</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
-      <span id="user-name-display">—</span>
+      <span id="user-name-display">&#8212;</span>
     </div>
   </div>
 </nav>
 
 <main>
-  <!-- CALENDAR HEADER -->
   <div class="cal-header">
-    <h2>📅 Calendar</h2>
+    <h2>&#128197; Calendar</h2>
     <div class="cal-nav">
-      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
-      <div class="cal-month-label" id="cal-month-label">—</div>
-      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+      <div class="cal-month-label" id="cal-month-label">&#8212;</div>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">&#8250;</button>
       <button class="cal-today-btn" onclick="goToToday()">Today</button>
     </div>
   </div>
 
-  <!-- LEGEND -->
   <div class="cal-legend">
     <div class="legend-item"><div class="legend-dot" style="background:var(--warning);"></div> Live</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--pending);"></div> Pending Review</div>
@@ -205,27 +211,30 @@
     <div class="legend-item"><div class="legend-dot" style="background:var(--danger);"></div> Aborted</div>
   </div>
 
-  <!-- CALENDAR GRID -->
-  <div class="cal-grid">
-    <div class="cal-days-header">
-      <div class="cal-day-name" data-short="M"><span>Mon</span></div>
-      <div class="cal-day-name" data-short="T"><span>Tue</span></div>
-      <div class="cal-day-name" data-short="W"><span>Wed</span></div>
-      <div class="cal-day-name" data-short="T"><span>Thu</span></div>
-      <div class="cal-day-name" data-short="F"><span>Fri</span></div>
-      <div class="cal-day-name" data-short="S"><span>Sat</span></div>
-      <div class="cal-day-name" data-short="S"><span>Sun</span></div>
+  <div class="cal-scroll-hint">&#8592; swipe to scroll all 7 days &#8594;</div>
+
+  <div class="cal-scroll-wrap">
+    <div class="cal-grid">
+      <div class="cal-days-header">
+        <div class="cal-day-name">Mon</div>
+        <div class="cal-day-name">Tue</div>
+        <div class="cal-day-name">Wed</div>
+        <div class="cal-day-name">Thu</div>
+        <div class="cal-day-name">Fri</div>
+        <div class="cal-day-name">Sat</div>
+        <div class="cal-day-name">Sun</div>
+      </div>
+      <div class="cal-cells" id="cal-cells"></div>
     </div>
-    <div class="cal-cells" id="cal-cells"></div>
   </div>
 </main>
 
-<!-- DATE JOBS LIST MODAL (multiple jobs) -->
+<!-- DATE JOBS LIST MODAL -->
 <div class="modal-overlay hidden" id="modal-date-jobs">
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-date-title">Jobs on this date</h3>
-      <button class="modal-close" onclick="closeModal('modal-date-jobs')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-date-jobs')">&#10005;</button>
     </div>
     <div class="modal-body" id="modal-date-body"></div>
   </div>
@@ -236,58 +245,51 @@
   <div class="modal">
     <div class="modal-header">
       <div style="display:flex;align-items:center;gap:10px;">
-        <h3 id="popup-ref">—</h3>
-        <span id="popup-type" style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--dark3);color:var(--text-muted);font-weight:600;">—</span>
+        <h3 id="popup-ref">&#8212;</h3>
+        <span id="popup-type" style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--dark3);color:var(--text-muted);font-weight:600;">&#8212;</span>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-job-popup')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-job-popup')">&#10005;</button>
     </div>
     <div class="modal-body">
-      <!-- Status + overdue -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
         <div class="status-pill">
           <div class="status-dot" id="popup-status-dot"></div>
-          <span class="status-label" id="popup-status-label">—</span>
+          <span class="status-label" id="popup-status-label">&#8212;</span>
         </div>
-        <span class="badge-overdue hidden" id="popup-overdue">⚠ Overdue</span>
+        <span class="badge-overdue hidden" id="popup-overdue">&#9888; Overdue</span>
       </div>
-
-      <!-- Details grid -->
       <div class="popup-grid">
         <div class="popup-section">
           <label>Company</label>
-          <div class="val" id="popup-company">—</div>
+          <div class="val" id="popup-company">&#8212;</div>
         </div>
         <div class="popup-section">
           <label>Booking Date</label>
-          <div class="val" id="popup-date">—</div>
+          <div class="val" id="popup-date">&#8212;</div>
         </div>
         <div class="popup-section">
           <label>Postcode</label>
-          <div class="val" id="popup-postcode">—</div>
+          <div class="val" id="popup-postcode">&#8212;</div>
         </div>
         <div class="popup-section">
           <label>Site Rep</label>
-          <div class="val" id="popup-rep">—</div>
+          <div class="val" id="popup-rep">&#8212;</div>
         </div>
       </div>
-
       <div class="popup-section">
         <label>Address</label>
-        <div class="val" id="popup-address">—</div>
+        <div class="val" id="popup-address">&#8212;</div>
       </div>
-
       <div class="popup-section" style="margin-top:12px;">
         <label>Assigned Engineers</label>
         <div id="popup-engineers" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
       </div>
-
       <div class="popup-section" style="margin-top:12px;">
         <label>Description</label>
-        <div class="val" id="popup-desc" style="font-size:13px;color:var(--text-muted);line-height:1.6;">—</div>
+        <div class="val" id="popup-desc" style="font-size:13px;color:var(--text-muted);line-height:1.6;">&#8212;</div>
       </div>
-
       <div style="margin-top:20px;">
-        <button class="btn btn-primary btn-full" id="popup-view-btn" onclick="openFullJob()">📋 View Full Job</button>
+        <button class="btn btn-primary" style="width:100%;" onclick="openFullJob()">&#128203; View Full Job</button>
       </div>
     </div>
   </div>
@@ -296,38 +298,38 @@
 <script src="/Wiggle/js/data.js"></script>
 <script>
 let currentUser;
-let currentYear, currentMonth; // 0-indexed month
+let currentYear, currentMonth;
 let selectedJobId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireAuth();
   if (!currentUser) return;
   showLoader();
-  setLoaderMsg('Loading calendar…');
+  setLoaderMsg('Loading calendar\u2026');
   initFirebase().then(() => {
     hideLoader();
-    document.getElementById('user-avatar').textContent  = currentUser.name[0].toUpperCase();
+    document.getElementById('user-avatar').textContent       = currentUser.name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = currentUser.name;
-    const now = new Date();
+    const now    = new Date();
     currentYear  = now.getFullYear();
     currentMonth = now.getMonth();
     renderCalendar();
   }).catch(err => {
     hideLoader();
     console.error('Firebase error', err);
-    showToast('Connection error — please refresh.', 'error');
+    showToast('Connection error \u2014 please refresh.', 'error');
   });
 });
 
 function goBack() { window.location.href = '/Wiggle/index.html'; }
 
-// ── GET VISIBLE JOBS ──────────────────────────
+// ── VISIBLE JOBS ──────────────────────────────
 function getVisibleJobs() {
   if (currentUser.role === 'manager') return appData.jobs;
   return appData.jobs.filter(j => j.engineers && j.engineers.includes(currentUser.id));
 }
 
-// ── CALENDAR RENDER ───────────────────────────
+// ── RENDER CALENDAR ───────────────────────────
 function renderCalendar() {
   const months = ['January','February','March','April','May','June',
                   'July','August','September','October','November','December'];
@@ -336,73 +338,74 @@ function renderCalendar() {
   const cells   = document.getElementById('cal-cells');
   const today   = new Date();
   const jobs    = getVisibleJobs();
+  const MAX_SHOW = 3;
 
-  // Build a map of dateStr -> jobs[]
-  const jobMap  = {};
+  // dateStr -> jobs[]
+  const jobMap = {};
   jobs.forEach(j => {
     if (!j.bookingDate) return;
-    const key = j.bookingDate; // YYYY-MM-DD
-    if (!jobMap[key]) jobMap[key] = [];
-    jobMap[key].push(j);
+    if (!jobMap[j.bookingDate]) jobMap[j.bookingDate] = [];
+    jobMap[j.bookingDate].push(j);
   });
 
-  // First day of month (adjust so Monday = 0)
+  // First day — Mon = 0
   const firstDay = new Date(currentYear, currentMonth, 1);
-  let startDow = firstDay.getDay(); // 0=Sun
-  startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
+  let startDow = firstDay.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1;
 
-  const daysInMonth  = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const daysInPrev   = new Date(currentYear, currentMonth, 0).getDate();
-  const totalCells   = Math.ceil((startDow + daysInMonth) / 7) * 7;
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInPrev  = new Date(currentYear, currentMonth,     0).getDate();
+  const totalCells  = Math.ceil((startDow + daysInMonth) / 7) * 7;
 
   let html = '';
   for (let i = 0; i < totalCells; i++) {
     let day, month, year, isOther = false;
+
     if (i < startDow) {
-      // Previous month
       day = daysInPrev - startDow + i + 1;
-      month = currentMonth - 1;
-      year  = currentYear;
+      month = currentMonth - 1; year = currentYear;
       if (month < 0) { month = 11; year--; }
       isOther = true;
     } else if (i >= startDow + daysInMonth) {
-      // Next month
       day = i - startDow - daysInMonth + 1;
-      month = currentMonth + 1;
-      year  = currentYear;
+      month = currentMonth + 1; year = currentYear;
       if (month > 11) { month = 0; year++; }
       isOther = true;
     } else {
-      day   = i - startDow + 1;
-      month = currentMonth;
-      year  = currentYear;
+      day = i - startDow + 1;
+      month = currentMonth; year = currentYear;
     }
 
-    const dateStr  = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
-    const isToday  = !isOther && day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-    const dayJobs  = jobMap[dateStr] || [];
+    const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    const isToday = !isOther
+      && day   === today.getDate()
+      && currentMonth === today.getMonth()
+      && currentYear  === today.getFullYear();
+    const dayJobs = jobMap[dateStr] || [];
 
-    // Determine badge colour from "worst" status present
-    const statusPriority = { live:0, pending:1, aborted:2, complete:3 };
-    let worstStatus = 'complete';
-    dayJobs.forEach(j => {
-      if ((statusPriority[j.status] ?? 99) < (statusPriority[worstStatus] ?? 99)) worstStatus = j.status;
-    });
-
-    let countHtml = '';
-    if (dayJobs.length === 1) {
-      countHtml = `<div class="cal-job-count count-${worstStatus}" onclick="event.stopPropagation();openJobPopup('${dayJobs[0].id}')" title="1 job">${dayJobs.length}</div>`;
-    } else if (dayJobs.length > 1) {
-      countHtml = `<div class="cal-job-count count-${worstStatus}" onclick="event.stopPropagation();openDateModal('${dateStr}')" title="${dayJobs.length} jobs">${dayJobs.length}</div>`;
+    // Build pill HTML (same for all roles)
+    let pillsHtml = '';
+    if (!isOther) {
+      dayJobs.slice(0, MAX_SHOW).forEach(j => {
+        const label = (j.siteName || j.company) + ' #' + j.ref;
+        pillsHtml += `<div class="cal-job-pill pill-${j.status}" onclick="event.stopPropagation();openJobPopup('${j.id}')" title="${label}"><span>${label}</span></div>`;
+      });
+      if (dayJobs.length > MAX_SHOW) {
+        const extra = dayJobs.length - MAX_SHOW;
+        pillsHtml += `<div class="cal-more-btn" onclick="event.stopPropagation();openDateModal('${dateStr}')">+${extra} more</div>`;
+      }
     }
 
-    const cellClick = dayJobs.length > 1 ? `onclick="openDateModal('${dateStr}')"` : (dayJobs.length === 1 ? `onclick="openJobPopup('${dayJobs[0].id}')"` : '');
+    const cellClick = dayJobs.length > 1
+      ? `onclick="openDateModal('${dateStr}')"`
+      : dayJobs.length === 1
+        ? `onclick="openJobPopup('${dayJobs[0].id}')"`
+        : '';
 
-    html += `
-      <div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
-        <div class="cal-date-num">${day}</div>
-        ${!isOther ? countHtml : ''}
-      </div>`;
+    html += `<div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
+      <div class="cal-date-num">${day}</div>
+      ${pillsHtml}
+    </div>`;
   }
 
   cells.innerHTML = html;
@@ -422,34 +425,33 @@ function goToToday() {
   renderCalendar();
 }
 
-// ── DATE MODAL (multiple jobs) ────────────────
+// ── DATE MODAL ────────────────────────────────
 function openDateModal(dateStr) {
   const jobs = getVisibleJobs().filter(j => j.bookingDate === dateStr);
   if (!jobs.length) return;
 
   const d = new Date(dateStr + 'T00:00:00');
   document.getElementById('modal-date-title').textContent =
-    '📅 ' + d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    '\uD83D\uDCC5 ' + d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   document.getElementById('modal-date-body').innerHTML = jobs.map(j => {
     const si  = getStatusInfo(j.status);
     const eng = (j.engineers||[]).map(id => getUserName(id)).join(', ');
-    return `
-      <div class="date-job-item" onclick="closeModal('modal-date-jobs');openJobPopup('${j.id}')">
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="date-job-ref">${j.siteName || j.company} #${j.ref}</span>
-            <div class="status-pill" style="padding:3px 10px;">
-              <div class="status-dot ${si.dot}"></div>
-              <span class="status-label" style="font-size:11px;">${si.label}</span>
-            </div>
+    return `<div class="date-job-item" onclick="closeModal('modal-date-jobs');openJobPopup('${j.id}')">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="date-job-ref">${j.siteName || j.company} #${j.ref}</span>
+          <div class="status-pill" style="padding:3px 10px;">
+            <div class="status-dot ${si.dot}"></div>
+            <span class="status-label" style="font-size:11px;">${si.label}</span>
           </div>
-          <div class="date-job-company">${j.company}</div>
-          <div class="date-job-type">${j.type}</div>
-          <div class="date-job-engineers">👷 ${eng || 'Unassigned'}</div>
         </div>
-        <span style="color:var(--primary);font-size:18px;">›</span>
-      </div>`;
+        <div class="date-job-company">${j.company}</div>
+        <div class="date-job-type">${j.type}</div>
+        <div class="date-job-engineers">&#128119; ${eng || 'Unassigned'}</div>
+      </div>
+      <span style="color:var(--primary);font-size:18px;">&#8250;</span>
+    </div>`;
   }).join('');
 
   document.getElementById('modal-date-jobs').classList.remove('hidden');
@@ -461,18 +463,20 @@ function openJobPopup(id) {
   if (!j) return;
   selectedJobId = id;
 
-  const si  = getStatusInfo(j.status);
+  const si   = getStatusInfo(j.status);
   const over = isOverdue(j);
   const eng  = (j.engineers||[]).map(id => getUserName(id));
 
-  document.getElementById('popup-ref').textContent          = (j.siteName || j.company) + ' #' + j.ref;
-  document.getElementById('popup-type').textContent         = j.type;
-  document.getElementById('popup-company').textContent      = j.company;
-  document.getElementById('popup-date').textContent         = formatDate(j.bookingDate);
-  document.getElementById('popup-postcode').textContent     = j.postcode || '—';
-  document.getElementById('popup-rep').textContent          = j.rep || '—';
-  document.getElementById('popup-address').textContent      = j.address || '—';
-  document.getElementById('popup-desc').textContent         = j.description ? j.description.substring(0,120) + (j.description.length>120?'…':'') : 'No description.';
+  document.getElementById('popup-ref').textContent      = (j.siteName || j.company) + ' #' + j.ref;
+  document.getElementById('popup-type').textContent     = j.type;
+  document.getElementById('popup-company').textContent  = j.company;
+  document.getElementById('popup-date').textContent     = formatDate(j.bookingDate);
+  document.getElementById('popup-postcode').textContent = j.postcode || '\u2014';
+  document.getElementById('popup-rep').textContent      = j.rep || '\u2014';
+  document.getElementById('popup-address').textContent  = j.address || '\u2014';
+  document.getElementById('popup-desc').textContent     = j.description
+    ? j.description.substring(0,120) + (j.description.length > 120 ? '\u2026' : '')
+    : 'No description.';
 
   const dot = document.getElementById('popup-status-dot');
   dot.className = 'status-dot ' + si.dot;
@@ -480,10 +484,9 @@ function openJobPopup(id) {
   document.getElementById('popup-overdue').classList.toggle('hidden', !over);
 
   document.getElementById('popup-engineers').innerHTML = eng.length
-    ? eng.map(n => `<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--dark3);color:var(--text-muted);">👷 ${n}</span>`).join('')
+    ? eng.map(n => `<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--dark3);color:var(--text-muted);">&#128119; ${n}</span>`).join('')
     : '<span style="color:var(--text-muted);font-size:13px;">Unassigned</span>';
 
-  // Close date modal if open
   document.getElementById('modal-date-jobs').classList.add('hidden');
   document.getElementById('modal-job-popup').classList.remove('hidden');
 }
@@ -493,10 +496,9 @@ function openFullJob() {
   window.location.href = '/Wiggle/job-detail.html?id=' + selectedJobId;
 }
 
-// ── MODAL ─────────────────────────────────────
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 </script>
-  <script>
+<script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/Wiggle/sw.js');
   }
