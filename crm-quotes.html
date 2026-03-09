@@ -112,7 +112,8 @@
     <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#9889; FSM</button>
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#9889; FSM</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#128101; Customers</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">&#128176; Quotes</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html'">&#129534; Invoices</button>
@@ -292,6 +293,29 @@ var TERMS = '1) Validity of Quotation\nThis quotation is valid for 30 days from 
 
 var FOOTER = 'Strike Point Lightning Protection Ltd Registered office: Atkinson Evans Ltd, 10 Arnot Hill Road, Nottingham NG5 6LJ. Company No. 15114852, Registered in England and Wales. @: info@strikepoint.uk Tel: 01159903220';
 
+  function goBack() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const cid    = params.get('cid');
+  if (from === 'customer' && cid) {
+    window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
+  } else if (from === 'customers') {
+    window.location.href = '/Wiggle/customers.html';
+  } else {
+    window.location.href = '/Wiggle/customers.html';
+  }
+}
+
+function updateBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const btn    = document.getElementById('btn-back');
+  if (!btn || !from) return;
+  btn.style.display = 'inline-flex';
+  if (from === 'customer')       btn.textContent = '← Back to Customer';
+  else if (from === 'customers') btn.textContent = '← Customers';
+}
+
 // ---- INIT ----
 document.addEventListener('DOMContentLoaded', function() {
   currentUser = requireAuth();
@@ -309,6 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
   showLoader();
   initFirebase().then(function() {
     hideLoader();
+    updateBackButton();
     loadCustomersDropdown(function() {
       if (qid) { openExistingQuote(qid); }
       else if (currentCustomerId) { openNewQuote(currentCustomerId); }
