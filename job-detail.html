@@ -68,10 +68,11 @@
   .job-type-tag { font-size:12px; padding:4px 12px; border-radius:20px; background:var(--dark3); color:var(--text-muted); font-weight:600; }
   .status-pill { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:20px; padding:6px 14px; }
   .status-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .status-live    { background:var(--warning); box-shadow:0 0 6px var(--warning); }
-  .status-pending { background:var(--pending); box-shadow:0 0 6px var(--pending); }
-  .status-complete{ background:var(--success); box-shadow:0 0 6px var(--success); }
-  .status-aborted { background:var(--danger);  box-shadow:0 0 6px var(--danger);  }
+  .status-live         { background:var(--warning); box-shadow:0 0 6px var(--warning); }
+  .status-pending      { background:var(--pending); box-shadow:0 0 6px var(--pending); }
+  .status-complete     { background:var(--success); box-shadow:0 0 6px var(--success); }
+  .status-aborted      { background:var(--danger);  box-shadow:0 0 6px var(--danger);  }
+  .status-notconfirmed { background:var(--danger);  box-shadow:0 0 6px var(--danger);  }
   .status-label { font-size:13px; font-weight:600; }
   .job-company { font-size:20px; font-weight:700; margin-bottom:4px; }
   .job-meta-row { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; }
@@ -294,7 +295,9 @@
       <button class="btn btn-success"  id="btn-approve"  onclick="approveComplete()"    >✅ Approve Complete</button>
       <button class="btn btn-secondary"id="btn-reject"   onclick="rejectToLive()"       >↩ Reject to Live</button>
       <!-- Both -->
-      <button class="btn btn-danger"   id="btn-abort"    onclick="confirmAbort()"       >✕ Abort Job</button>
+      <button class="btn btn-danger btn-sm" id="btn-abort" onclick="confirmAbort()">✕ Abort Job</button>
+      <button class="btn btn-danger btn-sm" id="btn-notconfirm" onclick="markNotConfirmed()" style="display:none;">? Not Confirmed</button>
+      <button class="btn btn-warning btn-sm" id="btn-confirm-job" onclick="markConfirmed()" style="display:none;">✓ Confirm Job</button>
       <button class="btn btn-info"     id="btn-save-history" onclick="saveToHistory()">📁 Save to History</button>
       <button class="btn btn-danger" id="btn-delete" onclick="confirmDelete()">🗑 Delete Job</button>
     </div>
@@ -859,15 +862,19 @@ function setupActionButtons() {
   const isEngineer = currentUser.role === 'engineer';
   const s = job.status;
   const isAssigned = job.engineers?.includes(currentUser.id);
+  const isLive         = job.status === 'live';
+  const isPending      = job.status === 'pending';
+  const isNotConfirmed = job.status === 'notconfirmed';
 
-  show('btn-start',        isEngineer && isAssigned && s === 'live' && !job.startedAt);
-  show('btn-finish',       isEngineer && isAssigned && s === 'live' && !!job.startedAt && !job.finishedAt);
-  show('timer-display',    isEngineer && isAssigned && s === 'live' && !!job.startedAt && !job.finishedAt);
-  show('btn-eng-complete', isEngineer && isAssigned && s === 'live');
-  show('btn-approve',      isManager  && s === 'pending');
-  show('btn-reject',       isManager  && s === 'pending');
-  show('btn-abort',        (isManager || (isEngineer && isAssigned)) && (s === 'live' || s === 'pending'));
-  show('btn-delete', isManager);
+  show('btn-start',       isLive && isEngineer);
+  show('btn-finish',      isLive && isEngineer && job.startedAt);
+  show('btn-eng-done',    isLive && isEngineer);
+  show('btn-approve',     isPending && isManager);
+  show('btn-reject',      isPending && isManager);
+  show('btn-abort',       (isLive || isPending || isNotConfirmed) && isManager);
+  show('btn-notconfirm',  isLive && isManager);
+  show('btn-confirm-job', job.status === 'notconfirmed' && isManager);
+  show('btn-delete',      isManager);
   // Save to History: visible to both roles when job is active or complete
   show('btn-save-history', (isManager || (isEngineer && isAssigned)) && (s === 'live' || s === 'pending' || s === 'complete'));
 }
@@ -919,6 +926,18 @@ function approveComplete() {
   addAuditEntry(job, 'Approved and marked complete by manager', currentUser.name);
   saveJob(job); renderHeader(); setupActionButtons();
   showToast('Job approved and completed ✅', 'success');
+}
+
+  function markNotConfirmed() {
+  addAuditEntry(job, 'Marked as Not Confirmed', currentUser.name);
+  job.status = 'notconfirmed';
+  saveJob(job); renderHeader(); setupActionButtons();
+}
+
+function markConfirmed() {
+  addAuditEntry(job, 'Confirmed — set to Live', currentUser.name);
+  job.status = 'live';
+  saveJob(job); renderHeader(); setupActionButtons();
 }
 
 function rejectToLive() {
