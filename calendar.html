@@ -554,6 +554,7 @@ function openJobPopup(id) {
   document.getElementById('popup-type').textContent     = j.type;
   document.getElementById('popup-company').textContent  = j.company;
   document.getElementById('popup-date').textContent     = formatDate(j.bookingDate);
+  document.getElementById('popup-time').textContent     = j.jobTime || '—';
   document.getElementById('popup-postcode').textContent = j.postcode || '\u2014';
   document.getElementById('popup-rep').textContent      = j.rep || '\u2014';
   document.getElementById('popup-address').textContent  = j.address || '\u2014';
