@@ -192,6 +192,14 @@
     </div>
 
     <div class="form-group">
+      <label>Initial Status</label>
+      <select id="f-status">
+        <option value="live">Live</option>
+        <option value="notconfirmed">Not Confirmed</option>
+      </select>
+    </div>
+
+    <div class="form-group">
       <label>Job Description / Notes</label>
       <textarea id="f-desc" rows="4" placeholder="Describe the work required, site access info, special instructions..."></textarea>
     </div>
@@ -401,7 +409,7 @@ function submitJob() {
     postcode,
     description: document.getElementById('f-desc').value.trim(),
     engineers:   getSelectedEngineers(),
-    status:      'live',
+    status:      document.getElementById('f-status').value,
     costs,
     comments:    [],
     history:     [],
