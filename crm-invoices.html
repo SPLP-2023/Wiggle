@@ -84,6 +84,7 @@
     <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#9889; FSM</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#128101; Customers</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">&#128176; Quotes</button>
@@ -200,6 +201,30 @@
 var currentUser,allInvoices=[],allCustomers=[],lineItems=[];
 var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCounter=1;
 
+  function goBack() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const cid    = params.get('cid');
+  if (from === 'customer' && cid) {
+    window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
+  } else if (from === 'customers') {
+    window.location.href = '/Wiggle/customers.html';
+  } else {
+    window.location.href = '/Wiggle/customers.html';
+  }
+}
+
+function updateBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const cid    = params.get('cid');
+  const btn    = document.getElementById('btn-back');
+  if (!btn || !from) return;
+  btn.style.display = 'inline-flex';
+  if (from === 'customer')   btn.textContent = '← Back to Customer';
+  else if (from === 'customers') btn.textContent = '← Customers';
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   currentUser=requireAuth();
   if(!currentUser)return;
@@ -216,6 +241,7 @@ document.addEventListener('DOMContentLoaded',function(){
   showLoader();
   initFirebase().then(function(){
     hideLoader();
+    updateBackButton();
     loadCustomersDD(function(){
       getCount(function(){
         if(iid)openExistingInvoice(iid);
