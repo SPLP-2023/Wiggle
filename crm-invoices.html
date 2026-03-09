@@ -201,6 +201,42 @@
 var currentUser,allInvoices=[],allCustomers=[],lineItems=[];
 var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCounter=1;
 
+  function prefillFromJob(params) {
+  var customerId = params.get('customer') || '';
+  var entityId   = params.get('entity')   || '';
+  var desc       = params.get('desc')     || '';
+  var value      = parseFloat(params.get('value')) || 0;
+
+  // Open a new invoice, pre-selecting the customer
+  openNewInvoice(customerId || null);
+
+  // After openNewInvoice has run, patch in the extra fields
+  // Site name / order ref from the description string
+  document.getElementById('i-site-name').value  = desc;
+  document.getElementById('i-order-ref').value  = '';
+
+  // If an entity was matched, select it in the dropdown and trigger the change
+  if (entityId) {
+    var entitySel = document.getElementById('i-entity-site');
+    // The options are built by onCustomerChange — wait a tick
+    setTimeout(function() {
+      entitySel.value = entityId;
+      if (entitySel.value === entityId) onEntitySiteChange();
+    }, 50);
+  }
+
+  // Replace the blank line item with one pre-filled from the job
+  lineItems = [{
+    description: desc,
+    type:        'Labour',
+    qty:         1,
+    unitPrice:   value,
+    vatRate:     20
+  }];
+  renderLines();
+  recalc();
+}
+
   function goBack() {
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
@@ -244,8 +280,9 @@ document.addEventListener('DOMContentLoaded',function(){
     updateBackButton();
     loadCustomersDD(function(){
       getCount(function(){
-        if(iid)openExistingInvoice(iid);
-        else if(currentCustomerId)openNewInvoice(currentCustomerId);
+        if(iid) openExistingInvoice(iid);
+        else if(params.get('fromjob')) prefillFromJob(params);
+        else if(currentCustomerId) openNewInvoice(currentCustomerId);
         else loadInvoices();
       });
     });
