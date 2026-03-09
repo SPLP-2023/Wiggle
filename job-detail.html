@@ -299,6 +299,7 @@
       <button class="btn btn-danger btn-sm" id="btn-abort" onclick="confirmAbort()">✕ Abort Job</button>
       <button class="btn btn-danger btn-sm" id="btn-notconfirm" onclick="markNotConfirmed()" style="display:none;">? Not Confirmed</button>
       <button class="btn btn-warning btn-sm" id="btn-confirm-job" onclick="markConfirmed()" style="display:none;">✓ Confirm Job</button>
+      <button class="btn btn-primary btn-sm" id="btn-create-invoice" onclick="openCreateInvoiceModal()" style="display:none;">🧾 Create Invoice</button>
       <button class="btn btn-info"     id="btn-save-history" onclick="saveToHistory()">📁 Save to History</button>
       <button class="btn btn-danger" id="btn-delete" onclick="confirmDelete()">🗑 Delete Job</button>
     </div>
@@ -395,6 +396,22 @@
             <div class="inline-edit-btns">
               <button class="btn btn-primary btn-xs" onclick="saveInline('company')">Save</button>
               <button class="btn btn-secondary btn-xs" onclick="cancelInline('company')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PO Reference (editable) -->
+        <div class="detail-item" id="field-po">
+          <label>PO Reference</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-po">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('po')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-po">
+            <input type="text" class="edit-input" id="input-po" placeholder="e.g. PO-12345">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('po')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('po')">Cancel</button>
             </div>
           </div>
         </div>
@@ -691,6 +708,36 @@
   </div>
 </div>
 
+  <!-- CREATE INVOICE MODAL -->
+<div class="modal-overlay hidden" id="modal-create-invoice">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🧾 Create Invoice from Job</h3>
+      <button class="modal-close" onclick="closeModal('modal-create-invoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Please review the details below before creating the invoice.</p>
+      <div class="detail-grid" style="margin-bottom:16px;">
+        <div class="detail-item"><label>Customer</label><div class="val" id="inv-modal-customer">—</div></div>
+        <div class="detail-item"><label>Entity</label><div class="val" id="inv-modal-entity">—</div></div>
+        <div class="detail-item"><label>Site Name</label><div class="val" id="inv-modal-sitename">—</div></div>
+        <div class="detail-item"><label>Job Ref</label><div class="val" id="inv-modal-ref">—</div></div>
+        <div class="detail-item"><label>PO Reference</label><div class="val" id="inv-modal-po">—</div></div>
+        <div class="detail-item"><label>Job Type</label><div class="val" id="inv-modal-type">—</div></div>
+        <div class="detail-item"><label>Job Value (ex VAT)</label><div class="val" id="inv-modal-value">—</div></div>
+      </div>
+      <div class="detail-item" style="margin-bottom:20px;">
+        <label>Invoice Description</label>
+        <div class="val" id="inv-modal-desc" style="font-size:13px;color:var(--text-muted);margin-top:4px;">—</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-create-invoice')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmCreateInvoice()">✓ Create Invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
   <!-- DELETE CONFIRM MODAL -->
@@ -845,6 +892,7 @@ function renderDetails() {
   document.getElementById('d-postcode').textContent= job.postcode;
   document.getElementById('d-address').textContent = job.address;
   document.getElementById('d-desc').textContent    = job.description || 'No description provided.';
+  document.getElementById('d-po').textContent      = job.poRef || '—';
   // Time tracking
   document.getElementById('d-started').textContent  = job.startedAt  ? formatDateTime(job.startedAt)  : 'Not started';
   document.getElementById('d-finished').textContent = job.finishedAt ? formatDateTime(job.finishedAt) : '—';
@@ -900,6 +948,7 @@ function setupActionButtons() {
   show('btn-abort',       (isLive || isPending || isNotConfirmed) && isManager);
   show('btn-notconfirm',  isLive && isManager);
   show('btn-confirm-job', job.status === 'notconfirmed' && isManager);
+  show('btn-create-invoice', job.status === 'complete' && isManager);
   show('btn-delete',      isManager);
   // Save to History: visible to both roles when job is active or complete
   show('btn-save-history', (isManager || (isEngineer && isAssigned)) && (s === 'live' || s === 'pending' || s === 'complete'));
@@ -1424,6 +1473,7 @@ const _fieldMap = {
   rep:      { jobKey: 'rep',         display: 'd-rep',      header: 'h-rep',       type: 'text' },
   postcode: { jobKey: 'postcode',    display: 'd-postcode', header: 'h-postcode',  type: 'text' },
   address:  { jobKey: 'address',     display: 'd-address',  header: null,          type: 'text' },
+  po:       { jobKey: 'poRef',       display: 'd-po',       header: null,          type: 'text' },
 };
 
 function inlineEdit(field) {
@@ -1687,6 +1737,88 @@ function switchTab(name, btn) {
 // MODAL
 // ════════════════════════════════════════════
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  // ════════════════════════════════════════════
+// CREATE INVOICE FROM JOB
+// ════════════════════════════════════════════
+function openCreateInvoiceModal() {
+  // Try to find matching customer by site name first, then company name
+  showLoader();
+  setLoaderMsg('Finding customer…');
+  _db.collection('crm_customers').get().then(snap => {
+    hideLoader();
+    const customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let matchedCustomer = null;
+    let matchedEntityId = null;
+
+    // Match by site name in siteAddresses
+    if (job.siteName) {
+      for (const c of customers) {
+        const sites = c.siteAddresses || [];
+        const siteMatch = sites.find(s =>
+          s.address && s.address.toLowerCase().includes(job.siteName.toLowerCase())
+        );
+        if (siteMatch) {
+          matchedCustomer = c;
+          matchedEntityId = siteMatch.entityCustomerId || null;
+          break;
+        }
+      }
+    }
+
+    // Fall back to company name match
+    if (!matchedCustomer && job.company) {
+      matchedCustomer = customers.find(c =>
+        c.company && c.company.toLowerCase() === job.company.toLowerCase()
+      );
+    }
+
+    // Build modal content
+    const poLine = job.poRef ? ` | PO: ${job.poRef}` : '';
+    const desc = `${job.type} — ${job.siteName || job.company} (Job Ref: #${job.ref}${poLine})`;
+    const value = job.costs?.jobValue || 0;
+    const entityName = matchedEntityId ? customers.find(c => c.id === matchedEntityId)?.company : null;
+
+    document.getElementById('inv-modal-customer').textContent   = matchedCustomer ? matchedCustomer.company : 'No match found — please select manually';
+    document.getElementById('inv-modal-entity').textContent     = entityName || '—';
+    document.getElementById('inv-modal-sitename').textContent   = job.siteName || '—';
+    document.getElementById('inv-modal-ref').textContent        = '#' + job.ref;
+    document.getElementById('inv-modal-po').textContent         = job.poRef || '—';
+    document.getElementById('inv-modal-type').textContent       = job.type;
+    document.getElementById('inv-modal-value').textContent      = '£' + value.toFixed(2);
+    document.getElementById('inv-modal-desc').textContent       = desc;
+
+    // Store for use when confirming
+    document.getElementById('modal-create-invoice').dataset.customerId  = matchedCustomer?.id || '';
+    document.getElementById('modal-create-invoice').dataset.entityId    = matchedEntityId || '';
+    document.getElementById('modal-create-invoice').dataset.desc        = desc;
+    document.getElementById('modal-create-invoice').dataset.value       = value;
+
+    document.getElementById('modal-create-invoice').classList.remove('hidden');
+  }).catch(err => {
+    hideLoader();
+    console.error(err);
+    showToast('Error finding customer.', 'error');
+  });
+}
+
+function confirmCreateInvoice() {
+  const modal      = document.getElementById('modal-create-invoice');
+  const customerId = modal.dataset.customerId;
+  const entityId   = modal.dataset.entityId;
+  const desc       = modal.dataset.desc;
+  const value      = modal.dataset.value;
+
+  let url = '/Wiggle/crm-invoices.html?fromjob=' + job.id;
+  url += '&jobref='   + encodeURIComponent(job.ref);
+  url += '&desc='     + encodeURIComponent(desc);
+  url += '&value='    + encodeURIComponent(value);
+  url += '&from=job&jobid=' + job.id;
+  if (customerId) url += '&customer=' + customerId;
+  if (entityId)   url += '&entity='   + entityId;
+
+  window.location.href = url;
+}
 </script>
   <script>
   if ('serviceWorker' in navigator) {
