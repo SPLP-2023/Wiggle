@@ -480,7 +480,7 @@ function renderInvoices(invs) {
 }
 
 function openEditModal() {
-  editSites = (customer.siteAddresses || []).slice();
+  editSites = (customer.siteAddresses || []).map(function(s) { return Object.assign({}, s); });
   document.getElementById('e-company').value   = customer.company || '';
   document.getElementById('e-contact').value   = customer.contact || '';
   document.getElementById('e-phone').value     = customer.phone || '';
@@ -533,7 +533,7 @@ function confirmSite(fid) {
   var a = document.getElementById(fid+'-a').value.trim();
   var p = document.getElementById(fid+'-p').value.trim();
   if (!a) { showToast('Please enter a site address.', 'error'); return; }
-  editSites.push({ name:n, address:a, postcode:p });
+  editSites.push({ name:n, address:a, postcode:p, entityCustomerId: null });
   document.getElementById(fid).remove();
   renderEditSites();
 }
