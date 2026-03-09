@@ -696,10 +696,6 @@ function buildPDF(pdf,d,logo,footerImg){
     alt=!alt;
     var dl=pdf.splitTextToSize(li.description||'',68);
     pdf.text(dl[0]||'',lm+2,ty);
-    // Type label in muted small text
-    pdf.setFontSize(7.5);pdf.setTextColor(120,120,120);
-    pdf.text(li.type||'Labour',100,ty,{align:'right'});
-    pdf.setFontSize(9);pdf.setTextColor(0,0,0);
     pdf.text(String(li.qty||1),108,ty,{align:'right'});
     pdf.text(fmtMoney(li.unitPrice||0),138,ty,{align:'right'});
     pdf.text((li.vatRate||0)+'%',156,ty,{align:'right'});
