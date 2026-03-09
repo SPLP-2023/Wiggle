@@ -116,48 +116,53 @@
   .badge-overdue { font-size:11px; padding:3px 9px; border-radius:20px; background:var(--danger); color:#fff; font-weight:700; }
   .hidden { display:none !important; }
 
-  /* JOB PILL — compact dot-only mode on small screens */
-  .pill-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .pill-dot-live     { background:var(--warning); }
-  .pill-dot-pending  { background:var(--pending); }
-  .pill-dot-complete { background:var(--success); }
-  .pill-dot-aborted  { background:var(--danger);  }
-
-  /* TABLET — slightly tighter */
-  @media(max-width:900px) {
-    .cal-cell { min-height:90px; padding:5px; }
+  /* JOB COUNT BADGE */
+  .cal-job-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 28px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; cursor: pointer; padding: 0 6px;
+    transition: opacity 0.15s, transform 0.1s; margin-top: 2px;
   }
+  .cal-job-count:hover { opacity: 0.8; transform: scale(1.05); }
+  .count-live     { background:rgba(245,158,11,0.2); color:var(--warning); border:1px solid rgba(245,158,11,0.4); }
+  .count-pending  { background:rgba(168,85,247,0.2); color:var(--pending); border:1px solid rgba(168,85,247,0.4); }
+  .count-aborted  { background:rgba(239,68,68,0.2);  color:var(--danger);  border:1px solid rgba(239,68,68,0.4); }
+  .count-complete { background:rgba(34,197,94,0.2);  color:var(--success); border:1px solid rgba(34,197,94,0.4); }
 
+  /* TABLET */
+  @media(max-width:900px) {
+    .cal-cell { min-height:80px; padding:5px; }
+  }
   /* MOBILE PORTRAIT */
   @media(max-width:640px) {
     main { padding:12px 8px 40px; }
     .cal-cell { min-height:0; height:auto; padding:3px 2px; }
-    .cal-date-num { font-size:11px; width:20px; height:20px; margin-bottom:3px; }
-    /* Single-letter day names */
+    .cal-date-num { font-size:11px; width:20px; height:20px; margin-bottom:2px; }
     .cal-day-name { padding:6px 2px; font-size:10px; }
     .cal-day-name::after { content: attr(data-short); }
     .cal-day-name span { display:none; }
     .cal-month-label { font-size:14px; min-width:120px; }
-    /* Pills become dot + short ref only */
-    .cal-job-pill { font-size:10px; padding:2px 4px; gap:3px; margin-bottom:2px; }
-    .cal-job-pill .pill-text { display:none; }
-    .cal-job-pill .pill-ref  { display:inline; font-size:9px; }
-    .cal-more-btn { font-size:10px; }
+    .cal-job-count { min-width:22px; height:22px; font-size:11px; border-radius:6px; }
     .cal-header h2 { font-size:17px; }
   }
-
-  /* MOBILE LANDSCAPE */
-  @media(max-width:900px) and (orientation:landscape) {
-    main { padding:8px 10px 20px; }
-    .cal-cell { min-height:0; height:auto; padding:3px; }
-    .cal-date-num { font-size:11px; width:18px; height:18px; margin-bottom:2px; }
-    .cal-job-pill { font-size:9px; padding:1px 4px; gap:3px; margin-bottom:2px; }
-    .cal-job-pill .pill-text { display:none; }
-    .cal-job-pill .pill-ref  { display:inline; font-size:9px; }
-    .cal-day-name { padding:5px 3px; font-size:10px; }
-    .cal-month-label { font-size:14px; min-width:110px; }
-    .cal-header { margin-bottom:10px; }
-    .cal-legend { display:none; } /* hide legend in landscape to save space */
+  /* MOBILE LANDSCAPE — max-height catches all phones regardless of width */
+  @media(max-height:500px) and (orientation:landscape) {
+    main { padding:6px 8px 10px; }
+    nav { height:44px; }
+    .cal-header { margin-bottom:8px; }
+    .cal-header h2 { font-size:15px; }
+    .cal-legend { display:none; }
+    .cal-cell { min-height:0; height:auto; padding:2px; }
+    .cal-date-num { font-size:10px; width:16px; height:16px; margin-bottom:1px; }
+    .cal-day-name { padding:4px 2px; font-size:9px; }
+    .cal-day-name::after { content: attr(data-short); }
+    .cal-day-name span { display:none; }
+    .cal-month-label { font-size:13px; min-width:100px; }
+    .cal-nav-btn { width:28px; height:28px; font-size:15px; }
+    .cal-today-btn { padding:4px 10px; font-size:11px; }
+    .cal-job-count { min-width:20px; height:20px; font-size:10px; border-radius:5px; padding:0 4px; }
+    .btn-sm { padding:5px 10px; font-size:11px; }
+    .user-badge { padding:3px 8px; font-size:12px; }
   }
 </style>
   <!-- Firebase compat SDK -->
@@ -376,27 +381,27 @@ function renderCalendar() {
     const dateStr  = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
     const isToday  = !isOther && day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
     const dayJobs  = jobMap[dateStr] || [];
-    const MAX_SHOW = 3;
 
-    let pillsHtml = '';
-    dayJobs.slice(0, MAX_SHOW).forEach(j => {
-      pillsHtml += `
-        <div class="cal-job-pill pill-${j.status}" onclick="event.stopPropagation();openJobPopup('${j.id}')" title="${j.siteName || j.company} #${j.ref}">
-          <span class="pill-dot pill-dot-${j.status}"></span>
-          <span class="pill-text" style="overflow:hidden;text-overflow:ellipsis;">${j.siteName || j.company}</span>
-          <span class="pill-ref">#${j.ref}</span>
-        </div>`;
+    // Determine badge colour from "worst" status present
+    const statusPriority = { live:0, pending:1, aborted:2, complete:3 };
+    let worstStatus = 'complete';
+    dayJobs.forEach(j => {
+      if ((statusPriority[j.status] ?? 99) < (statusPriority[worstStatus] ?? 99)) worstStatus = j.status;
     });
-    if (dayJobs.length > MAX_SHOW) {
-      pillsHtml += `<div class="cal-more-btn" onclick="event.stopPropagation();openDateModal('${dateStr}')">+${dayJobs.length - MAX_SHOW} more</div>`;
+
+    let countHtml = '';
+    if (dayJobs.length === 1) {
+      countHtml = `<div class="cal-job-count count-${worstStatus}" onclick="event.stopPropagation();openJobPopup('${dayJobs[0].id}')" title="1 job">${dayJobs.length}</div>`;
+    } else if (dayJobs.length > 1) {
+      countHtml = `<div class="cal-job-count count-${worstStatus}" onclick="event.stopPropagation();openDateModal('${dateStr}')" title="${dayJobs.length} jobs">${dayJobs.length}</div>`;
     }
-    // If exactly > 1 job, make whole cell clickable to show list
+
     const cellClick = dayJobs.length > 1 ? `onclick="openDateModal('${dateStr}')"` : (dayJobs.length === 1 ? `onclick="openJobPopup('${dayJobs[0].id}')"` : '');
 
     html += `
       <div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
         <div class="cal-date-num">${day}</div>
-        ${!isOther ? pillsHtml : ''}
+        ${!isOther ? countHtml : ''}
       </div>`;
   }
 
