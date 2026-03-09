@@ -186,6 +186,7 @@
   .status-complete { background: var(--success); box-shadow: 0 0 6px var(--success); }
   .status-pending { background: var(--pending); box-shadow: 0 0 6px var(--pending); }
   .status-aborted { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .status-notconfirmed { background: var(--danger);  box-shadow: 0 0 6px var(--danger); }
   .status-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
   .job-company { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
   .job-address { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
@@ -378,6 +379,9 @@
           <button class="filter-tab" onclick="setFilter('aborted',this)">
             🔴 Aborted <span class="tab-count" id="count-aborted">0</span>
           </button>
+          <button class="filter-tab" id="tab-notconfirmed" onclick="setFilter('notconfirmed',this)">
+            🔴 Not Confirmed <span class="tab-count" id="count-notconfirmed">0</span>
+          </button>
         </div>
         <div class="view-toggle">
           <button class="view-btn active" id="view-list-btn" onclick="setView('list')" title="List view">☰</button>
@@ -502,6 +506,7 @@ function initApp() {
     document.getElementById('summary-panel').style.display = 'block';
     document.getElementById('btn-new-job').style.display = 'inline-flex';
     document.getElementById('tab-pending').style.display = 'inline-flex';
+    document.getElementById('tab-notconfirmed').style.display = 'inline-flex';
     document.getElementById('dash-title').textContent = 'All Jobs';
     document.getElementById('dash-subtitle').textContent = 'Manage and track all field jobs';
   } else {
@@ -563,7 +568,8 @@ function getVisibleJobs() {
     if (currentFilter === 'live')     return j.status === 'live';
     if (currentFilter === 'pending')  return j.status === 'pending';
     if (currentFilter === 'complete') return j.status === 'complete';
-    if (currentFilter === 'aborted')  return j.status === 'aborted';
+    if (currentFilter === 'aborted')      return j.status === 'aborted';
+    if (currentFilter === 'notconfirmed') return j.status === 'notconfirmed';
     return true;
   });
   // Sort: overdue first, then by booking date asc
@@ -667,7 +673,8 @@ function updateCounts() {
   document.getElementById('count-live').textContent    = all.filter(j => j.status==='live').length;
   document.getElementById('count-pending').textContent = all.filter(j => j.status==='pending').length;
   document.getElementById('count-complete').textContent= all.filter(j => j.status==='complete').length;
-  document.getElementById('count-aborted').textContent = all.filter(j => j.status==='aborted').length;
+  document.getElementById('count-aborted').textContent      = all.filter(j => j.status==='aborted').length;
+  document.getElementById('count-notconfirmed').textContent = all.filter(j => j.status==='notconfirmed').length;
 }
 
 function setFilter(f, btn) {
