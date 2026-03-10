@@ -793,9 +793,16 @@ function buildPDF(pdf,d,logo,footerImg){
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty+2,rm,ty+2);
   pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);
 
-  // ── Payment methods — anchored near bottom (min Y=195) ──
-  // Payment block height is approx 42mm — anchor so it sits above footer
+    // ── Notes (above Payment Methods) ──
   var payY = Math.max(ty + 20, 195);
+  if(d.notes){
+    pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Notes:',lm,payY);payY+=5;
+    pdf.setFont(undefined,'normal');
+    pdf.splitTextToSize(d.notes,pw).forEach(function(nl){pdf.text(nl,lm,payY);payY+=5;});
+    payY+=5;
+  }
+
+  // ── Payment methods ──
   pdf.setFontSize(9);pdf.setFont(undefined,'bold');pdf.text('Payment Methods',lm,payY);payY+=6;
   pdf.setFont(undefined,'normal');
   pdf.text('Bank Transfer or Cash only (cheques will NOT be accepted)',lm,payY);payY+=5;
@@ -804,13 +811,9 @@ function buildPDF(pdf,d,logo,footerImg){
   pdf.text('Sort Code: 04-06-05',lm,payY);payY+=8;
   pdf.setFont(undefined,'italic');pdf.setFontSize(8);
   pdf.text('Payment terms are Strictly 30 days from the Issue date above. (*See quotation for terms & conditions)',lm,payY,{maxWidth:pw});
-  if(d.notes){
-    payY+=10;pdf.setFont(undefined,'bold');pdf.setFontSize(9);pdf.text('Notes:',lm,payY);payY+=5;
-    pdf.setFont(undefined,'normal');
-    pdf.splitTextToSize(d.notes,pw).forEach(function(nl){pdf.text(nl,lm,payY);payY+=5;});
-  }
   addFtr(pdf,footerImg);
 }
+
 function addFtr(pdf,footerImg){
   if(footerImg){try{pdf.addImage(footerImg,'PNG',60,258,90,22);}catch(e){}}
   pdf.setFontSize(7.5);pdf.setFont(undefined,'normal');pdf.setTextColor(80,80,80);
