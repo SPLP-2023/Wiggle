@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Ref Search &mdash; Strike Point</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<style>
+:root{--dark:#0f1117;--dark2:#1a1d27;--dark3:#22263a;--border:#2e3350;--accent:#f59e0b;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--text:#f1f5f9;--muted:#94a3b8;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--dark);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+nav{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.nav-brand{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.nav-brand img{height:30px;width:auto;object-fit:contain;}
+.nav-brand span{font-size:15px;font-weight:700;}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;text-decoration:none;color:inherit;}
+.btn:hover{opacity:.85;}
+.btn-secondary{background:var(--dark3);color:var(--text);border:1px solid var(--border);}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.user-badge{display:flex;align-items:center;gap:8px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+main{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+.page-header p{font-size:13px;color:var(--muted);}
+.search-card{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:28px;}
+.search-row{display:flex;gap:10px;}
+.search-input{flex:1;background:var(--dark3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;padding:11px 16px;outline:none;transition:border-color .15s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--muted);}
+.search-hint{font-size:12px;color:var(--muted);margin-top:8px;}
+.state-msg{text-align:center;padding:64px 20px;color:var(--muted);}
+.state-msg .ico{font-size:48px;margin-bottom:12px;}
+.state-msg h3{font-size:16px;color:var(--text);margin-bottom:6px;}
+.spinner-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:48px;color:var(--muted);font-size:14px;}
+.spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.results-meta{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.results-meta strong{color:var(--text);}
+.ref-group{background:var(--dark2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+.ref-group-header{display:flex;align-items:center;gap:12px;padding:13px 18px;background:var(--dark3);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.ref-num{font-size:15px;font-weight:700;color:var(--accent);}
+.ref-company{font-size:13px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid;white-space:nowrap;}
+.chip-job{color:#f59e0b;border-color:#f59e0b40;background:#f59e0b12;}
+.chip-quote{color:#3b82f6;border-color:#3b82f640;background:#3b82f612;}
+.chip-invoice{color:#22c55e;border-color:#22c55e40;background:#22c55e12;}
+.record-section{padding:0 16px 12px;}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:13px 0 8px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.record-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;background:var(--dark3);border:1px solid transparent;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:5px;text-decoration:none;color:inherit;}
+.record-row:hover{border-color:var(--border);background:#252a40;}
+.rec-icon{font-size:17px;width:28px;text-align:center;flex-shrink:0;}
+.rec-main{flex:1;min-width:0;}
+.rec-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rec-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+.rec-right{text-align:right;flex-shrink:0;}
+.rec-value{font-size:13px;font-weight:700;color:var(--green);}
+.rec-date{font-size:11px;color:var(--muted);margin-top:2px;}
+.sbadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;border:1px solid;}
+.s-live{color:#22c55e;border-color:#22c55e44;background:#22c55e12;}
+.s-complete{color:#3b82f6;border-color:#3b82f644;background:#3b82f612;}
+.s-pending,.s-notconfirmed{color:#f59e0b;border-color:#f59e0b44;background:#f59e0b12;}
+.s-aborted,.s-cancelled,.s-declined{color:#ef4444;border-color:#ef444444;background:#ef444412;}
+.s-draft{color:#94a3b8;border-color:#94a3b844;background:#94a3b812;}
+.s-sent{color:#3b82f6;border-color:#3b82f644;background:#3b82f612;}
+.s-accepted,.s-paid{color:#22c55e;border-color:#22c55e44;background:#22c55e12;}
+.s-overdue{color:#ef4444;border-color:#ef444444;background:#ef444412;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark3);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;max-width:320px;}
+.toast.show{opacity:1;}
+.toast.error{border-color:var(--red);color:var(--red);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#8592; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html'">Invoices</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display" style="font-size:13px;font-weight:600;">&#8212;</span>
+    </div>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h1>&#128269; Job Reference Search</h1>
+    <p>Search across all jobs, quotes and invoices by job ref number.</p>
+  </div>
+  <div class="search-card">
+    <div class="search-row">
+      <input type="text" class="search-input" id="search-input"
+        placeholder="Enter a job ref e.g. 63902 &mdash; full or partial..."
+        autocomplete="off" spellcheck="false">
+      <button class="btn btn-primary" onclick="doSearch()">Search</button>
+    </div>
+    <div class="search-hint">Results group all linked jobs, quotes and invoices under the same ref number.</div>
+  </div>
+  <div id="results-area">
+    <div class="state-msg">
+      <div class="ico">&#128269;</div>
+      <h3>Enter a job ref to get started</h3>
+      <p>Matching records will appear grouped by ref number.</p>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+var currentUser;
+document.addEventListener('DOMContentLoaded', function() {
+  currentUser = requireAuth();
+  if (!currentUser) return;
+  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  initFirebase().then(function() {
+    var params = new URLSearchParams(window.location.search);
+    var preRef = params.get('ref');
+    if (preRef) { document.getElementById('search-input').value = preRef; doSearch(); }
+  }).catch(function(err) { console.error(err); showToast('Connection error - please refresh.', 'error'); });
+  document.getElementById('search-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doSearch();
+  });
+});
+
+function doSearch() {
+  var q = document.getElementById('search-input').value.trim();
+  if (!q) { showToast('Please enter a job reference.', 'error'); return; }
+  document.getElementById('results-area').innerHTML = '<div class="spinner-row"><div class="spinner"></div>Searching&hellip;</div>';
+  var qLow = q.toLowerCase();
+  Promise.all([
+    _db.collection('jobs').get(),
+    _db.collection('crm_quotes').get(),
+    _db.collection('crm_invoices').get()
+  ]).then(function(snaps) {
+    var jobs     = snaps[0].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+    var quotes   = snaps[1].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+    var invoices = snaps[2].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+    var mJobs = jobs.filter(function(j){ return String(j.ref||'').toLowerCase().includes(qLow); });
+    var mQuotes = quotes.filter(function(q2){
+      var jr = String(q2.jobRef||'').toLowerCase();
+      var fr = String(q2.ref||q2.quoteRef||'').toLowerCase();
+      return jr.includes(qLow) || fr.includes(qLow);
+    });
+    var mInvoices = invoices.filter(function(inv){
+      return String(inv.jobRef||inv.linkedJobRef||'').toLowerCase().includes(qLow);
+    });
+    renderResults(q, mJobs, mQuotes, mInvoices);
+  }).catch(function(err) {
+    console.error(err);
+    document.getElementById('results-area').innerHTML = '<div class="state-msg"><div class="ico">&#9888;</div><h3>Search failed</h3><p>Please refresh and try again.</p></div>';
+  });
+}
+
+function renderResults(query, jobs, quotes, invoices) {
+  var area = document.getElementById('results-area');
+  var total = jobs.length + quotes.length + invoices.length;
+  if (!total) {
+    area.innerHTML = '<div class="state-msg"><div class="ico">&#128565;</div><h3>No results for &ldquo;'+esc(query)+'&rdquo;</h3><p>No matching jobs, quotes or invoices found.</p></div>';
+    return;
+  }
+  // Build groups keyed by job ref number
+  var groups = {};
+  function grp(k) { if (!groups[k]) groups[k]={jobs:[],quotes:[],invoices:[],company:''}; return groups[k]; }
+  jobs.forEach(function(j) {
+    var k = String(j.ref||'unknown').trim();
+    var g = grp(k); g.jobs.push(j);
+    if (j.company && !g.company) g.company = j.company;
+  });
+  quotes.forEach(function(q2) {
+    var k = String(q2.jobRef||'').trim();
+    if (!k) { var m=String(q2.ref||q2.quoteRef||'').match(/\b(\d{4,7})\b/); k=m?m[1]:('q_'+q2._id); }
+    var g = grp(k); g.quotes.push(q2);
+    if (q2.company && !g.company) g.company = q2.company;
+  });
+  invoices.forEach(function(inv) {
+    var k = String(inv.jobRef||inv.linkedJobRef||'').trim() || ('inv_'+inv._id);
+    var g = grp(k); g.invoices.push(inv);
+    if (!g.company) g.company = inv.clientName||inv.company||'';
+  });
+  var keys = Object.keys(groups).sort(function(a,b){
+    var na=parseInt(a), nb=parseInt(b);
+    if (!isNaN(na)&&!isNaN(nb)) return na-nb;
+    if (!isNaN(na)) return -1;
+    if (!isNaN(nb)) return 1;
+    return a.localeCompare(b);
+  });
+  var html = '<div class="results-meta">'+total+' record'+(total!==1?'s':'')+' across '+keys.length+' ref'+(keys.length!==1?'s':'')+' matching <strong>'+esc(query)+'</strong></div>';
+  keys.forEach(function(refKey) {
+    var g = groups[refKey];
+    html += '<div class="ref-group"><div class="ref-group-header">'
+      +'<span class="ref-num">&#128204; Ref #'+esc(refKey)+'</span>'
+      +(g.company?'<span class="ref-company">&#127970; '+esc(g.company)+'</span>':'<span class="ref-company"></span>')
+      +'<span class="chips">';
+    if (g.jobs.length)     html+='<span class="chip chip-job">&#128736; '+g.jobs.length+' Job'+(g.jobs.length>1?'s':'')+'</span>';
+    if (g.quotes.length)   html+='<span class="chip chip-quote">&#128203; '+g.quotes.length+' Quote'+(g.quotes.length>1?'s':'')+'</span>';
+    if (g.invoices.length) html+='<span class="chip chip-invoice">&#129534; '+g.invoices.length+' Invoice'+(g.invoices.length>1?'s':'')+'</span>';
+    html += '</span></div>';
+    // Jobs
+    if (g.jobs.length) {
+      html += '<div class="record-section"><div class="section-label">&#128736; Jobs</div>';
+      g.jobs.forEach(function(j) {
+        var val = (j.costs&&j.costs.jobValue)?'&pound;'+parseFloat(j.costs.jobValue).toFixed(2):'&mdash;';
+        var sc  = 's-'+(j.status||'live').toLowerCase().replace(/\s+/g,'');
+        html += '<a class="record-row" href="/Wiggle/job-detail.html?id='+j._id+'&from=search">'
+          +'<div class="rec-icon">&#128736;</div>'
+          +'<div class="rec-main"><div class="rec-title">'+esc(j.siteName||j.company||'Job #'+j.ref)+'</div>'
+          +'<div class="rec-sub">'+esc(j.type||'')+(j.poRef?' &middot; PO: '+esc(j.poRef):'')+' &middot; '+fmtDate(j.bookingDate)+'</div></div>'
+          +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
+          +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span></div></div></a>';
+      });
+      html += '</div>';
+    }
+    // Quotes
+    if (g.quotes.length) {
+      html += '<div class="record-section"><div class="section-label">&#128203; Quotes</div>';
+      g.quotes.forEach(function(q2) {
+        var val  = q2.total?'&pound;'+parseFloat(q2.total).toFixed(2):'&mdash;';
+        var sc   = 's-'+(q2.status||'draft').toLowerCase();
+        var ref  = q2.ref||q2.quoteRef||q2._id;
+        html += '<a class="record-row" href="/Wiggle/crm-quotes.html?view='+q2._id+'">'
+          +'<div class="rec-icon">&#128203;</div>'
+          +'<div class="rec-main"><div class="rec-title">'+esc(q2.serviceAddress||q2.company||ref)+'</div>'
+          +'<div class="rec-sub">'+esc(ref)+(q2.jobType?' &middot; '+esc(q2.jobType):'')+'</div></div>'
+          +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
+          +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(q2.status||'draft')+'</span></div></div></a>';
+      });
+      html += '</div>';
+    }
+    // Invoices
+    if (g.invoices.length) {
+      html += '<div class="record-section"><div class="section-label">&#129534; Invoices</div>';
+      g.invoices.forEach(function(inv) {
+        var val  = inv.total?'&pound;'+parseFloat(inv.total).toFixed(2):'&mdash;';
+        var sc   = 's-'+(inv.status||'draft').toLowerCase();
+        var num  = inv.invoiceNumber||inv.number||inv._id;
+        html += '<a class="record-row" href="/Wiggle/crm-invoices.html?view='+inv._id+'">'
+          +'<div class="rec-icon">&#129534;</div>'
+          +'<div class="rec-main"><div class="rec-title">'+esc(inv.siteName||inv.clientName||num)+'</div>'
+          +'<div class="rec-sub">'+esc(num)+(inv.clientName?' &middot; '+esc(inv.clientName):'')+'</div></div>'
+          +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
+          +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(inv.status||'draft')+'</span></div></div></a>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  area.innerHTML = html;
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso){ if(!iso)return''; try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){return iso;} }
+function showToast(msg,type){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(t._t); t._t=setTimeout(function(){t.className='toast';},3000); }
+</script>
+</body>
+</html>
