@@ -121,17 +121,12 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="goBack()">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/customers.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()">&#8592; Customers</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=customer'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=customer'">&#128197; Calendar</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=customer&cid='+customerId">&#128176; Quotes</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=customer&cid='+customerId">&#129534; Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=customer'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#8592; Customers</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -287,7 +282,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var params = new URLSearchParams(window.location.search);
   customerId = params.get('id');
   if (!customerId) { window.location.href = '/Wiggle/customers.html'; return; }
-  updateBackButton();
   document.getElementById('btn-new-quote').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
   document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
   document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/Wiggle/crm-invoices.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
@@ -295,30 +289,6 @@ document.addEventListener('DOMContentLoaded', function() {
   initFirebase().then(function() { hideLoader(); loadCustomer(); })
     .catch(function() { hideLoader(); showToast('Connection error - please refresh.', 'error'); });
 });
-
-function goBack() {
-  var params = new URLSearchParams(window.location.search);
-  var from   = params.get('from');
-  if (from === 'search')        window.location.href = '/Wiggle/job-search.html';
-  else if (from === 'quotes')   window.location.href = '/Wiggle/crm-quotes.html';
-  else if (from === 'invoices') window.location.href = '/Wiggle/crm-invoices.html';
-  else if (from === 'calendar') window.location.href = '/Wiggle/calendar.html';
-  else if (from === 'dashboard') window.location.href = '/Wiggle/index.html';
-  else                          window.location.href = '/Wiggle/customers.html';
-}
-
-function updateBackButton() {
-  var params = new URLSearchParams(window.location.search);
-  var from   = params.get('from');
-  var btn    = document.getElementById('btn-back');
-  if (!btn) return;
-  var labels = {
-    customers: '← Customers', dashboard: '← Dashboard',
-    calendar: '← Calendar', quotes: '← Quotes',
-    invoices: '← Invoices', search: '← Search'
-  };
-  btn.textContent = labels[from] || '← Customers';
-}
 
 function loadCustomer() {
   _db.collection('crm_customers').doc(customerId).get().then(function(doc) {
@@ -388,43 +358,86 @@ function loadJobs() {
   document.getElementById('jobs-badge').textContent = jobs.length ? ' (' + jobs.length + ')' : '';
   var list = document.getElementById('jobs-list');
   if (!jobs.length) { list.innerHTML = '<div class="empty-msg">No FSM jobs found matching this company name.</div>'; return; }
+
+  // Fetch invoiced job refs for this customer in one query
+  _db.collection('crm_invoices').where('company','==',customer.company).get().then(function(snap) {
+    var invoicedRefs = new Set();
+    snap.docs.forEach(function(d) {
+      var ref = d.data().linkedJobRef || d.data().jobRef || '';
+      if (ref) invoicedRefs.add(String(ref).trim());
+    });
+    renderJobsList(jobs, invoicedRefs, list);
+  }).catch(function() {
+    renderJobsList(jobs, new Set(), list);
+  });
+}
+
+function renderJobsList(jobs, invoicedRefs, list) {
+  var now = new Date();
+  var SHOW = 5;
+  var recent = jobs.slice(0, SHOW);
+  var total  = jobs.length;
   var html = '';
-  for (var i = 0; i < jobs.length; i++) {
-    var j = jobs[i];
+
+  recent.forEach(function(j) {
     var si = getStatusInfo(j.status);
-    var val = (j.costs && j.costs.jobValue)   ? fmtMoney(j.costs.jobValue)   : '-';
-    var pft = (j.costs && j.costs.netProfit != null) ? fmtMoney(j.costs.netProfit) : '-';
+    var val = (j.costs && j.costs.jobValue) ? fmtMoney(j.costs.jobValue) : '-';
+    var isInvoiced = invoicedRefs.has(String(j.ref).trim());
+
+    // Overdue: booking date passed, job not complete/aborted
+    var bookingDate = j.bookingDate ? new Date(j.bookingDate + 'T00:00:00') : null;
+    var isOverdue = bookingDate && bookingDate < now
+      && j.status !== 'complete' && j.status !== 'aborted';
+
+    // Invoice indicator
+    var invIndicator = '';
+    if (j.status === 'complete') {
+      invIndicator = isInvoiced
+        ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">&#10003; Invoiced</span>'
+        : '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">! Invoice Needed</span>';
+    }
+
+    // Overdue indicator
+    var overdueIndicator = isOverdue
+      ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">&#9888; Overdue</span>'
+      : '';
+
     html += '<div class="job-item" onclick="window.location.href=\'/Wiggle/job-detail.html?id=' + esc(j.id) + '&from=customer&cid=' + customerId + '\'">'
       + '<div class="job-dot dot-' + esc(j.status) + '"></div>'
       + '<div class="job-info">'
-      +   '<div style="display:flex;align-items:center;gap:8px;">'
+      +   '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
       +     '<span class="job-ref">#' + esc(j.ref) + '</span>'
       +     '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:var(--dark3);color:var(--text-muted);">' + esc(j.type) + '</span>'
+      +     overdueIndicator
       +   '</div>'
       +   '<div class="job-site">' + esc(j.siteName || j.company) + '</div>'
       +   '<div class="job-meta">' + esc(si.label) + ' &middot; ' + formatDate(j.bookingDate) + '</div>'
       + '</div>'
-      + '<div style="text-align:right;">'
+      + '<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
       +   '<div style="font-size:14px;font-weight:700;color:var(--success);">' + val + '</div>'
-      +   '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">profit: ' + pft + '</div>'
-      +   (j.status === 'complete' ? '<button class="btn btn-primary btn-xs" style="margin-top:6px;" onclick="event.stopPropagation();invoiceFromJob(\'' + esc(j.id) + '\',\'' + esc(j.ref) + '\')">🧾 Invoice</button>' : '')
+      +   invIndicator
       + '</div></div>';
+  });
+
+  // "View all" button if more than SHOW jobs
+  if (total > SHOW) {
+    html += '<div style="margin-top:4px;">'
+      + '<button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" '
+      + 'onclick="window.location.href=\'/Wiggle/job-search.html?company=' + encodeURIComponent(customer.company) + '&from=customer\'">'
+      + '&#128269; View all ' + total + ' jobs for ' + esc(customer.company) + '</button>'
+      + '</div>';
+  } else {
+    html += '<div style="margin-top:4px;">'
+      + '<button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" '
+      + 'onclick="window.location.href=\'/Wiggle/job-search.html?company=' + encodeURIComponent(customer.company) + '&from=customer\'">'
+      + '&#128269; Search all records for ' + esc(customer.company) + '</button>'
+      + '</div>';
   }
+
   list.innerHTML = html;
 }
 
-  function invoiceFromJob(jobId, jobRef) {
-  var j = appData.jobs.find(function(x){ return x.id === jobId; });
-  if (!j) { alert('Job data not loaded — please refresh.'); return; }
-  var poLine = j.poRef ? ' | PO: ' + j.poRef : '';
-  var desc   = (j.type || '') + ' — ' + (j.siteName || j.company || '') + ' (Job Ref: #' + (j.ref || '') + poLine + ')';
-  var value  = (j.costs && j.costs.jobValue) ? j.costs.jobValue : 0;
-  var url = '/Wiggle/crm-invoices.html?fromjob=' + jobId;
-  url += '&desc='    + encodeURIComponent(desc);
-  url += '&value='   + encodeURIComponent(value);
-  url += '&from=customer&cid=' + customerId;
-  window.location.href = url;
-}
+
 
 function loadQuotes() {
   var byId = _db.collection('crm_quotes').where('customerId','==',customerId).get();
