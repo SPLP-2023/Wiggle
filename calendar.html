@@ -91,6 +91,19 @@
   .cal-cell.today .cal-date-num { background:var(--primary); color:var(--dark); border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
   .cal-date-num { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
 
+  /* ── ADD JOB HOVER BUTTON ── */
+  .cal-cell:not(.other-month) { cursor:pointer; }
+  .cal-add-btn {
+    position:absolute; bottom:5px; right:5px;
+    width:20px; height:20px; border-radius:50%;
+    background:var(--primary); color:#000;
+    font-size:14px; font-weight:700; line-height:20px; text-align:center;
+    opacity:0; transition:opacity 0.15s;
+    pointer-events:none;
+  }
+  .cal-cell:not(.other-month):hover .cal-add-btn { opacity:0.7; }
+  .cal-cell:not(.other-month):hover { background:rgba(245,158,11,0.04); }
+
   /* ── ENGINEER-COLOURED PILLS ── */
   .cal-job-pill {
     display:flex; align-items:center; gap:4px;
@@ -190,7 +203,13 @@
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="goBack()">&#8592; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">&#8592; Back</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=calendar'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=calendar'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=calendar'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=calendar'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=calendar'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=calendar'">&#9881;&#65039; Settings</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">&#8212;</span>
@@ -336,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hideLoader();
     document.getElementById('user-avatar').textContent       = currentUser.name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = currentUser.name;
+    updateBackButton();
 
     // Build engineer colour map from loaded users
     appData.users.forEach(u => {
@@ -353,7 +373,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function goBack() { window.location.href = '/Wiggle/index.html'; }
+function goBack() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  if (from === 'customers')      window.location.href = '/Wiggle/customers.html';
+  else if (from === 'quotes')    window.location.href = '/Wiggle/crm-quotes.html';
+  else if (from === 'invoices')  window.location.href = '/Wiggle/crm-invoices.html';
+  else if (from === 'settings')  window.location.href = '/Wiggle/settings.html';
+  else if (from === 'search')    window.location.href = '/Wiggle/job-search.html';
+  else                           window.location.href = '/Wiggle/index.html';
+}
+
+function updateBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const btn    = document.getElementById('btn-back');
+  if (!btn || !from) return;
+  const labels = {
+    dashboard: '← Dashboard', customers: '← Customers',
+    quotes: '← Quotes', invoices: '← Invoices',
+    settings: '← Settings', search: '← Search'
+  };
+  if (labels[from]) { btn.textContent = labels[from]; btn.style.display = 'inline-flex'; }
+}
 
 // ── PILL COLOUR LOGIC ─────────────────────────
 // Returns { bg, border, text } based on engineer(s)
@@ -480,18 +522,40 @@ function renderCalendar() {
     }
 
     const cellClick = !isOther && dayJobs.length > 1
-      ? `onclick="openDateModal('${dateStr}')"`
+      ? `onclick="handleCellClick(event,'${dateStr}',${dayJobs.length})"`
       : !isOther && dayJobs.length === 1
-        ? `onclick="openJobPopup('${dayJobs[0].id}')"`
-        : '';
+        ? `onclick="handleCellClick(event,'${dateStr}',${dayJobs.length},'${dayJobs[0].id}')"`
+        : !isOther
+          ? `onclick="handleCellClick(event,'${dateStr}',0)"`
+          : '';
 
     html += `<div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
       <div class="cal-date-num">${day}</div>
       ${pillsHtml}
+      ${!isOther ? '<div class="cal-add-btn">+</div>' : ''}
     </div>`;
   }
 
   cells.innerHTML = html;
+}
+
+// ════════════════════════════════════════════
+// CELL CLICK — empty space → new job, pill → existing job
+// ════════════════════════════════════════════
+function handleCellClick(event, dateStr, jobCount, singleJobId) {
+  // If click was directly on a pill, let the pill's own handler deal with it
+  if (event.target.closest('.cal-job-pill') || event.target.closest('.cal-more-btn')) return;
+
+  if (jobCount === 0) {
+    // Empty cell — go straight to new job with date pre-filled
+    window.location.href = '/Wiggle/new-job.html?date=' + dateStr + '&from=calendar';
+  } else if (jobCount === 1 && singleJobId) {
+    // One job — open popup
+    openJobPopup(singleJobId);
+  } else {
+    // Multiple jobs — open date list modal
+    openDateModal(dateStr);
+  }
 }
 
 function changeMonth(dir) {
