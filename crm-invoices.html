@@ -443,10 +443,19 @@ function loadCustomersDD(cb){
 
 function getCount(cb){
   _db.collection('crm_invoices').get().then(function(s){
-    invoiceCounter=s.size+1;if(cb)cb();
+    var maxNum = 0;
+    s.docs.forEach(function(d){
+      var num = d.data().number || d.data().ref || '';
+      var match = String(num).match(/(\d+)$/);
+      if(match){
+        var n = parseInt(match[1]);
+        if(n > maxNum) maxNum = n;
+      }
+    });
+    invoiceCounter = maxNum > 0 ? maxNum + 1 : 1;
+    if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
-
 function loadInvoices(){
   var today=new Date().toISOString().split('T')[0];
   _db.collection('crm_invoices').orderBy('createdAt','desc').get().then(function(snap){
