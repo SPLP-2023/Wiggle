@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site History &mdash; Strike Point</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<style>
+:root{--dark:#0f1117;--dark2:#1a1d27;--dark3:#22263a;--border:#2e3350;--accent:#f59e0b;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--purple:#a855f7;--text:#f1f5f9;--muted:#94a3b8;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--dark);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+
+/* NAV */
+nav{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.nav-brand{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.nav-brand img{height:30px;width:auto;object-fit:contain;}
+.nav-brand span{font-size:15px;font-weight:700;}
+.nav-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;text-decoration:none;color:inherit;}
+.btn:hover{opacity:.85;}
+.btn-secondary{background:var(--dark3);color:var(--text);border:1px solid var(--border);}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.user-badge{display:flex;align-items:center;gap:8px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+
+/* MAIN */
+main{max-width:900px;margin:0 auto;padding:28px 20px 80px;}
+
+/* SITE HEADER */
+.site-header{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;}
+.site-header-top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.site-icon{width:48px;height:48px;border-radius:10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.site-title{flex:1;min-width:0;}
+.site-name{font-size:20px;font-weight:700;margin-bottom:3px;}
+.site-company{font-size:13px;color:var(--muted);}
+.site-stats{display:flex;gap:10px;flex-wrap:wrap;}
+.sstat{background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;min-width:72px;}
+.sstat-num{font-size:18px;font-weight:700;color:var(--accent);}
+.sstat-lbl{font-size:10px;color:var(--muted);margin-top:1px;text-transform:uppercase;letter-spacing:.4px;}
+.sstat.green .sstat-num{color:var(--green);}
+
+/* VISIT CARDS */
+.visit-card{background:var(--dark2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.visit-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--dark3);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.visit-ref{font-size:14px;font-weight:700;color:var(--accent);}
+.visit-type{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--dark2);border:1px solid var(--border);color:var(--muted);font-weight:600;}
+.visit-date{font-size:12px;color:var(--muted);flex:1;}
+.visit-value{font-size:14px;font-weight:700;color:var(--green);}
+.sbadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;border:1px solid;}
+.s-live{color:#22c55e;border-color:#22c55e44;background:#22c55e12;}
+.s-complete{color:#3b82f6;border-color:#3b82f644;background:#3b82f612;}
+.s-pending,.s-notconfirmed{color:#f59e0b;border-color:#f59e0b44;background:#f59e0b12;}
+.s-aborted,.s-cancelled,.s-declined{color:#ef4444;border-color:#ef444444;background:#ef444412;}
+.s-draft{color:#94a3b8;border-color:#94a3b844;background:#94a3b812;}
+.s-sent{color:#3b82f6;border-color:#3b82f644;background:#3b82f612;}
+.s-accepted,.s-paid{color:#22c55e;border-color:#22c55e44;background:#22c55e12;}
+.s-overdue{color:#ef4444;border-color:#ef444444;background:#ef444412;}
+
+/* VISIT BODY */
+.visit-body{padding:0 18px 14px;}
+.visit-job-link{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;text-decoration:none;color:inherit;transition:opacity .15s;}
+.visit-job-link:hover{opacity:.8;}
+.visit-job-link:last-child{border-bottom:none;}
+
+/* LINKED RECORDS UNDER VISIT */
+.linked-section{padding:4px 0 0;}
+.linked-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:8px 0 5px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.linked-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;background:var(--dark3);border:1px solid transparent;cursor:pointer;margin-bottom:5px;text-decoration:none;color:inherit;transition:border-color .15s;}
+.linked-row:hover{border-color:var(--border);}
+.lr-icon{font-size:14px;width:22px;text-align:center;flex-shrink:0;}
+.lr-title{flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lr-sub{font-size:11px;color:var(--muted);}
+.lr-right{text-align:right;flex-shrink:0;}
+.lr-val{font-size:12px;font-weight:700;color:var(--green);}
+.lr-badge-wrap{margin-top:2px;}
+
+/* EMPTY / LOADER */
+.state-msg{text-align:center;padding:64px 20px;color:var(--muted);}
+.state-msg .ico{font-size:48px;margin-bottom:12px;}
+.state-msg h3{font-size:16px;color:var(--text);margin-bottom:6px;}
+.spinner-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:48px;color:var(--muted);font-size:14px;}
+.spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* INV INDICATOR */
+.inv-ind{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid;white-space:nowrap;}
+.inv-ind.ok{color:var(--green);border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.12);}
+.inv-ind.needed{color:var(--red);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.12);}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark3);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;max-width:320px;}
+.toast.show{opacity:1;}
+.toast.error{border-color:var(--red);color:var(--red);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand" onclick="goBack()">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()">&#8592; Back</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=site'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=site'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=site'">&#128101; Customers</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display" style="font-size:13px;font-weight:600;">&#8212;</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div id="site-header-area"></div>
+  <div id="results-area">
+    <div class="spinner-row"><div class="spinner"></div>Loading site history&hellip;</div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var currentUser, siteName, companyName, fromPage;
+
+document.addEventListener('DOMContentLoaded', function() {
+  currentUser = requireAuth();
+  if (!currentUser) return;
+  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = currentUser.name;
+
+  var params = new URLSearchParams(window.location.search);
+  siteName    = params.get('site')    || '';
+  companyName = params.get('company') || '';
+  fromPage    = params.get('from')    || '';
+
+  if (!siteName) {
+    document.getElementById('results-area').innerHTML =
+      '<div class="state-msg"><div class="ico">&#9888;</div><h3>No site specified</h3><p><a href="/Wiggle/job-search.html" style="color:var(--accent);">Go to search</a></p></div>';
+    return;
+  }
+
+  updateBackButton();
+  document.title = siteName + ' \u2014 Site History';
+
+  initFirebase().then(function() { loadSiteHistory(); })
+    .catch(function(err) { console.error(err); showToast('Connection error - please refresh.', 'error'); });
+});
+
+function goBack() {
+  if (fromPage === 'job') history.back();
+  else if (companyName) window.location.href = '/Wiggle/job-search.html?company=' + encodeURIComponent(companyName);
+  else window.location.href = '/Wiggle/job-search.html';
+}
+
+function updateBackButton() {
+  var btn = document.getElementById('btn-back');
+  if (!btn) return;
+  if (fromPage === 'job') btn.textContent = '\u2190 Back to Job';
+  else if (companyName) btn.textContent = '\u2190 ' + companyName;
+  else btn.textContent = '\u2190 Search';
+}
+
+function loadSiteHistory() {
+  var siteKey = siteName.trim().toLowerCase();
+
+  Promise.all([
+    _db.collection('jobs').get(),
+    _db.collection('crm_quotes').get(),
+    _db.collection('crm_invoices').get()
+  ]).then(function(snaps) {
+    var allJobs     = snaps[0].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+    var allQuotes   = snaps[1].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+    var allInvoices = snaps[2].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+
+    // Match jobs by siteName (case-insensitive)
+    var siteJobs = allJobs.filter(function(j) {
+      return (j.siteName||'').trim().toLowerCase() === siteKey;
+    });
+
+    // Sort newest first
+    siteJobs.sort(function(a,b){ return new Date(b.bookingDate||0) - new Date(a.bookingDate||0); });
+
+    // Build set of job refs for this site
+    var siteRefs = new Set(siteJobs.map(function(j){ return String(j.ref||'').trim(); }));
+
+    // Match quotes and invoices by job ref
+    var siteQuotes = allQuotes.filter(function(q) {
+      var jr = String(q.jobRef||'').trim();
+      if (!jr) { var m=String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/); jr=m?m[1]:''; }
+      return siteRefs.has(jr);
+    });
+    var siteInvoices = allInvoices.filter(function(inv) {
+      return siteRefs.has(String(inv.jobRef||inv.linkedJobRef||'').trim());
+    });
+
+    renderSiteHeader(siteJobs, siteQuotes, siteInvoices);
+    renderVisits(siteJobs, siteQuotes, siteInvoices);
+  }).catch(function(err) {
+    console.error(err);
+    document.getElementById('results-area').innerHTML =
+      '<div class="state-msg"><div class="ico">&#9888;</div><h3>Failed to load</h3><p>Please refresh and try again.</p></div>';
+  });
+}
+
+function renderSiteHeader(jobs, quotes, invoices) {
+  var totalValue = jobs.reduce(function(acc,j){ return acc+((j.costs&&j.costs.jobValue)||0); },0);
+  var html = '<div class="site-header">'
+    + '<div class="site-header-top">'
+    +   '<div class="site-icon">&#127970;</div>'
+    +   '<div class="site-title">'
+    +     '<div class="site-name">'+esc(siteName)+'</div>'
+    +     (companyName?'<div class="site-company">&#127970; '+esc(companyName)+'</div>':'')
+    +   '</div>'
+    + '</div>'
+    + '<div class="site-stats">'
+    +   '<div class="sstat"><div class="sstat-num">'+jobs.length+'</div><div class="sstat-lbl">Visits</div></div>'
+    +   '<div class="sstat"><div class="sstat-num">'+quotes.length+'</div><div class="sstat-lbl">Quotes</div></div>'
+    +   '<div class="sstat"><div class="sstat-num">'+invoices.length+'</div><div class="sstat-lbl">Invoices</div></div>'
+    +   '<div class="sstat green"><div class="sstat-num">&pound;'+totalValue.toFixed(0)+'</div><div class="sstat-lbl">Total Value</div></div>'
+    + '</div>'
+    + '</div>';
+  document.getElementById('site-header-area').innerHTML = html;
+}
+
+function renderVisits(jobs, quotes, invoices) {
+  var area = document.getElementById('results-area');
+
+  if (!jobs.length) {
+    area.innerHTML = '<div class="state-msg"><div class="ico">&#128565;</div><h3>No visits found for &ldquo;'+esc(siteName)+'&rdquo;</h3><p>No jobs match this site name.</p></div>';
+    return;
+  }
+
+  // Build quote/invoice lookup by job ref
+  var quotesByRef = {}, invoicesByRef = {};
+  quotes.forEach(function(q) {
+    var jr = String(q.jobRef||'').trim();
+    if (!jr) { var m=String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/); jr=m?m[1]:''; }
+    if (!quotesByRef[jr]) quotesByRef[jr] = [];
+    quotesByRef[jr].push(q);
+  });
+  invoices.forEach(function(inv) {
+    var jr = String(inv.jobRef||inv.linkedJobRef||'').trim();
+    if (!invoicesByRef[jr]) invoicesByRef[jr] = [];
+    invoicesByRef[jr].push(inv);
+  });
+
+  var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">'
+    + jobs.length + ' visit' + (jobs.length!==1?'s':'') + ' to <strong style="color:var(--text);">'+esc(siteName)+'</strong>, newest first</div>';
+
+  jobs.forEach(function(j) {
+    var ref      = String(j.ref||'').trim();
+    var val      = (j.costs&&j.costs.jobValue) ? '&pound;'+parseFloat(j.costs.jobValue).toFixed(2) : '&mdash;';
+    var sc       = 's-'+(j.status||'live').toLowerCase().replace(/\s+/g,'');
+    var jobQs    = quotesByRef[ref] || [];
+    var jobInvs  = invoicesByRef[ref] || [];
+    var isInvoiced = jobInvs.length > 0;
+    var invInd   = j.status === 'complete'
+      ? (isInvoiced
+          ? '<span class="inv-ind ok">&#10003; Invoiced</span>'
+          : '<span class="inv-ind needed">! Invoice Needed</span>')
+      : '';
+
+    html += '<div class="visit-card">';
+
+    // Visit header
+    html += '<div class="visit-header">'
+      + '<span class="visit-ref">&#128204; #'+esc(ref)+'</span>'
+      + '<span class="visit-type">'+esc(j.type||'—')+'</span>'
+      + '<span class="visit-date">'+fmtDate(j.bookingDate)+'</span>'
+      + invInd
+      + '<span class="visit-value">'+val+'</span>'
+      + '<span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span>'
+      + '<a class="btn btn-secondary btn-sm" href="/Wiggle/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &#8594;</a>'
+      + '</div>';
+
+    // Linked quotes and invoices
+    var hasLinked = jobQs.length || jobInvs.length;
+    if (hasLinked) {
+      html += '<div class="visit-body">';
+
+      if (jobQs.length) {
+        html += '<div class="linked-section"><div class="linked-label">&#128203; Quotes</div>';
+        jobQs.forEach(function(q) {
+          var qval = q.total ? '&pound;'+parseFloat(q.total).toFixed(2) : '&mdash;';
+          var qsc  = 's-'+(q.status||'draft').toLowerCase();
+          var qref = q.ref||q.quoteRef||q._id;
+          html += '<a class="linked-row" href="/Wiggle/crm-quotes.html?view='+q._id+'&from=site">'
+            + '<div class="lr-icon">&#128203;</div>'
+            + '<div style="flex:1;min-width:0;">'
+            +   '<div class="lr-title">'+esc(q.serviceAddress||q.company||qref)+'</div>'
+            +   '<div class="lr-sub">'+esc(String(qref).substring(0,32))+'</div>'
+            + '</div>'
+            + '<div class="lr-right"><div class="lr-val">'+qval+'</div>'
+            +   '<div class="lr-badge-wrap"><span class="sbadge '+qsc+'">'+esc(q.status||'draft')+'</span></div>'
+            + '</div></a>';
+        });
+        html += '</div>';
+      }
+
+      if (jobInvs.length) {
+        html += '<div class="linked-section"><div class="linked-label">&#129534; Invoices</div>';
+        jobInvs.forEach(function(inv) {
+          var ival = inv.total||inv.totalDue ? '&pound;'+parseFloat(inv.total||inv.totalDue||0).toFixed(2) : '&mdash;';
+          var isc  = 's-'+(inv.status||'draft').toLowerCase();
+          var inum = inv.invoiceNumber||inv.number||inv.ref||inv._id;
+          html += '<a class="linked-row" href="/Wiggle/crm-invoices.html?view='+inv._id+'&from=site">'
+            + '<div class="lr-icon">&#129534;</div>'
+            + '<div style="flex:1;min-width:0;">'
+            +   '<div class="lr-title">'+esc(inv.siteName||inv.clientName||inum)+'</div>'
+            +   '<div class="lr-sub">'+esc(inum)+'</div>'
+            + '</div>'
+            + '<div class="lr-right"><div class="lr-val">'+ival+'</div>'
+            +   '<div class="lr-badge-wrap"><span class="sbadge '+isc+'">'+esc(inv.status||'draft')+'</span></div>'
+            + '</div></a>';
+        });
+        html += '</div>';
+      }
+
+      html += '</div>'; // end visit-body
+    }
+
+    html += '</div>'; // end visit-card
+  });
+
+  area.innerHTML = html;
+}
+
+function goBack() {
+  if (fromPage === 'job') history.back();
+  else if (companyName) window.location.href = '/Wiggle/job-search.html?company=' + encodeURIComponent(companyName);
+  else window.location.href = '/Wiggle/job-search.html';
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso){ if(!iso)return''; try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){return iso;} }
+function showToast(msg,type){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(t._t); t._t=setTimeout(function(){t.className='toast';},3000); }
+</script>
+</body>
+</html>
