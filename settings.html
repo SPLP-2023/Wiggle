@@ -110,7 +110,13 @@
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="goBack()">← Dashboard</button>
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">&#8592; Back</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=settings'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=settings'">&#128197; Calendar</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=settings'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=settings'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=settings'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=settings'">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">—</span>
@@ -321,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hideLoader();
     document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = currentUser.name;
+    updateBackButton();
     loadSettings();
     renderUsers();
     updateExportStats();
@@ -331,7 +338,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function goBack() { window.location.href = '/Wiggle/index.html'; }
+function goBack() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  if (from === 'calendar')       window.location.href = '/Wiggle/calendar.html';
+  else if (from === 'customers') window.location.href = '/Wiggle/customers.html';
+  else if (from === 'quotes')    window.location.href = '/Wiggle/crm-quotes.html';
+  else if (from === 'invoices')  window.location.href = '/Wiggle/crm-invoices.html';
+  else if (from === 'search')    window.location.href = '/Wiggle/job-search.html';
+  else                           window.location.href = '/Wiggle/index.html';
+}
+
+function updateBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const btn    = document.getElementById('btn-back');
+  if (!btn || !from) return;
+  const labels = {
+    dashboard: '← Dashboard', calendar: '← Calendar',
+    customers: '← Customers', quotes: '← Quotes',
+    invoices: '← Invoices', search: '← Search'
+  };
+  if (labels[from]) { btn.textContent = labels[from]; btn.style.display = 'inline-flex'; }
+}
 
 // ── FUEL SETTINGS ─────────────────────────────
 function loadSettings() {
