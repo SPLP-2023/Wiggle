@@ -532,7 +532,7 @@ function renderCalendar() {
     html += `<div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
       <div class="cal-date-num">${day}</div>
       ${pillsHtml}
-      ${!isOther ? '<div class="cal-add-btn">+</div>' : ''}
+      ${!isOther ? `<div class="cal-add-btn" onclick="event.stopPropagation();window.location.href='/Wiggle/new-job.html?date=${dateStr}&from=calendar'">+</div>` : ''}
     </div>`;
   }
 
