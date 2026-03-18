@@ -352,14 +352,31 @@ function selectJobRef(jobId) {
   document.getElementById('jobref-selected-banner').style.display = 'flex';
   if (j.poRef) document.getElementById('i-order-ref').value = j.poRef;
   if (j.siteName) document.getElementById('i-site-name').value = j.siteName;
+
+  // Map job type to the standard invoice description preset
+  var typeLow = (j.type || '').toLowerCase();
+  var desc = '';
+  if (typeLow.includes('test') || typeLow.includes('inspection') || typeLow.includes('t&i') || typeLow.includes('t & i')) {
+    desc = 'Lightning Protection Test & Inspection Service';
+  } else if (typeLow.includes('survey') || typeLow.includes('svy') || typeLow.includes('svt')) {
+    desc = 'Lightning Protection Survey & Inspection';
+  } else if (typeLow.includes('remedial') || typeLow.includes('repair') || typeLow.includes('rps')) {
+    desc = 'Lightning protection system repairs as per quote:';
+  } else if (typeLow.includes('install')) {
+    desc = 'Lightning protection system installation';
+  }
+
   var jobValue = (j.costs && j.costs.jobValue) ? parseFloat(j.costs.jobValue) : 0;
-  if (jobValue > 0 && lineItems.length > 0 && (!lineItems[0].unitPrice || lineItems[0].unitPrice === 0)) {
-    lineItems[0].unitPrice = jobValue;
-    if (!lineItems[0].description) lineItems[0].description = (j.type||'') + ' \u2014 ' + (j.siteName||j.company||'');
+  if (lineItems.length > 0 && (!lineItems[0].unitPrice || lineItems[0].unitPrice === 0)) {
+    if (desc) lineItems[0].description = desc;
+    if (jobValue > 0) lineItems[0].unitPrice = jobValue;
     renderLines(); recalc();
   } else if (jobValue > 0 && lineItems.length === 0) {
-    lineItems = [{ description:(j.type||'')+' \u2014 '+(j.siteName||j.company||''), type:'Labour', qty:1, unitPrice:jobValue, vatRate:20 }];
+    lineItems = [{ description: desc || j.type || '', type:'Labour', qty:1, unitPrice:jobValue, vatRate:20 }];
     renderLines(); recalc();
+  } else if (desc && lineItems.length > 0 && !lineItems[0].description) {
+    lineItems[0].description = desc;
+    renderLines();
   }
 }
 
