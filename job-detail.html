@@ -948,6 +948,15 @@ function renderPage() {
 // LINKED RECORDS SIDEBAR
 // ════════════════════════════════════════════
 function loadLinkedRecords() {
+  // Engineers don't see linked records — hide the sidebar entirely
+  if (!currentUser || currentUser.role !== 'manager') {
+    var sidebar = document.getElementById('linked-sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    // Also collapse the layout to single column
+    var layout = document.querySelector('.job-layout');
+    if (layout) layout.style.gridTemplateColumns = '1fr';
+    return;
+  }
   if (!job.ref) {
     document.getElementById('linked-sidebar-body').innerHTML =
       '<div class="linked-empty">No job ref set.</div>';
@@ -1534,10 +1543,10 @@ function renderHistory(items) {
   }
   noH.style.display = 'none'; banner.style.display = 'block';
   document.getElementById('history-site-name').textContent = job.siteName;
-  // Wire up "View full site history" link
+  // Wire up "View full site history" link — manager only
   var linkWrap = document.getElementById('site-history-link-wrap');
   var link     = document.getElementById('site-history-link');
-  if (linkWrap && link && job.siteName) {
+  if (linkWrap && link && job.siteName && currentUser && currentUser.role === 'manager') {
     var url = '/Wiggle/site-history.html?site=' + encodeURIComponent(job.siteName.trim())
             + '&company=' + encodeURIComponent(job.company||'')
             + '&from=job';
