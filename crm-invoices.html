@@ -96,19 +96,19 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html?from=invoices'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">🏠 Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html'">📅 Calendar</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">👥 Customers</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">📄 Quotes</button>
-    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">🧾 Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html'">⚙️ Settings</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=invoices'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=invoices'">&#128197; Calendar</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=invoices'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=invoices'">&#128176; Quotes</button>
+    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=invoices'">&#9881;&#65039; Settings</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=invoices'">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -273,8 +273,16 @@ var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCount
     history.back();
   } else if (from === 'search') {
     window.location.href = '/Wiggle/job-search.html';
-  } else {
+  } else if (from === 'calendar') {
+    window.location.href = '/Wiggle/calendar.html';
+  } else if (from === 'customers') {
     window.location.href = '/Wiggle/customers.html';
+  } else if (from === 'quotes') {
+    window.location.href = '/Wiggle/crm-quotes.html';
+  } else if (from === 'settings') {
+    window.location.href = '/Wiggle/settings.html';
+  } else {
+    window.location.href = '/Wiggle/index.html';
   }
 }
 
@@ -284,9 +292,13 @@ function updateBackButton() {
   const btn    = document.getElementById('btn-back');
   if (!btn || !from) return;
   btn.style.display = 'inline-flex';
-  if (from === 'customer')    btn.textContent = '← Back to Customer';
-  else if (from === 'job')    btn.textContent = '← Back to Job';
-  else if (from === 'search') btn.textContent = '← Search';
+  const labels = {
+    customer: '← Back to Customer', job: '← Back to Job',
+    search: '← Search', calendar: '← Calendar',
+    customers: '← Customers', quotes: '← Quotes',
+    settings: '← Settings', dashboard: '← Dashboard'
+  };
+  if (labels[from]) btn.textContent = labels[from];
 }
 
 // ════════════════════════════════════════════
