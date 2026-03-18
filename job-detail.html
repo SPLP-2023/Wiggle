@@ -706,6 +706,9 @@
     <!-- ══ SITE HISTORY SNAPSHOTS ══ -->
     <div id="history-site-banner" style="display:none;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text-muted);">
       📍 Showing all saved history for site: <strong id="history-site-name" style="color:var(--text);"></strong>
+      <span id="site-history-link-wrap" style="display:none;margin-left:12px;">
+        <a id="site-history-link" href="#" style="font-size:12px;color:var(--primary,#f59e0b);font-weight:600;text-decoration:none;">&#128269; View full site history &#8594;</a>
+      </span>
     </div>
     <div id="history-list"></div>
     <div id="no-history" style="text-align:center;padding:60px 20px;color:var(--text-muted);">
@@ -890,6 +893,8 @@ function goBack() {
       window.location.href = '/Wiggle/calendar.html';
     } else if (from === 'search') {
       window.location.href = '/Wiggle/job-search.html';
+    } else if (from === 'site') {
+      history.back();
     } else if (from === 'customers') {
       window.location.href = '/Wiggle/customers.html';
     } else {
@@ -1529,6 +1534,16 @@ function renderHistory(items) {
   }
   noH.style.display = 'none'; banner.style.display = 'block';
   document.getElementById('history-site-name').textContent = job.siteName;
+  // Wire up "View full site history" link
+  var linkWrap = document.getElementById('site-history-link-wrap');
+  var link     = document.getElementById('site-history-link');
+  if (linkWrap && link && job.siteName) {
+    var url = '/Wiggle/site-history.html?site=' + encodeURIComponent(job.siteName.trim())
+            + '&company=' + encodeURIComponent(job.company||'')
+            + '&from=job';
+    link.href = url;
+    linkWrap.style.display = 'inline';
+  }
   list.innerHTML = items.map((h, i) => {
     const s = h.snapshot || {}; if (!s.costs) s.costs = {}; const isTI = s.type === 'Test & Inspection';
     const details = `JOB DETAILS
