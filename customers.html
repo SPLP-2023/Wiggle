@@ -153,17 +153,19 @@
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="goBack()">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">🏠 Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html'">📅 Calendar</button>
-    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">👥 Customers</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">📄 Quotes</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html'">🧾 Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html'">⚙️ Settings</button>
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">&#8592; Back</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=customers'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=customers'">&#128197; Calendar</button>
+    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=customers'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=customers'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=customers'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=customers'">&#9881;&#65039; Settings</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -327,10 +329,35 @@ document.addEventListener('DOMContentLoaded', () => {
   if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
+  updateBackButton();
   showLoader();
   initFirebase().then(() => { hideLoader(); loadCustomers(); })
     .catch(() => { hideLoader(); showToast('Connection error — please refresh.', 'error'); });
 });
+
+function goBack() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  if (from === 'calendar')       window.location.href = '/Wiggle/calendar.html';
+  else if (from === 'quotes')    window.location.href = '/Wiggle/crm-quotes.html';
+  else if (from === 'invoices')  window.location.href = '/Wiggle/crm-invoices.html';
+  else if (from === 'settings')  window.location.href = '/Wiggle/settings.html';
+  else if (from === 'search')    window.location.href = '/Wiggle/job-search.html';
+  else                           window.location.href = '/Wiggle/index.html';
+}
+
+function updateBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const btn    = document.getElementById('btn-back');
+  if (!btn || !from) return;
+  const labels = {
+    dashboard: '← Dashboard', calendar: '← Calendar',
+    quotes: '← Quotes', invoices: '← Invoices',
+    settings: '← Settings', search: '← Search'
+  };
+  if (labels[from]) { btn.textContent = labels[from]; btn.style.display = 'inline-flex'; }
+}
 
 // ════════════════════════════════════════════
 // LOAD
@@ -409,7 +436,7 @@ function renderCustomers() {
         ${entitySiteCount ? `<span class="meta-chip" style="background:rgba(168,85,247,0.15);color:#a855f7;">&#128279; ${entitySiteCount} entit${entitySiteCount>1?'ies':'y'}</span>` : ''}
       </div>
       <div class="customer-actions">
-        <button class="btn btn-secondary btn-xs" onclick="window.location.href='/Wiggle/crm-customer.html?id=${c.id}'">&#128065; View</button>
+        <button class="btn btn-secondary btn-xs" onclick="window.location.href='/Wiggle/crm-customer.html?id=${c.id}&from=customers'">&#128065; View</button>
         <button class="btn btn-secondary btn-xs" onclick="openEditCustomer('${c.id}')">&#9998; Edit</button>
         ${!isEntity ? `<button class="btn btn-xs" style="background:rgba(59,130,246,0.2);color:#3b82f6;border-radius:var(--radius);" onclick="window.location.href='/Wiggle/crm-quotes.html?customer=${c.id}'">&#128176; Quote</button>` : ''}
         ${isEntity ? `<button class="btn btn-xs" style="background:rgba(168,85,247,0.15);color:#a855f7;border-radius:var(--radius);" onclick="unlinkEntity('${c.id}')">&#128279; Unlink</button>` : ''}
