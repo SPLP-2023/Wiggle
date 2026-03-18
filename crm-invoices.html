@@ -75,6 +75,23 @@
     .toast.show { transform:translateY(0); opacity:1; } .toast.success { border-color:var(--success); } .toast.error { border-color:var(--danger); }
     .hidden { display:none !important; }
     @media(max-width:640px) { .form-row { grid-template-columns:1fr; } }
+    /* ── JOB REF SEARCH ── */
+    .jobref-search-wrap { position:relative; }
+    .jobref-search-row { display:flex; gap:8px; }
+    .jobref-search-row input { flex:1; }
+    .jobref-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--dark2); border:1px solid var(--border); border-radius:8px; z-index:200; max-height:280px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+    .jobref-result-item { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; }
+    .jobref-result-item:last-child { border-bottom:none; }
+    .jobref-result-item:hover { background:var(--dark3); }
+    .jobref-result-ref { font-size:13px; font-weight:700; color:var(--primary); flex-shrink:0; min-width:58px; }
+    .jobref-result-body { flex:1; min-width:0; }
+    .jobref-result-site { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .jobref-result-meta { font-size:11px; color:var(--text-muted); margin-top:1px; }
+    .jobref-result-value { font-size:13px; font-weight:700; color:#22c55e; flex-shrink:0; }
+    .jobref-no-results, .jobref-searching { padding:14px; font-size:13px; color:var(--text-muted); text-align:center; }
+    .jobref-selected-banner { display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:8px; font-size:12px; color:#22c55e; margin-top:8px; }
+    .jobref-selected-banner button { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; }
+    .jobref-selected-banner button:hover { color:var(--text); }
   </style>
 </head>
 <body>
@@ -91,6 +108,7 @@
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">📄 Quotes</button>
     <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">🧾 Invoices</button>
     <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html'">⚙️ Settings</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html'">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -150,6 +168,26 @@
         </select>
         <div style="font-size:11px;color:#a855f7;margin-top:4px;">Selecting a site will auto-fill the billing entity details below</div>
       </div>
+      <!-- Job Ref Link -->
+      <div class="form-group">
+        <label>&#128279; Link to Job Reference <span style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;">(optional &mdash; auto-fills PO, site name &amp; value)</span></label>
+        <div class="jobref-search-wrap" id="jobref-search-wrap">
+          <div class="jobref-search-row">
+            <input type="text" class="form-input" id="jobref-search-input"
+              placeholder="Type a job ref to search e.g. 63902..."
+              autocomplete="off"
+              oninput="onJobRefInput(this.value)"
+              onfocus="if(this.value) onJobRefInput(this.value)">
+            <button class="btn btn-secondary" type="button" onclick="clearJobRefLink()" style="padding:0 12px;flex-shrink:0;" title="Clear">&#10005;</button>
+          </div>
+          <div class="jobref-dropdown" id="jobref-dropdown" style="display:none;"></div>
+          <div id="jobref-selected-banner" class="jobref-selected-banner" style="display:none;">
+            <span>&#10003;</span>
+            <span id="jobref-selected-text">Job linked</span>
+            <button onclick="clearJobRefLink()" title="Remove">&#10005;</button>
+          </div>
+        </div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>Site Name / Reference</label><input type="text" class="form-input" id="i-site-name" placeholder="e.g. Avon Studios"></div>
         <div class="form-group"><label>Order Reference</label><input type="text" class="form-input" id="i-order-ref" placeholder="Purchase order number"></div>
@@ -204,39 +242,25 @@ var currentUser,allInvoices=[],allCustomers=[],lineItems=[];
 var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCounter=1;
 
   function prefillFromJob(params) {
+  var jobId      = params.get('fromjob') || params.get('jobid') || '';
   var customerId = params.get('customer') || '';
   var entityId   = params.get('entity')   || '';
-  var desc       = params.get('desc')     || '';
-  var value      = parseFloat(params.get('value')) || 0;
 
-  // Open a new invoice, pre-selecting the customer
   openNewInvoice(customerId || null);
 
-  // After openNewInvoice has run, patch in the extra fields
-  // Site name / order ref from the description string
-  document.getElementById('i-site-name').value  = desc;
-  document.getElementById('i-order-ref').value  = '';
-
-  // If an entity was matched, select it in the dropdown and trigger the change
   if (entityId) {
-    var entitySel = document.getElementById('i-entity-site');
-    // The options are built by onCustomerChange — wait a tick
     setTimeout(function() {
-      entitySel.value = entityId;
-      if (entitySel.value === entityId) onEntitySiteChange();
-    }, 50);
+      var entitySel = document.getElementById('i-entity-site');
+      if (entitySel) {
+        entitySel.value = entityId;
+        if (entitySel.value === entityId) onEntitySiteChange();
+      }
+    }, 80);
   }
 
-  // Replace the blank line item with one pre-filled from the job
-  lineItems = [{
-    description: desc,
-    type:        'Labour',
-    qty:         1,
-    unitPrice:   value,
-    vatRate:     20
-  }];
-  renderLines();
-  recalc();
+  if (jobId) {
+    setTimeout(function() { selectJobRef(jobId); }, 120);
+  }
 }
 
   function goBack() {
@@ -245,8 +269,10 @@ var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCount
   const cid    = params.get('cid');
   if (from === 'customer' && cid) {
     window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
-  } else if (from === 'customers') {
-    window.location.href = '/Wiggle/customers.html';
+  } else if (from === 'job') {
+    history.back();
+  } else if (from === 'search') {
+    window.location.href = '/Wiggle/job-search.html';
   } else {
     window.location.href = '/Wiggle/customers.html';
   }
@@ -255,12 +281,85 @@ var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCount
 function updateBackButton() {
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
-  const cid    = params.get('cid');
   const btn    = document.getElementById('btn-back');
   if (!btn || !from) return;
   btn.style.display = 'inline-flex';
-  if (from === 'customer')   btn.textContent = '← Back to Customer';
-  else if (from === 'customers') btn.textContent = '← Customers';
+  if (from === 'customer')    btn.textContent = '← Back to Customer';
+  else if (from === 'job')    btn.textContent = '← Back to Job';
+  else if (from === 'search') btn.textContent = '← Search';
+}
+
+// ════════════════════════════════════════════
+// JOB REF SEARCH & AUTO-FILL
+// ════════════════════════════════════════════
+var linkedJobId = null;
+var jobRefTimer = null;
+
+function onJobRefInput(val) {
+  clearTimeout(jobRefTimer);
+  var dd = document.getElementById('jobref-dropdown');
+  var q  = val.trim();
+  if (!q) { dd.style.display = 'none'; return; }
+  dd.innerHTML = '<div class="jobref-searching">Searching&hellip;</div>';
+  dd.style.display = 'block';
+  jobRefTimer = setTimeout(function() { searchJobRefs(q); }, 280);
+}
+
+function searchJobRefs(q) {
+  var dd   = document.getElementById('jobref-dropdown');
+  var qLow = q.toLowerCase();
+  var jobs = (appData.jobs || []).filter(function(j) {
+    return String(j.ref||'').toLowerCase().includes(qLow);
+  }).slice(0, 8);
+  if (!jobs.length) {
+    dd.innerHTML = '<div class="jobref-no-results">No jobs matching &ldquo;' + escInv(q) + '&rdquo;</div>';
+    return;
+  }
+  var html = '';
+  jobs.forEach(function(j) {
+    var val = (j.costs && j.costs.jobValue) ? '&pound;' + parseFloat(j.costs.jobValue).toFixed(2) : '';
+    html += '<div class="jobref-result-item" onclick="selectJobRef(\'' + escInv(j.id) + '\')">'
+      + '<div class="jobref-result-ref">#' + escInv(String(j.ref)) + '</div>'
+      + '<div class="jobref-result-body">'
+      +   '<div class="jobref-result-site">' + escInv(j.siteName||j.company||'—') + '</div>'
+      +   '<div class="jobref-result-meta">' + escInv(j.type||'') + (j.poRef?' &middot; PO: '+escInv(j.poRef):'') + (j.company?' &middot; '+escInv(j.company):'') + '</div>'
+      + '</div>'
+      + (val ? '<div class="jobref-result-value">'+val+'</div>' : '')
+      + '</div>';
+  });
+  dd.innerHTML = html;
+}
+
+function selectJobRef(jobId) {
+  var j = (appData.jobs || []).find(function(x) { return x.id === jobId; });
+  if (!j) return;
+  linkedJobId = jobId;
+  document.getElementById('jobref-dropdown').style.display = 'none';
+  document.getElementById('jobref-search-input').value = String(j.ref);
+  document.getElementById('jobref-selected-text').textContent = 'Linked to Job #' + j.ref + ' \u2014 ' + (j.siteName||j.company||'');
+  document.getElementById('jobref-selected-banner').style.display = 'flex';
+  if (j.poRef) document.getElementById('i-order-ref').value = j.poRef;
+  if (j.siteName) document.getElementById('i-site-name').value = j.siteName;
+  var jobValue = (j.costs && j.costs.jobValue) ? parseFloat(j.costs.jobValue) : 0;
+  if (jobValue > 0 && lineItems.length > 0 && (!lineItems[0].unitPrice || lineItems[0].unitPrice === 0)) {
+    lineItems[0].unitPrice = jobValue;
+    if (!lineItems[0].description) lineItems[0].description = (j.type||'') + ' \u2014 ' + (j.siteName||j.company||'');
+    renderLines(); recalc();
+  } else if (jobValue > 0 && lineItems.length === 0) {
+    lineItems = [{ description:(j.type||'')+' \u2014 '+(j.siteName||j.company||''), type:'Labour', qty:1, unitPrice:jobValue, vatRate:20 }];
+    renderLines(); recalc();
+  }
+}
+
+function clearJobRefLink() {
+  linkedJobId = null;
+  document.getElementById('jobref-search-input').value = '';
+  document.getElementById('jobref-dropdown').style.display = 'none';
+  document.getElementById('jobref-selected-banner').style.display = 'none';
+}
+
+function escInv(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 document.addEventListener('DOMContentLoaded',function(){
@@ -275,6 +374,13 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('i-date').addEventListener('change',function(){
     var d=new Date(this.value);d.setDate(d.getDate()+30);
     document.getElementById('i-due-date').value=d.toISOString().split('T')[0];
+  });
+  document.addEventListener('click', function(e) {
+    var wrap = document.getElementById('jobref-search-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      var dd = document.getElementById('jobref-dropdown');
+      if (dd) dd.style.display = 'none';
+    }
   });
   showLoader();
   initFirebase().then(function(){
@@ -377,6 +483,7 @@ function openNewInvoice(preselectCid){
   ['i-site-name','i-order-ref','i-client-name','i-client-email','i-client-address','i-notes'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('i-customer').value=preselectCid||'';
   if(preselectCid){currentCustomerId=preselectCid;onCustomerChange();}
+  clearJobRefLink();
   addLine();recalc();
 }
 
@@ -421,6 +528,13 @@ function openExistingInvoice(id){
       document.getElementById('co-indicator').classList.add('hidden');
     }
     lineItems=(inv.lineItems||[]).map(function(li){return Object.assign({},li);});
+    clearJobRefLink();
+    if(inv.linkedJobRef){
+      linkedJobId = inv.linkedJobId || null;
+      document.getElementById('jobref-search-input').value = inv.linkedJobRef;
+      document.getElementById('jobref-selected-text').textContent = 'Linked to Job #' + inv.linkedJobRef;
+      document.getElementById('jobref-selected-banner').style.display = 'flex';
+    }
     renderLines();recalc();
   }).catch(function(err){console.error(err);showToast('Error loading.','error');});
 }
@@ -591,6 +705,8 @@ function saveInvoice(){
     number:number,ref:number,
     siteName:document.getElementById('i-site-name').value.trim(),
     orderRef:document.getElementById('i-order-ref').value.trim(),
+    linkedJobRef: linkedJobId ? String(((appData.jobs||[]).find(function(j){return j.id===linkedJobId;})||{}).ref||'') : '',
+    linkedJobId:  linkedJobId || '',
     invoiceDate:document.getElementById('i-date').value,
     dueDate:document.getElementById('i-due-date').value,
     clientName:document.getElementById('i-client-name').value.trim(),
