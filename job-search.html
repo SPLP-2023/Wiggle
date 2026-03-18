@@ -73,6 +73,30 @@ main{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--dark3);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;max-width:320px;}
 .toast.show{opacity:1;}
 .toast.error{border-color:var(--red);color:var(--red);}
+
+/* ── COMPANY SUMMARY CARD ── */
+.company-card{background:var(--dark2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+.company-card-header{padding:14px 18px;background:var(--dark3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.company-name{font-size:15px;font-weight:700;flex:1;}
+.company-stats{display:flex;gap:8px;flex-wrap:wrap;}
+.cstat{background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;text-align:center;min-width:64px;}
+.cstat-num{font-size:16px;font-weight:700;color:var(--accent);}
+.cstat-lbl{font-size:10px;color:var(--muted);margin-top:1px;}
+.cstat.green .cstat-num{color:var(--green);}
+.ref-row{display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.ref-row:last-child{border-bottom:none;}
+.ref-row:hover{background:var(--dark3);}
+.ref-row-num{font-size:13px;font-weight:700;color:var(--accent);min-width:70px;}
+.ref-row-body{flex:1;min-width:0;}
+.ref-row-site{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ref-row-meta{font-size:11px;color:var(--muted);margin-top:1px;}
+.ref-row-chips{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;}
+.ref-row-expand{font-size:11px;color:var(--blue);flex-shrink:0;padding-left:6px;}
+.ref-detail{display:none;border-top:1px solid var(--border);background:var(--dark);}
+.ref-detail.open{display:block;}
+.search-mode-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid;margin-left:8px;}
+.mode-ref{color:var(--accent);border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.1);}
+.mode-company{color:var(--blue);border-color:rgba(59,130,246,0.4);background:rgba(59,130,246,0.1);}
 </style>
 </head>
 <body>
@@ -96,17 +120,17 @@ main{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
 </nav>
 <main>
   <div class="page-header">
-    <h1>&#128269; Job Reference Search</h1>
-    <p>Search across all jobs, quotes and invoices by job ref number.</p>
+    <h1>&#128269; Job Search</h1>
+    <p>Search by job ref number or company name &mdash; results group all linked jobs, quotes and invoices together.</p>
   </div>
   <div class="search-card">
     <div class="search-row">
       <input type="text" class="search-input" id="search-input"
-        placeholder="Enter a job ref e.g. 63902 &mdash; full or partial..."
+        placeholder="Job ref e.g. 63902, or company name e.g. PAG Facilities..."
         autocomplete="off" spellcheck="false">
       <button class="btn btn-primary" onclick="doSearch()">Search</button>
     </div>
-    <div class="search-hint">Results group all linked jobs, quotes and invoices under the same ref number.</div>
+    <div class="search-hint" id="search-hint">Numbers → searches by job ref &nbsp;|&nbsp; Text → searches by company name</div>
   </div>
   <div id="results-area">
     <div class="state-msg">
@@ -124,21 +148,38 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!currentUser) return;
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
+
   initFirebase().then(function() {
     var params = new URLSearchParams(window.location.search);
-    var preRef = params.get('ref');
-    if (preRef) { document.getElementById('search-input').value = preRef; doSearch(); }
+    var preRef     = params.get('ref');
+    var preCompany = params.get('company');
+    if (preCompany) {
+      document.getElementById('search-input').value = preCompany;
+      doSearch();
+    } else if (preRef) {
+      document.getElementById('search-input').value = preRef;
+      doSearch();
+    }
   }).catch(function(err) { console.error(err); showToast('Connection error - please refresh.', 'error'); });
+
   document.getElementById('search-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') doSearch();
   });
 });
 
+// Smart detection: mostly digits = ref search, otherwise = company search
+function isRefQuery(q) {
+  var digits = (q.match(/\d/g) || []).length;
+  return digits >= q.replace(/\s/g,'').length * 0.6;
+}
+
 function doSearch() {
   var q = document.getElementById('search-input').value.trim();
-  if (!q) { showToast('Please enter a job reference.', 'error'); return; }
+  if (!q) { showToast('Please enter a job ref or company name.', 'error'); return; }
   document.getElementById('results-area').innerHTML = '<div class="spinner-row"><div class="spinner"></div>Searching&hellip;</div>';
-  var qLow = q.toLowerCase();
+
+  var mode = isRefQuery(q) ? 'ref' : 'company';
+
   Promise.all([
     _db.collection('jobs').get(),
     _db.collection('crm_quotes').get(),
@@ -147,117 +188,256 @@ function doSearch() {
     var jobs     = snaps[0].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
     var quotes   = snaps[1].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
     var invoices = snaps[2].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
-    var mJobs = jobs.filter(function(j){ return String(j.ref||'').toLowerCase().includes(qLow); });
-    var mQuotes = quotes.filter(function(q2){
-      var jr = String(q2.jobRef||'').toLowerCase();
-      var fr = String(q2.ref||q2.quoteRef||'').toLowerCase();
-      return jr.includes(qLow) || fr.includes(qLow);
-    });
-    var mInvoices = invoices.filter(function(inv){
-      return String(inv.jobRef||inv.linkedJobRef||'').toLowerCase().includes(qLow);
-    });
-    renderResults(q, mJobs, mQuotes, mInvoices);
+
+    if (mode === 'ref') {
+      doRefSearch(q, jobs, quotes, invoices);
+    } else {
+      doCompanySearch(q, jobs, quotes, invoices);
+    }
   }).catch(function(err) {
     console.error(err);
     document.getElementById('results-area').innerHTML = '<div class="state-msg"><div class="ico">&#9888;</div><h3>Search failed</h3><p>Please refresh and try again.</p></div>';
   });
 }
 
-function renderResults(query, jobs, quotes, invoices) {
+// ════════════════════════════════════════════
+// REF SEARCH (existing behaviour)
+// ════════════════════════════════════════════
+function doRefSearch(query, jobs, quotes, invoices) {
+  var qLow = query.toLowerCase();
+  var mJobs     = jobs.filter(function(j){ return String(j.ref||'').toLowerCase().includes(qLow); });
+  var mQuotes   = quotes.filter(function(q2){
+    return String(q2.jobRef||'').toLowerCase().includes(qLow) || String(q2.ref||q2.quoteRef||'').toLowerCase().includes(qLow);
+  });
+  var mInvoices = invoices.filter(function(inv){
+    return String(inv.jobRef||inv.linkedJobRef||'').toLowerCase().includes(qLow);
+  });
+  renderRefResults(query, mJobs, mQuotes, mInvoices);
+}
+
+function renderRefResults(query, jobs, quotes, invoices) {
   var area = document.getElementById('results-area');
   var total = jobs.length + quotes.length + invoices.length;
   if (!total) {
     area.innerHTML = '<div class="state-msg"><div class="ico">&#128565;</div><h3>No results for &ldquo;'+esc(query)+'&rdquo;</h3><p>No matching jobs, quotes or invoices found.</p></div>';
     return;
   }
-  // Build groups keyed by job ref number
   var groups = {};
   function grp(k) { if (!groups[k]) groups[k]={jobs:[],quotes:[],invoices:[],company:''}; return groups[k]; }
-  jobs.forEach(function(j) {
-    var k = String(j.ref||'unknown').trim();
-    var g = grp(k); g.jobs.push(j);
-    if (j.company && !g.company) g.company = j.company;
-  });
+  jobs.forEach(function(j) { var k=String(j.ref||'unknown').trim(); var g=grp(k); g.jobs.push(j); if(j.company&&!g.company)g.company=j.company; });
   quotes.forEach(function(q2) {
-    var k = String(q2.jobRef||'').trim();
-    if (!k) { var m=String(q2.ref||q2.quoteRef||'').match(/\b(\d{4,7})\b/); k=m?m[1]:('q_'+q2._id); }
-    var g = grp(k); g.quotes.push(q2);
-    if (q2.company && !g.company) g.company = q2.company;
+    var k=String(q2.jobRef||'').trim();
+    if(!k){var m=String(q2.ref||q2.quoteRef||'').match(/\b(\d{4,7})\b/);k=m?m[1]:('q_'+q2._id);}
+    var g=grp(k); g.quotes.push(q2); if(q2.company&&!g.company)g.company=q2.company;
   });
   invoices.forEach(function(inv) {
-    var k = String(inv.jobRef||inv.linkedJobRef||'').trim() || ('inv_'+inv._id);
-    var g = grp(k); g.invoices.push(inv);
-    if (!g.company) g.company = inv.clientName||inv.company||'';
+    var k=String(inv.jobRef||inv.linkedJobRef||'').trim()||('inv_'+inv._id);
+    var g=grp(k); g.invoices.push(inv); if(!g.company)g.company=inv.clientName||inv.company||'';
   });
-  var keys = Object.keys(groups).sort(function(a,b){
-    var na=parseInt(a), nb=parseInt(b);
-    if (!isNaN(na)&&!isNaN(nb)) return na-nb;
-    if (!isNaN(na)) return -1;
-    if (!isNaN(nb)) return 1;
-    return a.localeCompare(b);
-  });
-  var html = '<div class="results-meta">'+total+' record'+(total!==1?'s':'')+' across '+keys.length+' ref'+(keys.length!==1?'s':'')+' matching <strong>'+esc(query)+'</strong></div>';
+  var keys=Object.keys(groups).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;if(!isNaN(na))return-1;if(!isNaN(nb))return 1;return a.localeCompare(b);});
+  var html='<div class="results-meta">'+total+' record'+(total!==1?'s':'')+' across '+keys.length+' ref'+(keys.length!==1?'s':'')+' matching <strong>'+esc(query)+'</strong> <span class="search-mode-badge mode-ref">by ref</span></div>';
+  html += renderRefGroups(keys, groups);
+  area.innerHTML = html;
+}
+
+function renderRefGroups(keys, groups) {
+  var html = '';
   keys.forEach(function(refKey) {
     var g = groups[refKey];
-    html += '<div class="ref-group"><div class="ref-group-header">'
+    html += buildRefGroupHtml(refKey, g, false);
+  });
+  return html;
+}
+
+function buildRefGroupHtml(refKey, g, nested) {
+  var html = '<div class="ref-group'+(nested?' ref-detail open':'')+'" id="rg-'+esc(refKey)+'">';
+  if (!nested) {
+    html += '<div class="ref-group-header">'
       +'<span class="ref-num">&#128204; Ref #'+esc(refKey)+'</span>'
       +(g.company?'<span class="ref-company">&#127970; '+esc(g.company)+'</span>':'<span class="ref-company"></span>')
       +'<span class="chips">';
-    if (g.jobs.length)     html+='<span class="chip chip-job">&#128736; '+g.jobs.length+' Job'+(g.jobs.length>1?'s':'')+'</span>';
-    if (g.quotes.length)   html+='<span class="chip chip-quote">&#128203; '+g.quotes.length+' Quote'+(g.quotes.length>1?'s':'')+'</span>';
-    if (g.invoices.length) html+='<span class="chip chip-invoice">&#129534; '+g.invoices.length+' Invoice'+(g.invoices.length>1?'s':'')+'</span>';
+    if(g.jobs.length)     html+='<span class="chip chip-job">&#128736; '+g.jobs.length+' Job'+(g.jobs.length>1?'s':'')+'</span>';
+    if(g.quotes.length)   html+='<span class="chip chip-quote">&#128203; '+g.quotes.length+' Quote'+(g.quotes.length>1?'s':'')+'</span>';
+    if(g.invoices.length) html+='<span class="chip chip-invoice">&#129534; '+g.invoices.length+' Invoice'+(g.invoices.length>1?'s':'')+'</span>';
     html += '</span></div>';
-    // Jobs
-    if (g.jobs.length) {
-      html += '<div class="record-section"><div class="section-label">&#128736; Jobs</div>';
-      g.jobs.forEach(function(j) {
-        var val = (j.costs&&j.costs.jobValue)?'&pound;'+parseFloat(j.costs.jobValue).toFixed(2):'&mdash;';
-        var sc  = 's-'+(j.status||'live').toLowerCase().replace(/\s+/g,'');
-        html += '<a class="record-row" href="/Wiggle/job-detail.html?id='+j._id+'&from=search">'
-          +'<div class="rec-icon">&#128736;</div>'
-          +'<div class="rec-main"><div class="rec-title">'+esc(j.siteName||j.company||'Job #'+j.ref)+'</div>'
-          +'<div class="rec-sub">'+esc(j.type||'')+(j.poRef?' &middot; PO: '+esc(j.poRef):'')+' &middot; '+fmtDate(j.bookingDate)+'</div></div>'
-          +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
-          +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span></div></div></a>';
-      });
-      html += '</div>';
-    }
-    // Quotes
-    if (g.quotes.length) {
-      html += '<div class="record-section"><div class="section-label">&#128203; Quotes</div>';
-      g.quotes.forEach(function(q2) {
-        var val  = q2.total?'&pound;'+parseFloat(q2.total).toFixed(2):'&mdash;';
-        var sc   = 's-'+(q2.status||'draft').toLowerCase();
-        var ref  = q2.ref||q2.quoteRef||q2._id;
-        html += '<a class="record-row" href="/Wiggle/crm-quotes.html?view='+q2._id+'">'
-          +'<div class="rec-icon">&#128203;</div>'
-          +'<div class="rec-main"><div class="rec-title">'+esc(q2.serviceAddress||q2.company||ref)+'</div>'
-          +'<div class="rec-sub">'+esc(ref)+(q2.jobType?' &middot; '+esc(q2.jobType):'')+'</div></div>'
-          +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
-          +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(q2.status||'draft')+'</span></div></div></a>';
-      });
-      html += '</div>';
-    }
-    // Invoices
-    if (g.invoices.length) {
-      html += '<div class="record-section"><div class="section-label">&#129534; Invoices</div>';
-      g.invoices.forEach(function(inv) {
-        var val  = inv.total?'&pound;'+parseFloat(inv.total).toFixed(2):'&mdash;';
-        var sc   = 's-'+(inv.status||'draft').toLowerCase();
-        var num  = inv.invoiceNumber||inv.number||inv._id;
-        html += '<a class="record-row" href="/Wiggle/crm-invoices.html?view='+inv._id+'">'
-          +'<div class="rec-icon">&#129534;</div>'
-          +'<div class="rec-main"><div class="rec-title">'+esc(inv.siteName||inv.clientName||num)+'</div>'
-          +'<div class="rec-sub">'+esc(num)+(inv.clientName?' &middot; '+esc(inv.clientName):'')+'</div></div>'
-          +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
-          +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(inv.status||'draft')+'</span></div></div></a>';
-      });
-      html += '</div>';
-    }
-    html += '</div>';
+  }
+  if(g.jobs.length){
+    html+='<div class="record-section"><div class="section-label">&#128736; Jobs</div>';
+    g.jobs.forEach(function(j){
+      var val=(j.costs&&j.costs.jobValue)?'&pound;'+parseFloat(j.costs.jobValue).toFixed(2):'&mdash;';
+      var sc='s-'+(j.status||'live').toLowerCase().replace(/\s+/g,'');
+      html+='<a class="record-row" href="/Wiggle/job-detail.html?id='+j._id+'&from=search">'
+        +'<div class="rec-icon">&#128736;</div>'
+        +'<div class="rec-main"><div class="rec-title">'+esc(j.siteName||j.company||'Job #'+j.ref)+'</div>'
+        +'<div class="rec-sub">'+esc(j.type||'')+(j.poRef?' &middot; PO: '+esc(j.poRef):'')+' &middot; '+fmtDate(j.bookingDate)+'</div></div>'
+        +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
+        +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span></div></div></a>';
+    });
+    html+='</div>';
+  }
+  if(g.quotes.length){
+    html+='<div class="record-section"><div class="section-label">&#128203; Quotes</div>';
+    g.quotes.forEach(function(q2){
+      var val=q2.total?'&pound;'+parseFloat(q2.total).toFixed(2):'&mdash;';
+      var sc='s-'+(q2.status||'draft').toLowerCase();
+      var ref=q2.ref||q2.quoteRef||q2._id;
+      html+='<a class="record-row" href="/Wiggle/crm-quotes.html?view='+q2._id+'">'
+        +'<div class="rec-icon">&#128203;</div>'
+        +'<div class="rec-main"><div class="rec-title">'+esc(q2.serviceAddress||q2.company||ref)+'</div>'
+        +'<div class="rec-sub">'+esc(ref)+(q2.jobType?' &middot; '+esc(q2.jobType):'')+'</div></div>'
+        +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
+        +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(q2.status||'draft')+'</span></div></div></a>';
+    });
+    html+='</div>';
+  }
+  if(g.invoices.length){
+    html+='<div class="record-section"><div class="section-label">&#129534; Invoices</div>';
+    g.invoices.forEach(function(inv){
+      var val=inv.total?'&pound;'+parseFloat(inv.total).toFixed(2):'&mdash;';
+      var sc='s-'+(inv.status||'draft').toLowerCase();
+      var num=inv.invoiceNumber||inv.number||inv._id;
+      html+='<a class="record-row" href="/Wiggle/crm-invoices.html?view='+inv._id+'">'
+        +'<div class="rec-icon">&#129534;</div>'
+        +'<div class="rec-main"><div class="rec-title">'+esc(inv.siteName||inv.clientName||num)+'</div>'
+        +'<div class="rec-sub">'+esc(num)+(inv.clientName?' &middot; '+esc(inv.clientName):'')+'</div></div>'
+        +'<div class="rec-right"><div class="rec-value">'+val+'</div>'
+        +'<div class="rec-date"><span class="sbadge '+sc+'">'+esc(inv.status||'draft')+'</span></div></div></a>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+// ════════════════════════════════════════════
+// COMPANY SEARCH (Option C)
+// ════════════════════════════════════════════
+function doCompanySearch(query, jobs, quotes, invoices) {
+  var qLow = query.toLowerCase();
+
+  // Match records by company name (fuzzy contains)
+  var mJobs     = jobs.filter(function(j){ return String(j.company||'').toLowerCase().includes(qLow); });
+  var mQuotes   = quotes.filter(function(q2){ return String(q2.company||'').toLowerCase().includes(qLow); });
+  var mInvoices = invoices.filter(function(inv){ return String(inv.company||inv.clientName||'').toLowerCase().includes(qLow); });
+
+  var area = document.getElementById('results-area');
+  var total = mJobs.length + mQuotes.length + mInvoices.length;
+
+  if (!total) {
+    area.innerHTML = '<div class="state-msg"><div class="ico">&#128565;</div><h3>No results for &ldquo;'+esc(query)+'&rdquo;</h3><p>No jobs, quotes or invoices found for this company name.</p></div>';
+    return;
+  }
+
+  // Group all records by company name (normalised lowercase)
+  var companyMap = {};
+  function getCompanyKey(name) { return (name||'').toLowerCase().trim(); }
+  function getOrCreateCompany(name) {
+    var key = getCompanyKey(name);
+    if (!companyMap[key]) companyMap[key] = { displayName: name, jobs:[], quotes:[], invoices:[], refGroups:{} };
+    return companyMap[key];
+  }
+
+  mJobs.forEach(function(j) {
+    var c = getOrCreateCompany(j.company||'Unknown');
+    c.jobs.push(j);
+    // Group into ref sub-groups
+    var ref = String(j.ref||'unknown').trim();
+    if (!c.refGroups[ref]) c.refGroups[ref] = {jobs:[],quotes:[],invoices:[],site:j.siteName||j.company,date:j.bookingDate};
+    c.refGroups[ref].jobs.push(j);
+    if (j.siteName) c.refGroups[ref].site = j.siteName;
   });
+  mQuotes.forEach(function(q2) {
+    var c = getOrCreateCompany(q2.company||'Unknown');
+    c.quotes.push(q2);
+    var ref = String(q2.jobRef||'').trim();
+    if (!ref) { var m=String(q2.ref||q2.quoteRef||'').match(/\b(\d{4,7})\b/); ref=m?m[1]:('q_'+q2._id); }
+    if (!c.refGroups[ref]) c.refGroups[ref] = {jobs:[],quotes:[],invoices:[],site:q2.serviceAddress||q2.company,date:''};
+    c.refGroups[ref].quotes.push(q2);
+  });
+  mInvoices.forEach(function(inv) {
+    var compName = inv.company||inv.clientName||'Unknown';
+    var c = getOrCreateCompany(compName);
+    c.invoices.push(inv);
+    var ref = String(inv.jobRef||inv.linkedJobRef||'').trim()||('inv_'+inv._id);
+    if (!c.refGroups[ref]) c.refGroups[ref] = {jobs:[],quotes:[],invoices:[],site:inv.siteName||compName,date:inv.invoiceDate||''};
+    c.refGroups[ref].invoices.push(inv);
+  });
+
+  // Sort companies by name
+  var companyKeys = Object.keys(companyMap).sort();
+  var totalValue = mJobs.reduce(function(acc,j){ return acc+((j.costs&&j.costs.jobValue)||0); },0);
+
+  var html = '<div class="results-meta">'
+    + total + ' record' + (total!==1?'s':'') + ' across '
+    + companyKeys.length + ' company' + (companyKeys.length!==1?'s':'')
+    + ' matching <strong>' + esc(query) + '</strong>'
+    + ' <span class="search-mode-badge mode-company">by company</span></div>';
+
+  companyKeys.forEach(function(ck) {
+    var c = companyMap[ck];
+    var refKeys = Object.keys(c.refGroups).sort(function(a,b){
+      var na=parseInt(a),nb=parseInt(b);
+      if(!isNaN(na)&&!isNaN(nb))return nb-na; // newest first for company view
+      return a.localeCompare(b);
+    });
+    var compValue = c.jobs.reduce(function(acc,j){return acc+((j.costs&&j.costs.jobValue)||0);},0);
+
+    html += '<div class="company-card">';
+
+    // Company header with stats
+    html += '<div class="company-card-header">'
+      + '<span style="font-size:16px;">&#127970;</span>'
+      + '<span class="company-name">'+esc(c.displayName)+'</span>'
+      + '</div>';
+
+    // Stats row
+    html += '<div style="display:flex;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;">';
+    html += '<div class="cstat"><div class="cstat-num">'+c.jobs.length+'</div><div class="cstat-lbl">Jobs</div></div>';
+    html += '<div class="cstat"><div class="cstat-num">'+c.quotes.length+'</div><div class="cstat-lbl">Quotes</div></div>';
+    html += '<div class="cstat"><div class="cstat-num">'+c.invoices.length+'</div><div class="cstat-lbl">Invoices</div></div>';
+    html += '<div class="cstat green"><div class="cstat-num">&pound;'+compValue.toFixed(0)+'</div><div class="cstat-lbl">Job Value</div></div>';
+    html += '</div>';
+
+    // Ref rows — each expandable
+    refKeys.forEach(function(ref) {
+      var rg = c.refGroups[ref];
+      var uid = 'cref_' + esc(ck.replace(/\s/g,'_')) + '_' + esc(ref);
+      html += '<div class="ref-row" onclick="toggleRefDetail(\''+uid+'\')">'
+        + '<span class="ref-row-num">&#128204; #'+esc(ref)+'</span>'
+        + '<div class="ref-row-body">'
+        +   '<div class="ref-row-site">'+esc(rg.site||'—')+'</div>'
+        +   '<div class="ref-row-meta">'+(rg.date?fmtDate(rg.date)+' &middot; ':'')
+        +   (rg.jobs[0]?esc(rg.jobs[0].type||''):'')+'</div>'
+        + '</div>'
+        + '<div class="ref-row-chips">';
+      if(rg.jobs.length)     html+='<span class="chip chip-job">'+rg.jobs.length+' Job'+(rg.jobs.length>1?'s':'')+'</span>';
+      if(rg.quotes.length)   html+='<span class="chip chip-quote">'+rg.quotes.length+' Q</span>';
+      if(rg.invoices.length) html+='<span class="chip chip-invoice">'+rg.invoices.length+' Inv</span>';
+      html += '</div>'
+        + '<span class="ref-row-expand" id="'+uid+'-arrow">&#9660;</span>'
+        + '</div>';
+
+      // Expandable detail section — uses same buildRefGroupHtml rendering
+      html += '<div class="ref-detail" id="'+uid+'">'
+        + buildRefGroupHtml(ref, rg, true)
+        + '</div>';
+    });
+
+    html += '</div>'; // end company-card
+  });
+
   area.innerHTML = html;
 }
+
+function toggleRefDetail(uid) {
+  var el     = document.getElementById(uid);
+  var arrow  = document.getElementById(uid + '-arrow');
+  if (!el) return;
+  var isOpen = el.classList.contains('open');
+  el.classList.toggle('open', !isOpen);
+  if (arrow) arrow.innerHTML = isOpen ? '&#9660;' : '&#9650;';
+}
+
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(iso){ if(!iso)return''; try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){return iso;} }
 function showToast(msg,type){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(t._t); t._t=setTimeout(function(){t.className='toast';},3000); }
