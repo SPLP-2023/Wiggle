@@ -543,8 +543,8 @@ function renderCalendar() {
 // CELL CLICK — empty space → new job, pill → existing job
 // ════════════════════════════════════════════
 function handleCellClick(event, dateStr, jobCount, singleJobId) {
-  // If click was directly on a pill, let the pill's own handler deal with it
-  if (event.target.closest('.cal-job-pill') || event.target.closest('.cal-more-btn')) return;
+  // If click was on a pill, more button or the + add button, let those handle it
+  if (event.target.closest('.cal-job-pill') || event.target.closest('.cal-more-btn') || event.target.closest('.cal-add-btn')) return;
 
   if (jobCount === 0) {
     // Empty cell — go straight to new job with date pre-filled
