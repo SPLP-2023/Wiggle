@@ -128,6 +128,7 @@ var currentUser, siteName, companyName, fromPage;
 document.addEventListener('DOMContentLoaded', function() {
   currentUser = requireAuth();
   if (!currentUser) return;
+  if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
 
@@ -273,7 +274,7 @@ function renderVisits(jobs, quotes, invoices) {
       + invInd
       + '<span class="visit-value">'+val+'</span>'
       + '<span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span>'
-      + '<a class="btn btn-secondary btn-sm" href="/Wiggle/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &#8594;</a>'
+      + '<a class="btn btn-secondary btn-sm" href="/Wiggle/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &amp; Docs &#8594;</a>'
       + '</div>';
 
     // Linked quotes and invoices
