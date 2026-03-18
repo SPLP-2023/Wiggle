@@ -187,7 +187,7 @@
       <div class="totals-box">
         <div class="tot-row"><span>Subtotal</span><span id="t-sub">&#163;0.00</span></div>
         <div class="tot-row" id="t-cis-row" style="display:none;color:#ef4444;"><span>CIS Deduction (20%)</span><span id="t-cis">&#8722;&#163;0.00</span></div>
-        <div class="tot-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
+        <div class="tot-row" id="t-vat-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
         <div class="tot-row grand"><span>Total Due</span><span id="t-total">&#163;0.00</span></div>
       </div>
       <div class="sec-div" style="margin-top:20px;">Notes</div>
@@ -530,8 +530,10 @@ function addLine(){lineItems.push({description:'',type:'Labour',qty:1,unitPrice:
         +'<option value="20"'+(li.vatRate==20?' selected':'')+'>20%</option>'
         +'<option value="0"'+(li.vatRate==0?' selected':'')+'>0%</option>'
         +'<option value="5"'+(li.vatRate==5?' selected':'')+'>5%</option>'
-        +'</select></td>'
-        +'<td style="text-align:right;font-weight:600;padding-right:6px;">'+fmtMoney(net+vat)+'</td>'
+        +'</select>'
+        +'<div id="li-drc-'+i+'" style="display:none;font-size:11px;color:#94a3b8;text-align:center;margin-top:2px;">DRC</div>'
+        +'</td>'
+        +'<td style="text-align:right;font-weight:600;padding-right:6px;" id="li-amt-'+i+'">'+fmtMoney(net+vat)+'</td>'
         +'<td style="text-align:center;"><button class="btn btn-danger btn-xs" onclick="removeLI('+i+')">&#10005;</button></td>'
         +'</tr>';
     }).join('');
@@ -546,20 +548,28 @@ function removeLI(i){lineItems.splice(i,1);renderLines();recalc();}
 
 function recalc(){
   var sub=0,vat=0,labourNet=0;
-  lineItems.forEach(function(li){
-    var net=(parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0);
-    sub+=net;vat+=net*((parseFloat(li.vatRate)||0)/100);
-    if(!li.type||li.type==='Labour') labourNet+=net;
-  });
   var cis=document.getElementById('cis-toggle').checked;
+  lineItems.forEach(function(li,i){
+    var net=(parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0);
+    var liVat=net*((parseFloat(li.vatRate)||0)/100);
+    sub+=net;
+    vat+=liVat;
+    if(!li.type||li.type==='Labour') labourNet+=net;
+    // Update per-line VAT display and Amount Due
+    var drcEl=document.getElementById('li-drc-'+i);
+    var amtEl=document.getElementById('li-amt-'+i);
+    if(drcEl) drcEl.style.display=cis?'block':'none';
+    if(amtEl) amtEl.textContent=cis?fmtMoney(net):fmtMoney(net+liVat);
+  });
   var cisAmt=cis?labourNet*0.20:0;
-  var cisRow=document.getElementById('t-cis-row');
-  cisRow.style.display=cis?'flex':'none';
+  var total=cis?(sub-cisAmt):(sub+vat);
+  document.getElementById('t-cis-row').style.display=cis?'flex':'none';
+  document.getElementById('t-vat-row').style.display=cis?'none':'flex';
   document.getElementById('t-sub').textContent=fmtMoney(sub);
   document.getElementById('t-cis').textContent='\u2212'+fmtMoney(cisAmt);
   document.getElementById('t-vat').textContent=fmtMoney(vat);
-  document.getElementById('t-total').textContent=fmtMoney(sub-cisAmt+vat);
-  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:sub-cisAmt+vat};
+  document.getElementById('t-total').textContent=fmtMoney(total);
+  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:total};
 }
 
 function saveInvoice(){
@@ -761,8 +771,8 @@ function buildPDF(pdf,d,logo,footerImg){
     pdf.text(dl[0]||'',lm+2,ty);
     pdf.text(String(li.qty||1),108,ty,{align:'right'});
     pdf.text(fmtMoney(li.unitPrice||0),138,ty,{align:'right'});
-    pdf.text((li.vatRate||0)+'%',156,ty,{align:'right'});
-    pdf.text(fmtMoney(net+vat),rm,ty,{align:'right'});
+    pdf.text(d.cis?'DRC':(li.vatRate||0)+'%',156,ty,{align:'right'});
+    pdf.text(d.cis?fmtMoney(net):fmtMoney(net+vat),rm,ty,{align:'right'});
     ty+=8;
     if(ty>210){addFtr(pdf,footerImg);pdf.addPage();ty=20;}
   });
@@ -786,9 +796,9 @@ function buildPDF(pdf,d,logo,footerImg){
     pdf.text('CIS Deduction (20% Labour):',148,ty,{align:'right'});pdf.text('-'+fmtMoney(cisDeduction),rm,ty,{align:'right'});ty+=7;
     pdf.setTextColor(0,0,0);
   }
-  pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;
+  if(!d.cis){pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;}
   pdf.setFontSize(11);pdf.setFont(undefined,'bold');
-  var pdfTotal=d.subtotal-cisDeduction+d.vat;
+  var pdfTotal=d.cis?(d.subtotal-cisDeduction):(d.subtotal-cisDeduction+d.vat);
   pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(pdfTotal),rm,ty,{align:'right'});
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty+2,rm,ty+2);
   pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);
