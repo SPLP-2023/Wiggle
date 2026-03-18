@@ -107,18 +107,19 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="goBack()">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">🏠 Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html'">📅 Calendar</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">👥 Customers</button>
-    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">📄 Quotes</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html'">🧾 Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html'">⚙️ Settings</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=quotes'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=quotes'">&#128197; Calendar</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=quotes'">&#128101; Customers</button>
+    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=quotes'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=quotes'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=quotes'">&#9881;&#65039; Settings</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -299,13 +300,14 @@ var FOOTER = 'Strike Point Lightning Protection Ltd Registered office: Atkinson 
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
   const cid    = params.get('cid');
-  if (from === 'customer' && cid) {
-    window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
-  } else if (from === 'customers') {
-    window.location.href = '/Wiggle/customers.html';
-  } else {
-    window.location.href = '/Wiggle/customers.html';
-  }
+  if (from === 'customer' && cid)  window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
+  else if (from === 'customers')   window.location.href = '/Wiggle/customers.html';
+  else if (from === 'calendar')    window.location.href = '/Wiggle/calendar.html';
+  else if (from === 'invoices')    window.location.href = '/Wiggle/crm-invoices.html';
+  else if (from === 'settings')    window.location.href = '/Wiggle/settings.html';
+  else if (from === 'search')      window.location.href = '/Wiggle/job-search.html';
+  else if (from === 'dashboard')   window.location.href = '/Wiggle/index.html';
+  else                             window.location.href = '/Wiggle/index.html';
 }
 
 function updateBackButton() {
@@ -314,8 +316,13 @@ function updateBackButton() {
   const btn    = document.getElementById('btn-back');
   if (!btn || !from) return;
   btn.style.display = 'inline-flex';
-  if (from === 'customer')       btn.textContent = '← Back to Customer';
-  else if (from === 'customers') btn.textContent = '← Customers';
+  const labels = {
+    customer: '← Back to Customer', customers: '← Customers',
+    calendar: '← Calendar', invoices: '← Invoices',
+    settings: '← Settings', search: '← Search',
+    dashboard: '← Dashboard'
+  };
+  if (labels[from]) btn.textContent = labels[from];
 }
 
 // ---- INIT ----
