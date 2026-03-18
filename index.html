@@ -274,6 +274,13 @@
     .jobs-grid { grid-template-columns: 1fr; }
     .dashboard-header { flex-direction: column; align-items: flex-start; gap: 12px; }
   }
+  /* ── DASHBOARD JOB REF SEARCH ── */
+  .dash-search-bar { display:flex; align-items:center; gap:10px; background:var(--dark2); border:1px solid var(--border); border-radius:10px; padding:10px 16px; margin-bottom:18px; }
+  .dash-search-bar label { font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap; flex-shrink:0; }
+  .dash-search-bar input { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-size:14px; font-family:inherit; min-width:0; }
+  .dash-search-bar input::placeholder { color:var(--text-muted); }
+  .dash-search-go { background:var(--primary); color:#000; border:none; border-radius:6px; padding:5px 14px; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0; transition:opacity .15s; }
+  .dash-search-go:hover { opacity:.85; }
 </style>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -363,6 +370,13 @@
           <button class="btn btn-secondary btn-sm" id="btn-calendar-view" onclick="showCalendar()">📅 Calendar</button>
           <button class="btn btn-primary btn-sm" id="btn-new-job" style="display:none;" onclick="showNewJobModal()">＋ New Job</button>
         </div>
+      </div>
+
+      <!-- Job Ref Search Bar (manager only) -->
+      <div class="dash-search-bar" id="dash-jobref-search" style="display:none;">
+        <label>&#128269; Job Ref</label>
+        <input type="text" id="dash-jobref-input" placeholder="Search by ref across jobs, quotes &amp; invoices..." autocomplete="off" spellcheck="false">
+        <button class="dash-search-go" onclick="dashJobRefSearch()">Search</button>
       </div>
 
       <!-- Filter tabs -->
@@ -510,6 +524,7 @@ function initApp() {
     document.getElementById('tab-notconfirmed').style.display = 'inline-flex';
     document.getElementById('dash-title').textContent = 'All Jobs';
     document.getElementById('dash-subtitle').textContent = 'Manage and track all field jobs';
+    document.getElementById('dash-jobref-search').style.display = 'flex';
   } else {
     document.getElementById('tab-pending').style.display = 'none';
     document.getElementById('dash-subtitle').textContent = 'Your assigned jobs';
@@ -528,6 +543,7 @@ function buildNav() {
     ...(isManager ? [{ label: '👥 Customers', page: 'crm' }] : []),
     ...(isManager ? [{ label: '📄 Quotes', page: 'quotes' }] : []),
     ...(isManager ? [{ label: '🧾 Invoices', page: 'invoices' }] : []),
+    ...(isManager ? [{ label: '🔍 Search', page: 'search' }] : []),
   ];
   const html = links.map(l =>
     l.page === 'settings'
@@ -540,10 +556,17 @@ function buildNav() {
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-quotes.html'">${l.label}</button>`
     : l.page === 'invoices'
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-invoices.html'">${l.label}</button>`
+    : l.page === 'search'
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/job-search.html'">${l.label}</button>`
     : `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
   ).join('') + `<button class="nav-link" onclick="doLogout()">🚪 Logout</button>`;
   document.getElementById('nav-links').innerHTML = html;
   document.getElementById('mobile-menu').innerHTML = html;
+}
+
+function dashJobRefSearch() {
+  var val = document.getElementById('dash-jobref-input').value.trim();
+  window.location.href = '/Wiggle/job-search.html' + (val ? '?ref=' + encodeURIComponent(val) : '');
 }
 
 // ══════════════════════════════════════════════
