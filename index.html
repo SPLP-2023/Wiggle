@@ -281,6 +281,19 @@
   .dash-search-bar input::placeholder { color:var(--text-muted); }
   .dash-search-go { background:var(--primary); color:#000; border:none; border-radius:6px; padding:5px 14px; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0; transition:opacity .15s; }
   .dash-search-go:hover { opacity:.85; }
+  /* ── INVOICE STATUS BADGE ── */
+  .inv-badge {
+    font-size:11px; font-weight:700; padding:2px 7px; border-radius:20px;
+    border:1px solid; flex-shrink:0; white-space:nowrap;
+  }
+  .inv-badge.invoiced     { color:#22c55e; border-color:#22c55e44; background:#22c55e12; }
+  .inv-badge.not-invoiced { color:#ef4444; border-color:#ef444444; background:#ef444412; }
+  .inv-badge-dot {
+    width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    display:inline-block;
+  }
+  .inv-badge-dot.invoiced     { background:#22c55e; box-shadow:0 0 4px #22c55e; }
+  .inv-badge-dot.not-invoiced { background:#ef4444; box-shadow:0 0 4px #ef4444; }
 </style>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -493,6 +506,7 @@
 let currentFilter = 'live';
 let currentView = 'list'; // or 'grid'
 let currentPeriod = 'week';
+let invoicedRefs = new Set(); // job refs that have at least one linked invoice
 
 // ══════════════════════════════════════════════
 // AUTH
@@ -525,6 +539,7 @@ function initApp() {
     document.getElementById('dash-title').textContent = 'All Jobs';
     document.getElementById('dash-subtitle').textContent = 'Manage and track all field jobs';
     document.getElementById('dash-jobref-search').style.display = 'flex';
+    loadInvoicedRefs();
   } else {
     document.getElementById('tab-pending').style.display = 'none';
     document.getElementById('dash-subtitle').textContent = 'Your assigned jobs';
@@ -567,6 +582,19 @@ function buildNav() {
 function dashJobRefSearch() {
   var val = document.getElementById('dash-jobref-input').value.trim();
   window.location.href = '/Wiggle/job-search.html' + (val ? '?ref=' + encodeURIComponent(val) : '');
+}
+
+function loadInvoicedRefs() {
+  _db.collection('crm_invoices').get().then(function(snap) {
+    invoicedRefs = new Set();
+    snap.docs.forEach(function(d) {
+      var ref = d.data().linkedJobRef || d.data().jobRef || '';
+      if (ref) invoicedRefs.add(String(ref).trim());
+    });
+    renderJobs(); // re-render now we have invoice data
+  }).catch(function(err) {
+    console.error('Invoice refs load error', err);
+  });
 }
 
 // ══════════════════════════════════════════════
@@ -720,6 +748,13 @@ function renderJobs() {
       if (currentView === 'list') {
         // ── Compact list row (like customers page) ──
         const refColour = getRefColour(job.engineers);
+        const isInvoiced = invoicedRefs.has(String(job.ref).trim());
+        const invBadgeDesktop = currentUser.role === 'manager' && currentFilter === 'complete'
+          ? `<span class="inv-badge ${isInvoiced ? 'invoiced' : 'not-invoiced'} desktop-only">${isInvoiced ? '✓ Invoiced' : '! Invoice Needed'}</span>`
+          : '';
+        const invBadgeMobile = currentUser.role === 'manager' && currentFilter === 'complete'
+          ? `<span class="inv-badge-dot ${isInvoiced ? 'invoiced' : 'not-invoiced'}" title="${isInvoiced ? 'Invoiced' : 'Invoice Needed'}" style="display:inline-block;"></span>`
+          : '';
         html += `<div class="job-list-row ${over ? 'overdue' : ''}" onclick="openJob('${job.id}')" style="grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--dark2);border:1px solid var(--dark3);border-radius:8px;cursor:pointer;transition:border-color 0.15s;">
           <div class="status-dot ${si.dot}" style="flex-shrink:0;"></div>
           <div style="flex:0 0 auto;font-size:13px;font-weight:700;color:${refColour};">#${job.ref}</div>
@@ -733,6 +768,8 @@ function renderJobs() {
             ${engNames.length ? engNames.map(n => `<span class="engineer-chip" style="font-size:11px;padding:2px 7px;">👷 ${n}</span>`).join('') : '<span class="engineer-chip" style="font-size:11px;padding:2px 7px;">Unassigned</span>'}
           </div>
           <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">
+            ${invBadgeDesktop}
+            ${invBadgeMobile}
             <span class="status-label desktop-only" style="font-size:12px;">${si.label}</span>
             ${over ? '<span class="badge-overdue" style="font-size:11px;">⚠ Overdue</span>' : ''}
             ${job.isNew && currentUser.role==='engineer' ? '<span class="badge-new">New</span>' : ''}
@@ -740,6 +777,10 @@ function renderJobs() {
         </div>`;
       } else {
         // ── Card view (grid) ──
+        const isInvoiced = invoicedRefs.has(String(job.ref).trim());
+        const invBadgeCard = currentUser.role === 'manager' && currentFilter === 'complete'
+          ? `<span class="inv-badge ${isInvoiced ? 'invoiced' : 'not-invoiced'}" style="margin-left:auto;">${isInvoiced ? '✓ Invoiced' : '! Invoice Needed'}</span>`
+          : '';
         const snippet = job.description ? job.description.substring(0, 80) + (job.description.length > 80 ? '…' : '') : 'No description.';
         html += `<div class="job-card ${over ? 'overdue' : ''}" onclick="openJob('${job.id}')">
           <div class="job-card-header">
@@ -751,6 +792,7 @@ function renderJobs() {
             <span class="status-label">${si.label}</span>
             ${job.isNew && currentUser.role==='engineer' ? '<span class="badge-new">New</span>' : ''}
             ${over ? '<span class="badge-overdue">⚠ Overdue</span>' : ''}
+            ${invBadgeCard}
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
             <div class="job-company">${job.siteName || job.company || '—'}</div>
