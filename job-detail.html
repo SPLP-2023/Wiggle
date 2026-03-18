@@ -276,8 +276,8 @@
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">← Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=job'">← Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=job'">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">—</span>
@@ -903,10 +903,13 @@ function updateBackButton() {
     const btn    = document.getElementById('btn-back');
     if (!btn || !from) return;
     btn.style.display = 'inline-flex';
-    if (from === 'customer')       btn.textContent = '← Back to Customer';
-    else if (from === 'calendar')  btn.textContent = '← Calendar';
-    else if (from === 'search')    btn.textContent = '← Search';
-    else if (from === 'customers') btn.textContent = '← Customers';
+    const labels = {
+      customer: '← Back to Customer', calendar: '← Calendar',
+      search: '← Search', customers: '← Customers',
+      dashboard: '← Dashboard', job: '← Back'
+    };
+    if (labels[from]) btn.textContent = labels[from];
+    else btn.textContent = '← Back';
 }
 
 function loadCompanyList() {
@@ -988,7 +991,7 @@ function renderLinkedSidebar(quotes, invoices) {
       var val = q.total ? '&pound;' + parseFloat(q.total).toFixed(2) : '&mdash;';
       var sc  = 'ls-' + (q.status||'draft').toLowerCase();
       var ref = q.ref || q.quoteRef || q._id;
-      html += '<a class="linked-item" href="/Wiggle/crm-quotes.html?view=' + q._id + '">'
+      html += '<a class="linked-item" href="/Wiggle/crm-quotes.html?view=' + q._id + '&from=job">'
         + '<div class="linked-item-icon">&#128203;</div>'
         + '<div class="linked-item-body">'
         +   '<div class="linked-item-title">' + escHtml(q.serviceAddress||q.company||ref) + '</div>'
@@ -1006,7 +1009,7 @@ function renderLinkedSidebar(quotes, invoices) {
       var val = inv.total||inv.totalDue ? '&pound;' + parseFloat(inv.total||inv.totalDue||0).toFixed(2) : '&mdash;';
       var sc  = 'ls-' + (inv.status||'draft').toLowerCase();
       var num = inv.invoiceNumber||inv.number||inv.ref||inv._id;
-      html += '<a class="linked-item" href="/Wiggle/crm-invoices.html?view=' + inv._id + '">'
+      html += '<a class="linked-item" href="/Wiggle/crm-invoices.html?view=' + inv._id + '&from=job">'
         + '<div class="linked-item-icon">&#129534;</div>'
         + '<div class="linked-item-body">'
         +   '<div class="linked-item-title">' + escHtml(inv.siteName||inv.clientName||num) + '</div>'
