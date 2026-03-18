@@ -547,17 +547,17 @@ function buildNav() {
   ];
   const html = links.map(l =>
     l.page === 'settings'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/settings.html'">${l.label}</button>`
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/settings.html?from=dashboard'">${l.label}</button>`
     : l.page === 'calendar'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/calendar.html'">${l.label}</button>`
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/calendar.html?from=dashboard'">${l.label}</button>`
     : l.page === 'crm'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/customers.html'">${l.label}</button>`
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/customers.html?from=dashboard'">${l.label}</button>`
     : l.page === 'quotes'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-quotes.html'">${l.label}</button>`
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-quotes.html?from=dashboard'">${l.label}</button>`
     : l.page === 'invoices'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-invoices.html'">${l.label}</button>`
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-invoices.html?from=dashboard'">${l.label}</button>`
     : l.page === 'search'
-    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/job-search.html'">${l.label}</button>`
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/job-search.html?from=dashboard'">${l.label}</button>`
     : `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
   ).join('') + `<button class="nav-link" onclick="doLogout()">🚪 Logout</button>`;
   document.getElementById('nav-links').innerHTML = html;
@@ -580,7 +580,7 @@ function showPage(name, btn) {
   document.getElementById('mobile-menu').classList.remove('open');
 }
 
-function showCalendar() { window.location.href = '/Wiggle/calendar.html'; }
+function showCalendar() { window.location.href = '/Wiggle/calendar.html?from=dashboard'; }
 
 function toggleMobileMenu() {
   document.getElementById('mobile-menu').classList.toggle('open');
@@ -867,13 +867,13 @@ function openJob(id) {
   if (job.isNew && currentUser.role === 'engineer' && job.engineers?.includes(currentUser.id)) {
     job.isNew = false; saveData();
   }
-  window.location.href = '/Wiggle/job-detail.html?id=' + id;
+  window.location.href = '/Wiggle/job-detail.html?id=' + id + '&from=dashboard';
 }
 
 // ══════════════════════════════════════════════
 // NEW JOB (stub)
 // ══════════════════════════════════════════════
-function showNewJobModal() { window.location.href = '/Wiggle/new-job.html'; }
+function showNewJobModal() { window.location.href = '/Wiggle/new-job.html?from=dashboard'; }
 
 let sampleCount = 0;
 function addSampleJob() {
