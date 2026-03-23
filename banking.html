@@ -370,6 +370,7 @@ let currentAccount = 'main';
 let allTransactions = {}; // keyed by account: { main:[], vat:[], savings:[], corp:[] }
 let pendingDeleteId = null;
 let pendingImportData = null;
+let vatRules = []; // loaded from Firestore
 
 const ACCOUNTS = {
   main:    { label: 'Main Bank',   hasVAT: true  },
@@ -396,13 +397,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentUser.role === 'accountant') document.getElementById('accountant-nav').style.display = 'flex';
     // Set today's date in add form
     document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
-    loadTransactions();
+    loadVatRules().then(() => loadTransactions());
   }).catch(err => {
     hideLoader();
     console.error('Firebase error', err);
     showToast('Connection error — please refresh.', 'error');
   });
 });
+
+  // ── LOAD VAT RULES ────────────────────────────
+function loadVatRules() {
+  return _db.collection('vat_rules').get().then(snap => {
+    vatRules = snap.docs.map(doc => doc.data());
+    console.log('Loaded ' + vatRules.length + ' VAT rules');
+  }).catch(err => {
+    console.error('Error loading VAT rules:', err);
+  });
+}
+
+// Match a transaction description against VAT rules
+function matchVatRule(description) {
+  if (!description || !vatRules.length) return null;
+  const descUpper = description.toUpperCase().trim();
+  // Try to match against each rule keyword
+  let bestMatch = null;
+  let bestLength = 0;
+  vatRules.forEach(rule => {
+    if (rule.keyword && descUpper.startsWith(rule.keyword.trim())) {
+      if (rule.keyword.length > bestLength) {
+        bestLength = rule.keyword.length;
+        bestMatch = rule;
+      }
+    }
+  });
+  return bestMatch;
+}
 
 // ── FIRESTORE LOAD ────────────────────────────
 function loadTransactions() {
@@ -633,10 +662,22 @@ function detectAccount(filename) {
   return 'main';
 }
 
-function calcVAT(amount, category, direction, toField) {
+function calcVAT(amount, category, direction, toField, description) {
   if (!amount) return '';
+
+  // First check VAT rules from Firestore
+  if (description && vatRules.length) {
+    const rule = matchVatRule(description);
+    if (rule) {
+      if (direction === 'in'  && rule.vatIn)  return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
+      if (direction === 'out' && rule.vatOut) return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
+      if (direction === 'in'  && !rule.vatIn)  return '';
+      if (direction === 'out' && !rule.vatOut) return '';
+    }
+  }
+
+  // Fallback to category-based rules
   if (NO_VAT_CATEGORIES.includes(category)) return '';
-  // Exclude VAT on payments to these recipients
   const NO_VAT_RECIPIENTS = ['LUKE STOREY','LEWIS KIRK','JOSH BARBOUR','TAX ACCOUNT','SAVINGS','TFL CONGESTN CHRGE'];
   if (direction === 'out' && toField && NO_VAT_RECIPIENTS.includes((toField).toUpperCase().trim())) return '';
   if (direction === 'in'  && VAT_IN_CATEGORIES.includes(category)) return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
@@ -683,8 +724,8 @@ document.getElementById('csv-file-input').addEventListener('change', function() 
         paidOut,
         category:    cat,
         receipt:     '',
-        vatIn:       calcVAT(paidIn,  cat, 'in',  r[col('From')]),
-        vatOut:      calcVAT(paidOut, cat, 'out', r[col('To')]),
+        vatIn:       calcVAT(paidIn,  cat, 'in',  r[col('From')], r[col('Transaction description')]),
+        vatOut:      calcVAT(paidOut, cat, 'out', r[col('To')],   r[col('Transaction description')]),
       };
     }).filter(t => t.date);
     pendingImportData = txs;
