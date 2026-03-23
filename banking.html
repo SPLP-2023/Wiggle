@@ -17,6 +17,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     :root {
       --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
@@ -131,7 +132,7 @@
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="currentUser && currentUser.role === 'accountant' ? void(0) : window.location.href='/Wiggle/index.html'" style="cursor:default;">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
@@ -140,6 +141,7 @@
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">—</span>
     </div>
+    <button class="btn btn-secondary btn-sm" onclick="doLogout()">🚪 Logout</button>
   </div>
 </nav>
 
@@ -151,6 +153,8 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn btn-secondary" onclick="openImportModal()">⬆ Import CSV</button>
+      <button class="btn btn-secondary" onclick="exportCurrentAccount()">⬇ Export Tab</button>
+      <button class="btn btn-secondary" onclick="exportAllAccounts()">⬇ Export All</button>
       <button class="btn btn-primary" onclick="openAddModal()">+ Add Transaction</button>
     </div>
   </div>
@@ -764,6 +768,67 @@ function formatDateShort(d) {
   tx[field] = newValue;
   renderTable();
   renderVAT();
+}
+
+  function doLogout() {
+  clearSession().then(() => {
+    window.location.href = '/Wiggle/login.html';
+  }).catch(() => {
+    window.location.href = '/Wiggle/login.html';
+  });
+}
+
+  function exportCurrentAccount() {
+  const txs = allTransactions[currentAccount] || [];
+  if (!txs.length) { showToast('No transactions to export.', 'error'); return; }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, buildBankSheet(txs, currentAccount), ACCOUNTS[currentAccount].label);
+  const date = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'StrikePoint_' + ACCOUNTS[currentAccount].label + '_' + date + '.xlsx');
+  showToast('Export downloaded ✓', 'success');
+}
+
+function exportAllAccounts() {
+  const wb = XLSX.utils.book_new();
+  let hasData = false;
+  Object.keys(ACCOUNTS).forEach(acc => {
+    const txs = allTransactions[acc] || [];
+    if (txs.length) {
+      XLSX.utils.book_append_sheet(wb, buildBankSheet(txs, acc), ACCOUNTS[acc].label);
+      hasData = true;
+    }
+  });
+  if (!hasData) { showToast('No transactions to export.', 'error'); return; }
+  const date = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'StrikePoint_Banking_' + date + '.xlsx');
+  showToast('Export downloaded ✓', 'success');
+}
+
+function buildBankSheet(txs, acc) {
+  const isMain = acc === 'main';
+  const rows = txs.map(t => {
+    const base = {
+      'Date':        t.date || '—',
+      'Reference':   t.reference || '—',
+      'From':        t.from || '—',
+      'To':          t.to || '—',
+      'Paid In':     t.paidIn  ? parseFloat(t.paidIn)  : '',
+      'Paid Out':    t.paidOut ? parseFloat(t.paidOut) : '',
+      'Category':    t.category || '—',
+    };
+    if (isMain) {
+      base['Description'] = t.description || '—';
+      base['Receipt']     = t.receipt || '—';
+      base['VAT In']      = t.vatIn  ? parseFloat(t.vatIn)  : '';
+      base['VAT Out']     = t.vatOut ? parseFloat(t.vatOut) : '';
+    }
+    return base;
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = isMain
+    ? [{wch:12},{wch:16},{wch:22},{wch:22},{wch:10},{wch:10},{wch:20},{wch:30},{wch:12},{wch:10},{wch:10}]
+    : [{wch:12},{wch:16},{wch:22},{wch:22},{wch:10},{wch:10},{wch:20}];
+  return ws;
 }
 
 function closeModal(id) {
