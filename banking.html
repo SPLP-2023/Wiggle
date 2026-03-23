@@ -206,6 +206,7 @@
       <option>Other</option>
     </select>
     <select class="filter-select" id="filter-year" onchange="changeYear()">
+      <option value="">All Years</option>
       <option value="2024">2024</option>
       <option value="2025">2025</option>
       <option value="2026" selected>2026</option>
@@ -409,11 +410,12 @@ function loadTransactions() {
   const startDate = year + '-01-01';
   const endDate   = year + '-12-31';
   showLoader();
-  _db.collection('banking')
-    .where('account', '==', currentAccount)
-    .where('date', '>=', startDate)
-    .where('date', '<=', endDate)
-    .orderBy('date', 'desc')
+  let query = _db.collection('banking')
+    .where('account', '==', currentAccount);
+  if (year) {
+    query = query.where('date', '>=', startDate).where('date', '<=', endDate);
+  }
+  query.orderBy('date', 'desc')
     .get().then(snap => {
       allTransactions[currentAccount] = snap.docs.map(doc => ({ ...doc.data(), _id: doc.id }));
       hideLoader();
