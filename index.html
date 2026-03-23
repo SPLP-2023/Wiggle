@@ -490,14 +490,29 @@
     currentUser = session;
     showLoader();
     setLoaderMsg('Loading jobs…');
-    initFirebase().then(() => {
-      hideLoader();
-      document.getElementById('app').style.display = 'flex';
-      initApp();
-    }).catch(err => {
-      hideLoader();
-      console.error('Firebase error', err);
-      showToast('Connection error — please refresh.', 'error');
+
+    // Initialise Firebase first
+    if (!firebase.apps.length) {
+      firebase.initializeApp(_firebaseConfig);
+    }
+    _db = firebase.firestore();
+
+    // Wait for Firebase Auth to confirm session before loading data
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        clearSession();
+        window.location.href = '/Wiggle/login.html';
+        return;
+      }
+      initFirebase().then(() => {
+        hideLoader();
+        document.getElementById('app').style.display = 'flex';
+        initApp();
+      }).catch(err => {
+        hideLoader();
+        console.error('Firebase error', err);
+        showToast('Connection error — please refresh.', 'error');
+      });
     });
   });
 // ══════════════════════════════════════════════
