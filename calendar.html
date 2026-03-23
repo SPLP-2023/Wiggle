@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!currentUser) return;
   showLoader();
   setLoaderMsg('Loading calendar\u2026');
-  initFirebase().then(() => {
+  initFirebaseWithAuth().then(
     hideLoader();
     document.getElementById('user-avatar').textContent       = currentUser.name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = currentUser.name;
