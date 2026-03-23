@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
   updateBackButton();
   document.title = siteName + ' \u2014 Site History';
 
-  initFirebase().then(function() { loadSiteHistory(); })
+  initFirebaseWithAuth().then(function() { loadSiteHistory(); })
     .catch(function(err) { console.error(err); showToast('Connection error - please refresh.', 'error'); });
 });
 
