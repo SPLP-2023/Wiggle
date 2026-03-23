@@ -103,13 +103,19 @@
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=invoices'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=invoices'">&#128197; Calendar</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=invoices'">&#128101; Customers</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=invoices'">&#128176; Quotes</button>
-    <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#129534; Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=invoices'">&#9881;&#65039; Settings</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=invoices'">&#128269; Search</button>
+    <div id="manager-nav-links" style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=invoices'">&#127968; Dashboard</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=invoices'">&#128197; Calendar</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=invoices'">&#128101; Customers</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=invoices'">&#128176; Quotes</button>
+      <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#129534; Invoices</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=invoices'">&#9881;&#65039; Settings</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=invoices'">&#128269; Search</button>
+    </div>
+    <div id="accountant-nav-links" style="display:none;gap:10px;">
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/banking.html?from=invoices'">&#128178; Banking</button>
+      <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#129534; Invoices</button>
+    </div>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -122,7 +128,7 @@
       <div class="page-title">&#129534; <span>Invoices</span></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-secondary" onclick="exportToCSV()">&#11123; Export CSV</button>
-        <button class="btn btn-primary" onclick="openNewInvoice(null)">&#43; New Invoice</button>
+        <button class="btn btn-primary" id="btn-new-invoice" onclick="openNewInvoice(null)">&#43; New Invoice</button>
       </div>
     </div>
     <div class="filter-bar">
@@ -399,6 +405,11 @@ document.addEventListener('DOMContentLoaded',function(){
   if(currentUser.role!=='manager' && currentUser.role!=='accountant'){window.location.href='/Wiggle/index.html';return;}
   document.getElementById('user-avatar').textContent=currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent=currentUser.name;
+  if(currentUser.role==='accountant'){
+    document.getElementById('btn-new-invoice').style.display='none';
+    document.getElementById('manager-nav-links').style.display='none';
+    document.getElementById('accountant-nav-links').style.display='flex';
+  }
   var params=new URLSearchParams(window.location.search);
   var iid=params.get('id');
   currentCustomerId=params.get('customer');
