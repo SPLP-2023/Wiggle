@@ -42,8 +42,8 @@ const _firebaseConfig = {
 const AUTH_USERS = [
   { email: 'operations@strikepoint.uk',  name: 'Luke Storey',  role: 'manager',  colour: null       },
   { email: 'luke.storey@strikepoint.uk', name: 'Luke Storey',  role: 'engineer', colour: '#3b82f6'  },
-  { email: 'josh.barbour@strikepoint.uk',name: 'Josh Barbour', role: 'engineer', colour: '#a855f7'  },
   { email: 'lewis.kirk@strikepoint.uk',  name: 'Lewis Kirk',   role: 'engineer', colour: '#22c55e'  },
+  { email: 'josh.barbour@strikepoint.uk',name: 'Josh Barbour', role: 'engineer', colour: '#a855f7'  },
 ];
 
 const DEFAULT_SETTINGS = {
