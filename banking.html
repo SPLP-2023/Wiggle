@@ -205,11 +205,10 @@
       <option>Bank Fees</option>
       <option>Other</option>
     </select>
-    <select class="filter-select" id="filter-year" onchange="renderTable()">
-      <option value="">All Years</option>
-      <option>2024</option>
-      <option>2025</option>
-      <option>2026</option>
+    <select class="filter-select" id="filter-year" onchange="changeYear()">
+      <option value="2024">2024</option>
+      <option value="2025">2025</option>
+      <option value="2026" selected>2026</option>
     </select>
   </div>
 
@@ -406,26 +405,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── FIRESTORE LOAD ────────────────────────────
 function loadTransactions() {
+  const year = document.getElementById('filter-year').value || new Date().getFullYear().toString();
+  const startDate = year + '-01-01';
+  const endDate   = year + '-12-31';
   showLoader();
-  _db.collection('banking').get().then(snap => {
-    allTransactions = { main:[], vat:[], savings:[], corp:[] };
-    snap.docs.forEach(doc => {
-      const d = { ...doc.data(), _id: doc.id };
-      if (allTransactions[d.account]) allTransactions[d.account].push(d);
+  _db.collection('banking')
+    .where('account', '==', currentAccount)
+    .where('date', '>=', startDate)
+    .where('date', '<=', endDate)
+    .orderBy('date', 'desc')
+    .get().then(snap => {
+      allTransactions[currentAccount] = snap.docs.map(doc => ({ ...doc.data(), _id: doc.id }));
+      hideLoader();
+      renderSummary();
+      renderVAT();
+      renderTable();
+    }).catch(err => {
+      hideLoader();
+      console.error(err);
+      showToast('Error loading transactions.', 'error');
     });
-    // Sort each account by date descending
-    Object.keys(allTransactions).forEach(acc => {
-      allTransactions[acc].sort((a,b) => new Date(b.date) - new Date(a.date));
-    });
-    hideLoader();
-    renderSummary();
-    renderVAT();
-    renderTable();
-  }).catch(err => {
-    hideLoader();
-    console.error(err);
-    showToast('Error loading transactions.', 'error');
-  });
+}
+
+function changeYear() {
+  loadTransactions();
 }
 
 // ── SWITCH ACCOUNT ────────────────────────────
@@ -433,11 +436,16 @@ function switchAccount(acc) {
   currentAccount = acc;
   document.querySelectorAll('.account-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + acc).classList.add('active');
-  // Show/hide VAT panel
   document.getElementById('vat-panel').style.display = acc === 'main' ? 'block' : 'none';
-  renderSummary();
-  renderTable();
-}
+  // Only reload if we don't already have data for this account/year
+  const year = document.getElementById('filter-year').value || new Date().getFullYear().toString();
+  if (!allTransactions[acc] || !allTransactions[acc].length) {
+    loadTransactions();
+  } else {
+    renderSummary();
+    renderTable();
+  }
+}  
 
 // ── SUMMARY CARDS ─────────────────────────────
 function renderSummary() {
