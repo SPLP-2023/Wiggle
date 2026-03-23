@@ -137,6 +137,9 @@
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
+    <div id="accountant-nav" style="display:none;">
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=banking'">🧾 Invoices</button>
+    </div>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">—</span>
@@ -390,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hideLoader();
     document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = currentUser.name;
+    if (currentUser.role === 'accountant') document.getElementById('accountant-nav').style.display = 'flex';
     // Set today's date in add form
     document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
     loadTransactions();
@@ -501,6 +505,7 @@ function renderTable() {
   const yrFilter  = document.getElementById('filter-year').value;
   const isMain    = currentAccount === 'main';
   const isReadOnly = currentUser.role === 'accountant';
+  const canEditVAT = true; // both manager and accountant can edit VAT
 
   let filtered = txs.filter(t => {
     const matchSearch = !search ||
@@ -548,12 +553,12 @@ function renderTable() {
         <td class="amount-out">${t.paidOut ? '£'+parseFloat(t.paidOut).toFixed(2) : '—'}</td>
         <td><span class="category-badge">${t.category||'—'}</span></td>
         <td>${isReadOnly ? (t.receipt||'—') : `<input class="editable-cell" value="${t.receipt||''}" onblur="saveField('${t._id}','receipt',this.value)" placeholder="—">`}</td>
-        <td class="amount-vat">${isReadOnly ? (t.vatIn ? '£'+parseFloat(t.vatIn).toFixed(2) : '—') : `
+        <td class="amount-vat">${!canEditVAT ? (t.vatIn ? '£'+parseFloat(t.vatIn).toFixed(2) : '—') : `
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="color:var(--text-muted);font-size:12px;">£</span><input class="editable-cell" type="number" value="${t.vatIn ? parseFloat(t.vatIn).toFixed(2) : ''}" onblur="saveField('${t._id}','vatIn',this.value)" placeholder="—" style="width:55px;">
             <button onclick="toggleVAT('${t._id}','vatIn',${parseFloat(t.paidIn)||0},'${t.category||''}')" style="background:${t.vatIn ? 'var(--danger)' : 'var(--success)'};border:none;border-radius:4px;color:#fff;font-size:10px;padding:2px 5px;cursor:pointer;flex-shrink:0;" title="${t.vatIn ? 'Remove VAT' : 'Add VAT'}">${t.vatIn ? '✕' : '+'}VAT</button>
           </div>`}</td>
-        <td class="amount-vat">${isReadOnly ? (t.vatOut ? '£'+parseFloat(t.vatOut).toFixed(2) : '—') : `
+        <td class="amount-vat">${!canEditVAT ? (t.vatOut ? '£'+parseFloat(t.vatOut).toFixed(2) : '—') : `
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="color:var(--text-muted);font-size:12px;">£</span><input class="editable-cell" type="number" value="${t.vatOut ? parseFloat(t.vatOut).toFixed(2) : ''}" onblur="saveField('${t._id}','vatOut',this.value)" placeholder="—" style="width:55px;">
             <button onclick="toggleVAT('${t._id}','vatOut',${parseFloat(t.paidOut)||0},'${t.category||''}')" style="background:${t.vatOut ? 'var(--danger)' : 'var(--success)'};border:none;border-radius:4px;color:#fff;font-size:10px;padding:2px 5px;cursor:pointer;flex-shrink:0;" title="${t.vatOut ? 'Remove VAT' : 'Add VAT'}">${t.vatOut ? '✕' : '+'}VAT</button>
