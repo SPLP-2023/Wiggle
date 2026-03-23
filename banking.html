@@ -595,8 +595,8 @@ document.getElementById('csv-file-input').addEventListener('change', function() 
     // Map columns
     const col = (name) => header.findIndex(h => h.toLowerCase() === name.toLowerCase());
     const txs = data.filter(r => r.length > 3).map(r => {
-      const paidIn  = r[col('Paid in')]  ? r[col('Paid in')].replace(/,/g,'')  : '';
-      const paidOut = r[col('Paid out')] ? r[col('Paid out')].replace(/,/g,'') : '';
+      const paidIn  = r[col('Paid in')]  ? parseFloat(r[col('Paid in')].replace(/,/g,'').replace(/[^0-9.]/g,''))||'' : '';
+      const paidOut = r[col('Paid out')] ? parseFloat(r[col('Paid out')].replace(/,/g,'').replace(/[^0-9.]/g,''))||'' : '';
       const cat     = r[col('Category name')] || 'Other';
       return {
         account,
