@@ -588,9 +588,13 @@ function detectAccount(filename) {
   return 'main';
 }
 
-function calcVAT(amount, category, direction) {
-  if (!amount || NO_VAT_CATEGORIES.includes(category)) return '';
-  if (direction === 'in'  && VAT_IN_CATEGORIES.includes(category))  return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
+function calcVAT(amount, category, direction, toField) {
+  if (!amount) return '';
+  if (NO_VAT_CATEGORIES.includes(category)) return '';
+  // Exclude VAT on payments to these recipients
+  const NO_VAT_RECIPIENTS = ['LUKE STOREY','LEWIS KIRK','JOSH BARBOUR','TAX ACCOUNT','SAVINGS','TFL CONGESTN CHRGE'];
+  if (direction === 'out' && toField && NO_VAT_RECIPIENTS.includes((toField).toUpperCase().trim())) return '';
+  if (direction === 'in'  && VAT_IN_CATEGORIES.includes(category)) return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
   if (direction === 'out' && !NO_VAT_CATEGORIES.includes(category)) return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
   return '';
 }
@@ -634,8 +638,8 @@ document.getElementById('csv-file-input').addEventListener('change', function() 
         paidOut,
         category:    cat,
         receipt:     '',
-        vatIn:       calcVAT(paidIn,  cat, 'in'),
-        vatOut:      calcVAT(paidOut, cat, 'out'),
+        vatIn:       calcVAT(paidIn,  cat, 'in',  r[col('From')]),
+        vatOut:      calcVAT(paidOut, cat, 'out', r[col('To')]),
       };
     }).filter(t => t.date);
     pendingImportData = txs;
