@@ -573,8 +573,8 @@ function buildNav() {
     ...(isManager ? [{ label: '⚙️ Settings', page: 'settings' }] : []),
     ...(isManager ? [{ label: '👥 Customers', page: 'crm' }] : []),
     ...(isManager ? [{ label: '📄 Quotes', page: 'quotes' }] : []),
-    ...(isManager ? [{ label: '🧾 Invoices', page: 'invoices' }] : []),
     ...(isManager ? [{ label: '🔍 Search', page: 'search' }] : []),
+    ...(isManager ? [{ label: '💰 Banking', page: 'banking' }] : []),
   ];
   const html = links.map(l =>
     l.page === 'settings'
@@ -589,6 +589,8 @@ function buildNav() {
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-invoices.html?from=dashboard'">${l.label}</button>`
     : l.page === 'search'
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/job-search.html?from=dashboard'">${l.label}</button>`
+    : l.page === 'banking'
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/banking.html?from=dashboard'">${l.label}</button>`
     : `<button class="nav-link ${l.page==='dashboard'?'active':''}" onclick="showPage('${l.page}',this)">${l.label}</button>`
   ).join('') + `<button class="nav-link" onclick="doLogout()">🚪 Logout</button>`;
   document.getElementById('nav-links').innerHTML = html;
