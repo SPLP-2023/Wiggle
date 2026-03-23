@@ -129,7 +129,11 @@
       .then(() => {
         const user = { ...profile, id: 'u' + (AUTH_USERS.indexOf(profile) + 1) };
         setSession(user);
-        window.location.href = '/Wiggle/index.html';
+        if (user.role === 'accountant') {
+          window.location.href = '/Wiggle/banking.html';
+        } else {
+          window.location.href = '/Wiggle/index.html';
+        }
       })
       .catch(() => {
         errEl.textContent = 'Incorrect password. Please try again.';
