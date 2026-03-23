@@ -1060,7 +1060,7 @@ function renderHeader() {
   document.getElementById('h-ref-inline').textContent = '#' + job.ref;
   document.getElementById('h-type').textContent    = job.type;
   document.getElementById('h-company').textContent = job.company;
-  document.getElementById('h-address').textContent = job.address + (job.postcode ? ', ' + job.postcode : '');
+  document.getElementById('h-address').textContent = job.address || '—';
   document.getElementById('h-date').textContent    = formatDate(job.bookingDate);
   document.getElementById('h-postcode').textContent= job.postcode || '—';
   document.getElementById('h-rep').textContent     = job.rep || 'No representative';
