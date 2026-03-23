@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   });
   showLoader();
-  initFirebase().then(function(){
+  initFirebaseWithAuth().then(function(){
     hideLoader();
     updateBackButton();
     loadCustomersDD(function(){
