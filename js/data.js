@@ -40,10 +40,11 @@ const _firebaseConfig = {
 
 // ── Firebase Auth user lookup ──────────────────
 const AUTH_USERS = [
-  { id: 'u1', email: 'operations@strikepoint.uk',  name: 'Luke Storey',  role: 'manager',  colour: null       },
-  { id: 'u2', email: 'luke.storey@strikepoint.uk', name: 'Luke Storey',  role: 'engineer', colour: '#3b82f6'  },
-  { id: 'u3', email: 'lewis.kirk@strikepoint.uk',  name: 'Lewis Kirk',   role: 'engineer', colour: '#22c55e'  },
-  { id: 'u4', email: 'josh.barbour@strikepoint.uk',name: 'Josh Barbour', role: 'engineer', colour: '#a855f7'  },
+  { id: 'u1', email: 'operations@strikepoint.uk',     name: 'Luke Storey',  role: 'manager',   colour: null       },
+  { id: 'u2', email: 'luke.storey@strikepoint.uk',    name: 'Luke Storey',  role: 'engineer',  colour: '#3b82f6'  },
+  { id: 'u3', email: 'lewis.kirk@strikepoint.uk',     name: 'Lewis Kirk',   role: 'engineer',  colour: '#22c55e'  },
+  { id: 'u4', email: 'josh.barbour@strikepoint.uk',   name: 'Josh Barbour', role: 'engineer',  colour: '#a855f7'  },
+  { id: 'u5', email: 'aaron@atkinson-evans.co.uk',    name: 'Aaron',        role: 'accountant', colour: null      },
 ];
 
 const DEFAULT_SETTINGS = {
