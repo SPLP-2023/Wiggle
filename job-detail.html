@@ -866,7 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   showLoader();
   setLoaderMsg('Loading job…');
-  initFirebase().then(() => {
+  initFirebaseWithAuth().then(() => {
     hideLoader();
     _storage = firebase.storage();
     job = appData.jobs.find(j => j.id === jobId);
