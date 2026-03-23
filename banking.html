@@ -173,7 +173,11 @@
 
   <!-- VAT Panel (main account only) -->
   <div class="vat-panel" id="vat-panel">
-    <h3>📊 VAT Summary — Current Tax Year</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <h3 style="margin:0;padding:0;border:none;">📊 VAT Summary</h3>
+      <select id="vat-year-select" class="filter-select" onchange="renderVAT()">
+      </select>
+    </div>
     <div class="vat-quarters" id="vat-quarters"></div>
   </div>
 
@@ -447,18 +451,30 @@ function renderSummary() {
 // ── VAT SUMMARY ───────────────────────────────
 function renderVAT() {
   const txs = allTransactions['main'] || [];
+
+  // Build year list from transactions
+  const years = [...new Set(txs.map(t => new Date(t.date).getFullYear()))].sort((a,b) => b-a);
+  const yearSelect = document.getElementById('vat-year-select');
+  const currentYear = new Date().getFullYear();
+  if (yearSelect) {
+    const selectedYear = parseInt(yearSelect.value) || currentYear;
+    yearSelect.innerHTML = years.length
+      ? years.map(y => `<option value="${y}" ${y===selectedYear?'selected':''}>${y}</option>`).join('')
+      : `<option value="${currentYear}">${currentYear}</option>`;
+  }
+  const selectedYear = parseInt(yearSelect?.value) || currentYear;
+
   const quarters = [
     { label:'Q1 (Jan–Mar)', months:[0,1,2] },
     { label:'Q2 (Apr–Jun)', months:[3,4,5] },
     { label:'Q3 (Jul–Sep)', months:[6,7,8] },
     { label:'Q4 (Oct–Dec)', months:[9,10,11] },
   ];
-  const currentYear = new Date().getFullYear();
   let html = '';
   quarters.forEach(q => {
     const qtxs = txs.filter(t => {
       const d = new Date(t.date);
-      return d.getFullYear() === currentYear && q.months.includes(d.getMonth());
+      return d.getFullYear() === selectedYear && q.months.includes(d.getMonth());
     });
     const vatIn  = qtxs.reduce((s,t) => s + (parseFloat(t.vatIn)  || 0), 0);
     const vatOut = qtxs.reduce((s,t) => s + (parseFloat(t.vatOut) || 0), 0);
