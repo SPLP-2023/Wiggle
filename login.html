@@ -96,20 +96,19 @@
 
 <script src="/Wiggle/js/data.js"></script>
 <script>
-  initFirebase().then(() => {
-    const existing = getSession();
-    if (existing) {
-      window.location.href = '/Wiggle/index.html';
-      return;
-    }
+  // Just initialise Firebase — don't load Firestore data on login page
+  if (!firebase.apps.length) {
+    firebase.initializeApp(_firebaseConfig);
+  }
+  _db = firebase.firestore();
+
+  const existing = getSession();
+  if (existing) {
+    window.location.href = '/Wiggle/index.html';
+  } else {
     document.getElementById('_fsm_loader').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-  }).catch(err => {
-    console.error('Firebase error:', err);
-    document.getElementById('_fsm_loader').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-error').textContent = 'Connection error. Please refresh.';
-  });
+  }
 
   function doLogin() {
     const email = document.getElementById('login-user').value.trim().toLowerCase();
