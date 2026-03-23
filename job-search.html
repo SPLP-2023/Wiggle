@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
 
-  initFirebase().then(function() {
+  initFirebaseWithAuth().then(function() {
     var params = new URLSearchParams(window.location.search);
     var preRef     = params.get('ref');
     var preCompany = params.get('company');
