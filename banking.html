@@ -406,13 +406,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── FIRESTORE LOAD ────────────────────────────
 function loadTransactions() {
-  const year = document.getElementById('filter-year').value || new Date().getFullYear().toString();
-  const startDate = year + '-01-01';
-  const endDate   = year + '-12-31';
+  const year = document.getElementById('filter-year').value;
   showLoader();
   let query = _db.collection('banking')
     .where('account', '==', currentAccount);
   if (year) {
+    const startDate = year + '-01-01';
+    const endDate   = year + '-12-31';
     query = query.where('date', '>=', startDate).where('date', '<=', endDate);
   }
   query.orderBy('date', 'desc')
@@ -440,7 +440,7 @@ function switchAccount(acc) {
   document.getElementById('tab-' + acc).classList.add('active');
   document.getElementById('vat-panel').style.display = acc === 'main' ? 'block' : 'none';
   // Only reload if we don't already have data for this account/year
-  const year = document.getElementById('filter-year').value || new Date().getFullYear().toString();
+  const year = document.getElementById('filter-year').value;
   if (!allTransactions[acc] || !allTransactions[acc].length) {
     loadTransactions();
   } else {
