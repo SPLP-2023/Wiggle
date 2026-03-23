@@ -224,7 +224,7 @@
         </tr></thead>
         <tbody id="li-body"></tbody>
       </table>
-      <button class="add-line-btn" onclick="addLine()">&#43; Add Line Item</button>
+      <button class="add-line-btn" id="btn-add-line" onclick="addLine()">&#43; Add Line Item</button>
       <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
           <input type="checkbox" id="cis-toggle" onchange="recalc()" style="width:16px;height:16px;accent-color:var(--primary);">
@@ -409,6 +409,8 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('btn-new-invoice').style.display='none';
     document.getElementById('manager-nav-links').style.display='none';
     document.getElementById('accountant-nav-links').style.display='flex';
+    document.getElementById('btn-add-line').style.display='none';
+    document.getElementById('btn-back').style.display='none';
   }
   var params=new URLSearchParams(window.location.search);
   var iid=params.get('id');
@@ -524,7 +526,7 @@ function renderList(){
       +'<span class="sbadge badge-'+esc(inv.status)+'">'+cap(inv.status)+'</span>'
       +'<span class="itotal" style="'+col+'">'+fmtMoney(inv.totalDue||0)+'</span>'
       +'<button class="btn btn-secondary btn-xs" onclick="openExistingInvoice(\''+esc(inv.id)+'\')">View</button>'
-      +'<button class="btn btn-danger btn-xs" onclick="confirmDelete(\''+esc(inv.id)+'\')">&#128465;</button>'
+        +(currentUser.role!=='accountant'?'<button class="btn btn-danger btn-xs" onclick="confirmDelete(\''+esc(inv.id)+'\')">&#128465;</button>':'')
       +'</div></div>';
   }).join('');
 }
@@ -565,7 +567,8 @@ function openExistingInvoice(id){
     document.getElementById('editor-ref').textContent=inv.ref||'';
     document.getElementById('btn-pdf').classList.remove('hidden');
     document.getElementById('btn-save').textContent='Save Changes';
-    document.getElementById('status-bar').classList.remove('hidden');
+    if(currentUser.role==='accountant') document.getElementById('btn-save').style.display='none';
+    if(currentUser.role!=='accountant') document.getElementById('status-bar').classList.remove('hidden');
     updateStatusBadge(inv.status||'draft');
     var today=new Date().toISOString().split('T')[0];
     if((inv.status==='sent'||inv.status==='overdue')&&inv.dueDate&&inv.dueDate<today){
@@ -717,7 +720,7 @@ function addLine(){lineItems.push({description:'',type:'Labour',qty:1,unitPrice:
         +'<div id="li-drc-'+i+'" style="display:none;font-size:11px;color:#94a3b8;text-align:center;margin-top:2px;">DRC</div>'
         +'</td>'
         +'<td style="text-align:right;font-weight:600;padding-right:6px;" id="li-amt-'+i+'">'+fmtMoney(net+vat)+'</td>'
-        +'<td style="text-align:center;"><button class="btn btn-danger btn-xs" onclick="removeLI('+i+')">&#10005;</button></td>'
+        +'<td style="text-align:center;">'+(currentUser.role!=='accountant'?'<button class="btn btn-danger btn-xs" onclick="removeLI('+i+')">&#10005;</button>':'')+'</td>'
         +'</tr>';
     }).join('');
   }
@@ -793,6 +796,7 @@ function saveInvoice(){
       document.getElementById('editor-title').textContent=number;
       document.getElementById('btn-pdf').classList.remove('hidden');
       document.getElementById('btn-save').textContent='Save Changes';
+    if(currentUser.role==='accountant') document.getElementById('btn-save').style.display='none';
       document.getElementById('status-bar').classList.remove('hidden');
       updateStatusBadge('draft');
     }
