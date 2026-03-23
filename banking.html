@@ -544,8 +544,16 @@ function renderTable() {
         <td class="amount-out">${t.paidOut ? '£'+parseFloat(t.paidOut).toFixed(2) : '—'}</td>
         <td><span class="category-badge">${t.category||'—'}</span></td>
         <td>${isReadOnly ? (t.receipt||'—') : `<input class="editable-cell" value="${t.receipt||''}" onblur="saveField('${t._id}','receipt',this.value)" placeholder="—">`}</td>
-        <td class="amount-vat">${isReadOnly ? (t.vatIn ? '£'+parseFloat(t.vatIn).toFixed(2) : '—') : `<input class="editable-cell" type="number" value="${t.vatIn||''}" onblur="saveField('${t._id}','vatIn',this.value)" placeholder="—" style="width:70px;">`}</td>
-        <td class="amount-vat">${isReadOnly ? (t.vatOut ? '£'+parseFloat(t.vatOut).toFixed(2) : '—') : `<input class="editable-cell" type="number" value="${t.vatOut||''}" onblur="saveField('${t._id}','vatOut',this.value)" placeholder="—" style="width:70px;">`}</td>
+        <td class="amount-vat">${isReadOnly ? (t.vatIn ? '£'+parseFloat(t.vatIn).toFixed(2) : '—') : `
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input class="editable-cell" type="number" value="${t.vatIn||''}" onblur="saveField('${t._id}','vatIn',this.value)" placeholder="—" style="width:60px;">
+            <button onclick="toggleVAT('${t._id}','vatIn',${parseFloat(t.paidIn)||0},'${t.category||''}')" style="background:${t.vatIn ? 'var(--danger)' : 'var(--success)'};border:none;border-radius:4px;color:#fff;font-size:10px;padding:2px 5px;cursor:pointer;flex-shrink:0;" title="${t.vatIn ? 'Remove VAT' : 'Add VAT'}">${t.vatIn ? '✕' : '+'}VAT</button>
+          </div>`}</td>
+        <td class="amount-vat">${isReadOnly ? (t.vatOut ? '£'+parseFloat(t.vatOut).toFixed(2) : '—') : `
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input class="editable-cell" type="number" value="${t.vatOut||''}" onblur="saveField('${t._id}','vatOut',this.value)" placeholder="—" style="width:60px;">
+            <button onclick="toggleVAT('${t._id}','vatOut',${parseFloat(t.paidOut)||0},'${t.category||''}')" style="background:${t.vatOut ? 'var(--danger)' : 'var(--success)'};border:none;border-radius:4px;color:#fff;font-size:10px;padding:2px 5px;cursor:pointer;flex-shrink:0;" title="${t.vatOut ? 'Remove VAT' : 'Add VAT'}">${t.vatOut ? '✕' : '+'}VAT</button>
+          </div>`}</td>
         <td>${deleteBtn}</td>
       </tr>`;
     } else {
@@ -746,6 +754,16 @@ function formatDateShort(d) {
   if (!d) return '—';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+  function toggleVAT(id, field, amount, category) {
+  const tx = allTransactions[currentAccount].find(t => t._id === id);
+  if (!tx) return;
+  const newValue = tx[field] ? '' : (amount / 1.2 * 0.2).toFixed(2);
+  saveField(id, field, newValue);
+  tx[field] = newValue;
+  renderTable();
+  renderVAT();
 }
 
 function closeModal(id) {
