@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
   document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/Wiggle/crm-invoices.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
   showLoader();
-  initFirebase().then(function() { hideLoader(); loadCustomer(); })
+  initFirebaseWithAuth().then(function() { hideLoader(); loadCustomer(); })
     .catch(function() { hideLoader(); showToast('Connection error - please refresh.', 'error'); });
 });
 
