@@ -57,6 +57,21 @@ const DEFAULT_SETTINGS = {
 // Returns a Promise that resolves when appData
 // is fully populated from Firestore.
 // ══════════════════════════════════════════════
+function initFirebaseWithAuth() {
+  return new Promise((resolve, reject) => {
+    if (!firebase.apps.length) firebase.initializeApp(_firebaseConfig);
+    _db = firebase.firestore();
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        clearSession();
+        window.location.href = BASE + '/login.html';
+        return;
+      }
+      initFirebase().then(resolve).catch(reject);
+    });
+  });
+}
+
 function initFirebase() {
   return new Promise((resolve, reject) => {
     try {
