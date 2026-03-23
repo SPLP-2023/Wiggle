@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = '/Wiggle/index.html'; return;
   }
   showLoader();
-  initFirebase().then(() => {
+  initFirebaseWithAuth().then(
     hideLoader();
     document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
     document.getElementById('user-name-display').textContent = currentUser.name;
