@@ -396,7 +396,7 @@ function escInv(s) {
 document.addEventListener('DOMContentLoaded',function(){
   currentUser=requireAuth();
   if(!currentUser)return;
-  if(currentUser.role!=='manager'){window.location.href='/Wiggle/index.html';return;}
+  if(currentUser.role!=='manager' && currentUser.role!=='accountant'){window.location.href='/Wiggle/index.html';return;}
   document.getElementById('user-avatar').textContent=currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent=currentUser.name;
   var params=new URLSearchParams(window.location.search);
