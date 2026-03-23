@@ -489,11 +489,27 @@ function renderList(){
   empty.classList.add('hidden');
   list.innerHTML=f.map(function(inv){
     var col=inv.status==='paid'?'color:var(--success);':inv.status==='overdue'?'color:var(--danger);':'';
+    // Day counter
+    var dayBadge='';
+    if(inv.status!=='paid'&&inv.status!=='cancelled'&&inv.status!=='draft'&&inv.dueDate){
+      var today=new Date(); today.setHours(0,0,0,0);
+      var due=new Date(inv.dueDate); due.setHours(0,0,0,0);
+      var diff=Math.round((due-today)/(1000*60*60*24));
+      if(diff>0){
+        dayBadge='<span style="font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;background:rgba(59,130,246,0.15);color:#3b82f6;">Due in '+diff+' day'+(diff===1?'':'s')+'</span>';
+      } else if(diff===0){
+        dayBadge='<span style="font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;background:rgba(239,68,68,0.15);color:#ef4444;">Due today</span>';
+      } else {
+        var over=Math.abs(diff);
+        dayBadge='<span style="font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;background:rgba(239,68,68,0.15);color:#ef4444;">'+over+' day'+(over===1?'':'s')+' overdue</span>';
+      }
+    }
     return '<div class="inv-row">'
       +'<div class="inv-row-info"><div class="iref">'+esc(inv.number||'-')+'</div>'
       +'<div class="icompany">'+esc(inv.company||'-')+'</div>'
       +'<div class="imeta">Due: '+formatDate(inv.dueDate)+' &middot; '+esc(inv.siteName||inv.siteRef||'-')+'</div></div>'
       +'<div class="inv-row-right">'
+      +dayBadge
       +'<span class="sbadge badge-'+esc(inv.status)+'">'+cap(inv.status)+'</span>'
       +'<span class="itotal" style="'+col+'">'+fmtMoney(inv.totalDue||0)+'</span>'
       +'<button class="btn btn-secondary btn-xs" onclick="openExistingInvoice(\''+esc(inv.id)+'\')">View</button>'
