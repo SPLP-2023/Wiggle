@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('user-name-display').textContent = currentUser.name;
   updateBackButton();
   showLoader();
-  initFirebase().then(() => { hideLoader(); loadCustomers(); })
+  initFirebaseWithAuth().then(() => { hideLoader(); loadCustomers(); })
     .catch(() => { hideLoader(); showToast('Connection error — please refresh.', 'error'); });
 });
 
