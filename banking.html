@@ -588,8 +588,19 @@ document.getElementById('csv-file-input').addEventListener('change', function() 
   const account = detectAccount(file.name);
   const reader  = new FileReader();
   reader.onload = function(e) {
-    const lines  = e.target.result.split('\n').filter(l => l.trim());
-    const rows   = lines.map(l => l.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+    const lines  = e.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l => l.trim());
+    const rows   = lines.map(function(line) {
+      const result = [];
+      let cell = '', inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { result.push(cell.trim()); cell = ''; }
+        else { cell += ch; }
+      }
+      result.push(cell.trim());
+      return result;
+    });
     const header = rows[0];
     const data   = rows.slice(1);
     // Map columns
