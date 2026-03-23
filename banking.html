@@ -371,12 +371,9 @@ const ACCOUNTS = {
   corp:    { label: 'Corp Tax',    hasVAT: false },
 };
 
-// Categories that have VAT on outgoings
-const VAT_OUT_CATEGORIES = ['Fuel','Operational equipment','Vehicle maintenance','Bank fees','Operational Equipment','Vehicle Maintenance','Bank Fees'];
-// Categories that have VAT on income
+// VAT
 const VAT_IN_CATEGORIES  = ['Income'];
-// Categories with no VAT
-const NO_VAT_CATEGORIES  = ['Transfers','Taxes','Dividends','Director\'s Loan','Insurance','Bank fees','Subcontractor','CIS','Wages','Salary','Directors Loan'];
+const NO_VAT_CATEGORIES  = ['Transfers','Taxes','Dividends','Director\'s Loan','Directors Loan','Insurance','Bank fees','Bank Fees','Subcontractor','CIS','Wages','Salary'];
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = getSession();
@@ -594,7 +591,7 @@ function detectAccount(filename) {
 function calcVAT(amount, category, direction) {
   if (!amount || NO_VAT_CATEGORIES.includes(category)) return '';
   if (direction === 'in'  && VAT_IN_CATEGORIES.includes(category))  return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
-  if (direction === 'out' && VAT_OUT_CATEGORIES.includes(category)) return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
+  if (direction === 'out' && !NO_VAT_CATEGORIES.includes(category)) return (parseFloat(amount) / 1.2 * 0.2).toFixed(2);
   return '';
 }
 
