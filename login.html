@@ -18,6 +18,7 @@
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
   :root {
     --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
@@ -81,8 +82,8 @@
       <p>Field Service Management</p>
     </div>
     <div class="form-group">
-      <label for="login-user">Username</label>
-      <input type="text" id="login-user" placeholder="Enter username" autocomplete="username">
+      <label for="login-user">Email</label>
+      <input type="email" id="login-user" placeholder="Enter email address" autocomplete="email">
     </div>
     <div class="form-group">
       <label for="login-pass">Password</label>
@@ -95,31 +96,44 @@
 
 <script src="/Wiggle/js/data.js"></script>
 <script>
-  const existing = getSession();
-  if (existing) {
-    window.location.href = '/Wiggle/index.html';
-  } else {
-    initFirebase().then(() => {
-      document.getElementById('_fsm_loader').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-    }).catch(err => {
-      console.error('Firebase error:', err);
-      document.getElementById('_fsm_loader').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('login-error').textContent = 'Connection error. Please refresh.';
-    });
-  }
-
-  function doLogin() {
-    const u = document.getElementById('login-user').value.trim().toLowerCase();
-    const p = document.getElementById('login-pass').value;
-    const user = appData.users.find(x => x.username.toLowerCase() === u && x.password === p);
-    if (!user) {
-      document.getElementById('login-error').textContent = 'Invalid username or password.';
+  initFirebase().then(() => {
+    const existing = getSession();
+    if (existing) {
+      window.location.href = '/Wiggle/index.html';
       return;
     }
-    setSession(user);
-    window.location.href = '/Wiggle/index.html';
+    document.getElementById('_fsm_loader').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }).catch(err => {
+    console.error('Firebase error:', err);
+    document.getElementById('_fsm_loader').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-error').textContent = 'Connection error. Please refresh.';
+  });
+
+  function doLogin() {
+    const email = document.getElementById('login-user').value.trim().toLowerCase();
+    const pass  = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = '';
+
+    // Find user in AUTH_USERS lookup
+    const profile = AUTH_USERS.find(u => u.email === email);
+    if (!profile) {
+      errEl.textContent = 'Email not recognised.';
+      return;
+    }
+
+    // Sign in with Firebase Auth
+    firebase.auth().signInWithEmailAndPassword(email, pass)
+      .then(() => {
+        const user = { ...profile, id: 'u' + (AUTH_USERS.indexOf(profile) + 1) };
+        setSession(user);
+        window.location.href = '/Wiggle/index.html';
+      })
+      .catch(() => {
+        errEl.textContent = 'Incorrect password. Please try again.';
+      });
   }
 
   document.getElementById('login-pass').addEventListener('keydown', e => {
