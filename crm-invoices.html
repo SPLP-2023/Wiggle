@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded',function(){
   showLoader();
   initFirebaseWithAuth().then(function(){
     hideLoader();
-    updateBackButton();
+    if(currentUser.role!=='accountant') updateBackButton();
     loadCustomersDD(function(){
       getCount(function(){
         if(iid) openExistingInvoice(iid);
