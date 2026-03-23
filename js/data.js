@@ -38,12 +38,12 @@ const _firebaseConfig = {
   appId: "1:820585618659:web:0e1c6f8e35470c6b18b9d6"
 };
 
-// ── Default users (seeded once to Firestore) ──
-const DEFAULT_USERS = [
-  { id: 'u1', username: 'manager', password: 'splp.2024', name: 'Luke Storey',         role: 'manager'  },
-  { id: 'u2', username: 'luke',    password: 'luke1234',       name: 'Luke Storey',  role: 'engineer', colour: '#3b82f6' },
-  { id: 'u3', username: 'lewis',   password: 'lewis1234',      name: 'Lewis Kirk',   role: 'engineer', colour: '#22c55e' },
-  { id: 'u4', username: 'josh',    password: 'josh1234',       name: 'Josh Barbour', role: 'engineer', colour: '#a855f7' },
+// ── Firebase Auth user lookup ──────────────────
+const AUTH_USERS = [
+  { email: 'operations@strikepoint.uk',  name: 'Luke Storey',  role: 'manager',  colour: null       },
+  { email: 'luke.storey@strikepoint.uk', name: 'Luke Storey',  role: 'engineer', colour: '#3b82f6'  },
+  { email: 'josh.barbour@strikepoint.uk',name: 'Josh Barbour', role: 'engineer', colour: '#a855f7'  },
+  { email: 'lewis.kirk@strikepoint.uk',  name: 'Lewis Kirk',   role: 'engineer', colour: '#22c55e'  },
 ];
 
 const DEFAULT_SETTINGS = {
@@ -59,37 +59,25 @@ const DEFAULT_SETTINGS = {
 function initFirebase() {
   return new Promise((resolve, reject) => {
     try {
-      // Initialise app (guard against double-init)
       if (!firebase.apps.length) {
         firebase.initializeApp(_firebaseConfig);
       }
       _db = firebase.firestore();
 
-      // Load settings + users in parallel, then jobs
+      // Load settings then jobs (no longer loading users from Firestore)
       const metaRef = _db.collection('meta');
 
-      Promise.all([
-        metaRef.doc('settings').get(),
-        metaRef.doc('users').get(),
-      ]).then(async ([settingsSnap, usersSnap]) => {
-
+      metaRef.doc('settings').get().then(async (settingsSnap) => {
         // ── Settings ────────────────────────
         if (settingsSnap.exists) {
           appData.settings = settingsSnap.data();
         } else {
-          // First run — seed defaults
           await metaRef.doc('settings').set(DEFAULT_SETTINGS);
           appData.settings = { ...DEFAULT_SETTINGS };
         }
 
-        // ── Users ───────────────────────────
-        if (usersSnap.exists && usersSnap.data().list) {
-          appData.users = usersSnap.data().list;
-        } else {
-          // First run — seed defaults
-          await metaRef.doc('users').set({ list: DEFAULT_USERS });
-          appData.users = [...DEFAULT_USERS];
-        }
+        // ── Users — now come from AUTH_USERS lookup, not Firestore ──
+        appData.users = AUTH_USERS.map((u, i) => ({ ...u, id: 'u' + (i + 1) }));
 
         // ── Jobs ────────────────────────────
         const jobsSnap = await _db.collection('jobs').orderBy('createdAt', 'desc').get();
@@ -168,6 +156,7 @@ function setSession(user) {
 
 function clearSession() {
   sessionStorage.removeItem('sp_user');
+  return firebase.auth().signOut();
 }
 
 // ── Auth guards ───────────────────────────────
