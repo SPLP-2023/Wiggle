@@ -40,10 +40,10 @@ const _firebaseConfig = {
 
 // ── Firebase Auth user lookup ──────────────────
 const AUTH_USERS = [
-  { email: 'operations@strikepoint.uk',  name: 'Luke Storey',  role: 'manager',  colour: null       },
-  { email: 'luke.storey@strikepoint.uk', name: 'Luke Storey',  role: 'engineer', colour: '#3b82f6'  },
-  { email: 'lewis.kirk@strikepoint.uk',  name: 'Lewis Kirk',   role: 'engineer', colour: '#22c55e'  },
-  { email: 'josh.barbour@strikepoint.uk',name: 'Josh Barbour', role: 'engineer', colour: '#a855f7'  },
+  { id: 'u1', email: 'operations@strikepoint.uk',  name: 'Luke Storey',  role: 'manager',  colour: null       },
+  { id: 'u2', email: 'luke.storey@strikepoint.uk', name: 'Luke Storey',  role: 'engineer', colour: '#3b82f6'  },
+  { id: 'u3', email: 'lewis.kirk@strikepoint.uk',  name: 'Lewis Kirk',   role: 'engineer', colour: '#22c55e'  },
+  { id: 'u4', email: 'josh.barbour@strikepoint.uk',name: 'Josh Barbour', role: 'engineer', colour: '#a855f7'  },
 ];
 
 const DEFAULT_SETTINGS = {
@@ -77,7 +77,7 @@ function initFirebase() {
         }
 
         // ── Users — now come from AUTH_USERS lookup, not Firestore ──
-        appData.users = AUTH_USERS.map((u, i) => ({ ...u, id: 'u' + (i + 1) }));
+        appData.users = AUTH_USERS.map(u => ({ ...u }));
 
         // ── Jobs ────────────────────────────
         const jobsSnap = await _db.collection('jobs').orderBy('createdAt', 'desc').get();
