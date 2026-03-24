@@ -751,10 +751,12 @@ function saveQuote() {
       document.getElementById('status-bar').classList.remove('hidden');
       updateStatusBadge('draft');
     }
+    document.getElementById('btn-materials-pdf').classList.remove('hidden');
     showToast('Quote saved', 'success');
   }).catch(function(err) { console.error(err); showToast('Error saving quote.', 'error'); })
     .finally(function() { btn.disabled = false; btn.textContent = currentQuoteId ? 'Save Changes' : 'Save Quote'; });
 }
+
 
 // ---- STATUS ----
 function setStatus(status) {
