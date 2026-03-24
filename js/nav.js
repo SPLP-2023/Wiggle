@@ -159,6 +159,7 @@
       { label: '&#128176; Quotes',     href: '/Wiggle/crm-quotes.html?from=nav',   match: 'crm-quotes' },
       { label: '&#129534; Invoices',   href: '/Wiggle/crm-invoices.html?from=nav', match: 'crm-invoices' },
       { label: '&#128269; Search',     href: '/Wiggle/job-search.html?from=nav',   match: 'job-search' },
+      { label: '&#128230; Parts',      href: '/Wiggle/parts-catalogue.html?from=nav',    match: 'parts-catalogue' },
       { label: '&#128178; Banking',    href: '/Wiggle/banking.html?from=nav',      match: 'banking' },
       { label: '&#9881;&#65039; Settings', href: '/Wiggle/settings.html?from=nav', match: 'settings' },
     ];
