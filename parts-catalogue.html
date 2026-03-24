@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('user-name-display').textContent = currentUser.name;
   document.getElementById('btn-back').style.display = 'inline-flex';
 
-  initFirebase().then(function() {
+  initFirebaseWithAuth().then(function() {
     loadParts();
   }).catch(function(err) {
     console.error(err);
