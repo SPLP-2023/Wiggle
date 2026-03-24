@@ -791,6 +791,7 @@ function renderJobs() {
             ${invBadgeMobile}
             <span class="status-label desktop-only" style="font-size:12px;">${si.label}</span>
             ${over ? '<span class="badge-overdue" style="font-size:11px;">⚠ Overdue</span>' : ''}
+${currentUser.role === 'manager' && job.startedAt && job.status === 'live' ? `<span id="timer-badge-${job.id}" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--success);background:#22c55e18;border:1px solid #22c55e44;border-radius:20px;padding:2px 8px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 1.2s infinite;flex-shrink:0;"></span><span class="live-timer-text" data-started="${job.startedAt}">▶ 00:00:00</span></span>` : ''}
             ${job.isNew && currentUser.role==='engineer' ? '<span class="badge-new">New</span>' : ''}
           </div>
         </div>`;
@@ -971,6 +972,19 @@ function addSampleJob() {
   renderJobs();
   showToast('Sample job added! ✓', 'success');
 }
+
+  // Live timer ticking on dashboard cards (manager only)
+setInterval(function() {
+  document.querySelectorAll('.live-timer-text').forEach(function(el) {
+    var started = el.getAttribute('data-started');
+    if (!started) return;
+    var ms = Date.now() - new Date(started).getTime();
+    var h = Math.floor(ms / 3600000);
+    var m = Math.floor((ms % 3600000) / 60000);
+    var s = Math.floor((ms % 60000) / 1000);
+    el.textContent = '▶ ' + String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  });
+}, 1000);
 
 // ══════════════════════════════════════════════
 // MODALS
