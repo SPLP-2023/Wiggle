@@ -781,7 +781,8 @@ function renderJobs() {
             <div style="font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${job.siteName || job.company || '—'}</div>
             <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${job.company || '—'}</div>
           </div>
-          <span class="job-type-tag desktop-only" style="flex-shrink:0;">${job.type || 'T&I'}</span>
+          ${currentUser.role === 'manager' && job.startedAt && job.status === 'live' ? `<span id="timer-badge-${job.id}" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--success);background:#22c55e18;border:1px solid #22c55e44;border-radius:20px;padding:2px 8px;flex-shrink:0;"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 1.2s infinite;flex-shrink:0;"></span><span class="live-timer-text" data-started="${job.startedAt}">▶ 00:00:00</span></span>` : ''}
+<span class="job-type-tag desktop-only" style="flex-shrink:0;">${job.type || 'T&I'}</span>
           <div class="desktop-only" style="flex-shrink:0;font-size:12px;color:var(--text-muted);min-width:90px;text-align:right;">${dateStr}</div>
           <div class="desktop-only" style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;min-width:100px;">
             ${engNames.length ? engNames.map(n => `<span class="engineer-chip" style="font-size:11px;padding:2px 7px;">👷 ${n}</span>`).join('') : '<span class="engineer-chip" style="font-size:11px;padding:2px 7px;">Unassigned</span>'}
@@ -791,7 +792,6 @@ function renderJobs() {
             ${invBadgeMobile}
             <span class="status-label desktop-only" style="font-size:12px;">${si.label}</span>
             ${over ? '<span class="badge-overdue" style="font-size:11px;">⚠ Overdue</span>' : ''}
-${currentUser.role === 'manager' && job.startedAt && job.status === 'live' ? `<span id="timer-badge-${job.id}" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--success);background:#22c55e18;border:1px solid #22c55e44;border-radius:20px;padding:2px 8px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 1.2s infinite;flex-shrink:0;"></span><span class="live-timer-text" data-started="${job.startedAt}">▶ 00:00:00</span></span>` : ''}
             ${job.isNew && currentUser.role==='engineer' ? '<span class="badge-new">New</span>' : ''}
           </div>
         </div>`;
