@@ -546,7 +546,7 @@ function openNewQuote(preselectCid) {
     if (preset !== undefined) lineItems[0].description = preset;
     renderLines();
   }
-
+}
 function openExistingQuote(id) {
   _db.collection('crm_quotes').doc(id).get().then(function(doc) {
     if (!doc.exists) { showToast('Quote not found.', 'error'); return; }
