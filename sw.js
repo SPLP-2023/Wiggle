@@ -7,6 +7,7 @@ const CACHE_URLS = [
   '/Wiggle/new-job.html',
   '/Wiggle/settings.html',
   '/Wiggle/calendar.html',
+  '/Wiggle/parts-catalogue.html',
   '/Wiggle/js/data.js',
 ];
 
