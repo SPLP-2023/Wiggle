@@ -538,14 +538,14 @@ function openNewQuote(preselectCid) {
   document.getElementById('q-customer').value = preselectCid || '';
   if (preselectCid) { currentCustomerId = preselectCid; onCustomerChange(); }
   else { document.getElementById('q-job-ref').value = ''; }
-  addLine();
-  // Pre-fill description based on selected job type
   var jobType = document.getElementById('q-job-type').value;
   var preset  = JOB_PRESETS[jobType];
-  if (preset !== undefined) lineItems[0].description = preset;
-  renderLines();
-  recalc();
-}
+  // For Remedials, don't add a blank starter line — builder adds items instead
+  if (jobType !== 'RPS') {
+    addLine();
+    if (preset !== undefined) lineItems[0].description = preset;
+    renderLines();
+  }
 
 function openExistingQuote(id) {
   _db.collection('crm_quotes').doc(id).get().then(function(doc) {
