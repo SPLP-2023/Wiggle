@@ -1,1 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/Wiggle/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SP FSM">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Parts Catalogue &mdash; Strike Point</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --primary:#f59e0b; --primary-dark:#d97706;
+  --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8;
+  --border:#334155; --card-bg:#1e293b;
+  --success:#22c55e; --danger:#ef4444; --info:#3b82f6;
+  --radius:10px; --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--dark);color:var(--text);min-height:100vh;}
 
+/* NAV */
+nav{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.nav-brand{display:flex;align-items:center;gap:9px;cursor:pointer;}
+.nav-brand span{font-weight:700;font-size:15px;color:var(--primary);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.user-badge{display:flex;align-items:center;gap:8px;background:var(--dark3);border-radius:8px;padding:5px 11px;font-size:13px;}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--dark);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;}
+.btn-primary{background:var(--primary);color:var(--dark);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-secondary{background:var(--dark3);color:var(--text);}
+.btn-secondary:hover{background:#475569;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:#dc2626;}
+.btn-success{background:var(--success);color:#fff;}
+.btn-info{background:var(--info);color:#fff;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+.page-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;}
+.page-header h1{font-size:22px;font-weight:700;}
+.page-header p{font-size:13px;color:var(--text-muted);margin-top:2px;}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;}
+.search-input{flex:1;min-width:200px;padding:9px 14px;background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;}
+.search-input:focus{outline:none;border-color:var(--primary);}
+.cat-filter{padding:9px 12px;background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;cursor:pointer;}
+.cat-filter:focus{outline:none;border-color:var(--primary);}
+
+/* STATS */
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
+.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;min-width:120px;}
+.stat-num{font-size:22px;font-weight:700;color:var(--primary);}
+.stat-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+
+/* CATEGORY SECTIONS */
+.cat-section{margin-bottom:28px;}
+.cat-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px 10px 0 0;cursor:pointer;user-select:none;}
+.cat-header:hover{background:#3d4f6b;}
+.cat-title{font-size:14px;font-weight:700;flex:1;}
+.cat-count{font-size:11px;color:var(--text-muted);padding:2px 8px;background:var(--dark2);border-radius:20px;}
+.cat-chevron{font-size:12px;color:var(--text-muted);transition:transform .2s;}
+.cat-chevron.open{transform:rotate(180deg);}
+.cat-body{border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;}
+
+/* PARTS TABLE */
+.parts-table{width:100%;border-collapse:collapse;}
+.parts-table th{padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);background:var(--dark2);border-bottom:1px solid var(--border);text-align:left;}
+.parts-table th:last-child{text-align:right;}
+.parts-table td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);}
+.parts-table tr:last-child td{border-bottom:none;}
+.parts-table tr:hover td{background:rgba(255,255,255,.02);}
+.part-num{font-size:11px;font-weight:700;font-family:monospace;color:var(--primary);background:rgba(245,158,11,.1);padding:2px 7px;border-radius:5px;border:1px solid rgba(245,158,11,.25);}
+.part-name{font-weight:500;}
+.part-price{font-weight:700;color:var(--success);}
+.part-actions{display:flex;gap:6px;justify-content:flex-end;}
+
+/* EMPTY */
+.empty-cat{padding:20px;text-align:center;color:var(--text-muted);font-size:13px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card-bg);}
+.modal-header h3{font-size:16px;font-weight:700;}
+.modal-close{background:var(--dark3);border:none;color:var(--text);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-body{padding:22px;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.form-input{width:100%;padding:9px 13px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;}
+.form-input:focus{outline:none;border-color:var(--primary);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.part-num-preview{font-size:13px;color:var(--primary);font-family:monospace;font-weight:700;margin-top:6px;min-height:20px;}
+.hint{font-size:11px;color:var(--text-muted);margin-top:4px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;font-size:14px;z-index:999;transform:translateY(100px);opacity:0;transition:all .3s;box-shadow:var(--shadow);max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--success);}
+.toast.error{border-color:var(--danger);}
+
+/* SEED BANNER */
+.seed-banner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.seed-banner p{font-size:13px;color:var(--text-muted);}
+.seed-banner strong{color:var(--primary);}
+
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="window.location.href='/Wiggle/index.html'" style="display:none;">&#8592; Dashboard</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">&#8212;</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <h1>&#128230; Parts Catalogue</h1>
+      <p>Manage your parts library. Parts are available in the Remedials Builder when creating quotes.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openNewPart()">&#43; Add Part</button>
+  </div>
+
+  <!-- Seed banner — shown if catalogue is empty -->
+  <div class="seed-banner hidden" id="seed-banner">
+    <p>&#9888; Your parts catalogue is empty. <strong>Import the default parts list</strong> to get started quickly, or add parts manually above.</p>
+    <button class="btn btn-primary btn-sm" onclick="seedCatalogue()">&#8595; Import Default Parts</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Total Parts</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-cats">0</div><div class="stat-lbl">Categories</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-labour">0</div><div class="stat-lbl">Labour Rates</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" class="search-input" id="search-input" placeholder="&#128269; Search by name or part number..." oninput="renderCatalogue()">
+    <select class="cat-filter" id="cat-filter" onchange="renderCatalogue()">
+      <option value="">All Categories</option>
+    </select>
+  </div>
+
+  <!-- Catalogue -->
+  <div id="catalogue-area">
+    <div style="text-align:center;padding:60px;color:var(--text-muted);">
+      <div style="font-size:40px;margin-bottom:12px;">&#9881;</div>
+      <div>Loading catalogue&hellip;</div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD / EDIT PART MODAL -->
+<div class="modal-overlay hidden" id="modal-part">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-part-title">Add Part</h3>
+      <button class="modal-close" onclick="closePartModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Category *</label>
+        <input type="text" class="form-input" id="p-category" placeholder="e.g. CLAMPS, EARTH, COPPER..." list="cat-list" oninput="updatePartNumPreview()">
+        <datalist id="cat-list"></datalist>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Part Number Prefix</label>
+          <input type="text" class="form-input" id="p-prefix" placeholder="e.g. A/BB" maxlength="10" oninput="updatePartNumPreview()">
+          <div class="hint">Short code for this category (e.g. A/BB for Alu B-Bond)</div>
+        </div>
+        <div class="form-group">
+          <label>Part Number</label>
+          <input type="text" class="form-input" id="p-number" placeholder="e.g. 001" maxlength="10" oninput="updatePartNumPreview()">
+          <div class="hint">Sequence number (e.g. 001, 002)</div>
+        </div>
+      </div>
+      <div class="part-num-preview" id="p-num-preview"></div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Part Name *</label>
+        <input type="text" class="form-input" id="p-name" placeholder="e.g. Alu B-Bond">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Unit Price (£) *</label>
+          <input type="number" class="form-input" id="p-price" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+          <label>Unit</label>
+          <input type="text" class="form-input" id="p-unit" placeholder="e.g. each, m, kg">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+        <input type="text" class="form-input" id="p-notes" placeholder="Any additional notes...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePartModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-part" onclick="savePart()">Save Part</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay hidden" id="modal-delete">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>&#128465; Delete Part</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-delete').classList.add('hidden')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to delete <strong id="delete-part-name" style="color:var(--text);"></strong>? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-delete').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDeletePart()">Delete Part</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
+<script>
+var currentUser, allParts = [], editingPartId = null, pendingDeleteId = null;
+
+// ── DEFAULT PARTS FROM EXCEL ──────────────────
+var DEFAULT_PARTS = [
+  // EARTH
+  {category:'EARTH', name:'Earth Rods',          unitPrice:7.80,  unit:'each', prefix:'ER', number:'001'},
+  {category:'EARTH', name:'Couplers',             unitPrice:2.80,  unit:'each', prefix:'ER', number:'002'},
+  {category:'EARTH', name:'Driving Heads',        unitPrice:1.10,  unit:'each', prefix:'ER', number:'003'},
+  {category:'EARTH', name:'Earth Mat (300)',      unitPrice:90.00, unit:'each', prefix:'EM', number:'001'},
+  {category:'EARTH', name:'Earth Mat (600)',      unitPrice:75.00, unit:'each', prefix:'EM', number:'002'},
+  {category:'EARTH', name:'Marconite',            unitPrice:50.00, unit:'bag',  prefix:'MK', number:'001'},
+  {category:'EARTH', name:'Earth Pit (Plastic)',  unitPrice:14.98, unit:'each', prefix:'EP', number:'001'},
+  {category:'EARTH', name:'Earth Pit (Concrete)', unitPrice:20.00, unit:'each', prefix:'EP', number:'002'},
+  // ALU CONDUCTOR
+  {category:'ALU',   name:'Alu Bare',             unitPrice:2.04,  unit:'m',    prefix:'ALU', number:'001'},
+  {category:'ALU',   name:'Alu White',            unitPrice:2.04,  unit:'m',    prefix:'ALU', number:'002'},
+  {category:'ALU',   name:'Alu Black',            unitPrice:2.04,  unit:'m',    prefix:'ALU', number:'003'},
+  {category:'ALU',   name:'Alu Brown',            unitPrice:2.04,  unit:'m',    prefix:'ALU', number:'004'},
+  {category:'ALU',   name:'Alu Grey',             unitPrice:2.04,  unit:'m',    prefix:'ALU', number:'005'},
+  {category:'ALU',   name:'Alu Stone',            unitPrice:2.04,  unit:'m',    prefix:'ALU', number:'006'},
+  // COPPER CONDUCTOR
+  {category:'COPPER',name:'FlexiBraid Tin 300mm', unitPrice:9.54,  unit:'each', prefix:'COP', number:'001'},
+  {category:'COPPER',name:'Copper Bare',          unitPrice:7.52,  unit:'m',    prefix:'COP', number:'002'},
+  {category:'COPPER',name:'Copper Black',         unitPrice:7.52,  unit:'m',    prefix:'COP', number:'003'},
+  {category:'COPPER',name:'Copper Brown',         unitPrice:7.52,  unit:'m',    prefix:'COP', number:'004'},
+  {category:'COPPER',name:'Copper Grey',          unitPrice:7.52,  unit:'m',    prefix:'COP', number:'005'},
+  {category:'COPPER',name:'Copper Stone',         unitPrice:7.52,  unit:'m',    prefix:'COP', number:'006'},
+  {category:'COPPER',name:'Copper White',         unitPrice:7.52,  unit:'m',    prefix:'COP', number:'007'},
+  // CLIPS
+  {category:'CLIPS', name:'PVC White',            unitPrice:0.35,  unit:'each', prefix:'CLP', number:'001'},
+  {category:'CLIPS', name:'PVC Brown',            unitPrice:0.35,  unit:'each', prefix:'CLP', number:'002'},
+  {category:'CLIPS', name:'PVC Black',            unitPrice:0.35,  unit:'each', prefix:'CLP', number:'003'},
+  {category:'CLIPS', name:'PVC Grey',             unitPrice:0.35,  unit:'each', prefix:'CLP', number:'004'},
+  {category:'CLIPS', name:'PVC Stone',            unitPrice:0.35,  unit:'each', prefix:'CLP', number:'005'},
+  {category:'CLIPS', name:'Bare Brown',           unitPrice:0.35,  unit:'each', prefix:'CLP', number:'006'},
+  {category:'CLIPS', name:'Bare Grey',            unitPrice:0.35,  unit:'each', prefix:'CLP', number:'007'},
+  {category:'CLIPS', name:'S/A PVC White',        unitPrice:2.45,  unit:'each', prefix:'CLP', number:'008'},
+  {category:'CLIPS', name:'S/A PVC Brown',        unitPrice:2.45,  unit:'each', prefix:'CLP', number:'009'},
+  {category:'CLIPS', name:'S/A PVC Black',        unitPrice:2.45,  unit:'each', prefix:'CLP', number:'010'},
+  {category:'CLIPS', name:'S/A PVC Grey',         unitPrice:2.45,  unit:'each', prefix:'CLP', number:'011'},
+  {category:'CLIPS', name:'S/A PVC Stone',        unitPrice:2.45,  unit:'each', prefix:'CLP', number:'012'},
+  {category:'CLIPS', name:'S/A Bare Grey',        unitPrice:1.68,  unit:'each', prefix:'CLP', number:'013'},
+  {category:'CLIPS', name:'S/A Bare Brown',       unitPrice:2.45,  unit:'each', prefix:'CLP', number:'014'},
+  {category:'CLIPS', name:'Felt Pads',            unitPrice:2.65,  unit:'each', prefix:'CLP', number:'015'},
+  {category:'CLIPS', name:'Felt PVC Black',       unitPrice:2.65,  unit:'each', prefix:'CLP', number:'016'},
+  {category:'CLIPS', name:'Felt PVC Grey',        unitPrice:2.65,  unit:'each', prefix:'CLP', number:'017'},
+  {category:'CLIPS', name:'Felt Bare Brown',      unitPrice:2.65,  unit:'each', prefix:'CLP', number:'018'},
+  {category:'CLIPS', name:'Felt Bare Black',      unitPrice:2.65,  unit:'each', prefix:'CLP', number:'019'},
+  {category:'CLIPS', name:'Felt Bare Grey',       unitPrice:2.65,  unit:'each', prefix:'CLP', number:'020'},
+  {category:'CLIPS', name:'S/H/F PVC Brown',      unitPrice:1.50,  unit:'each', prefix:'CLP', number:'021'},
+  // FINIALS
+  {category:'FINIALS',name:'S/H/F PVC Black',     unitPrice:1.50,  unit:'each', prefix:'FIN', number:'001'},
+  {category:'FINIALS',name:'Alu A-Clamp',         unitPrice:1.69,  unit:'each', prefix:'FIN', number:'002'},
+  {category:'FINIALS',name:'Alu M10 1m',          unitPrice:5.00,  unit:'each', prefix:'FIN', number:'003'},
+  {category:'FINIALS',name:'Alu M10 0.5m',        unitPrice:6.59,  unit:'each', prefix:'FIN', number:'004'},
+  {category:'FINIALS',name:'Alu M16 0.5m',        unitPrice:9.45,  unit:'each', prefix:'FIN', number:'005'},
+  {category:'FINIALS',name:'Alu M16 1m',          unitPrice:14.90, unit:'each', prefix:'FIN', number:'006'},
+  {category:'FINIALS',name:'Alu M16 1.5m',        unitPrice:21.03, unit:'each', prefix:'FIN', number:'007'},
+  {category:'FINIALS',name:'Alu M16 2m',          unitPrice:27.14, unit:'each', prefix:'FIN', number:'008'},
+  {category:'FINIALS',name:'Alu M16 3m',          unitPrice:49.76, unit:'each', prefix:'FIN', number:'009'},
+  {category:'FINIALS',name:'Copper M10 0.5m',     unitPrice:11.19, unit:'each', prefix:'FIN', number:'010'},
+  {category:'FINIALS',name:'Copper M10 1m',       unitPrice:18.85, unit:'each', prefix:'FIN', number:'011'},
+  {category:'FINIALS',name:'Copper M16 0.5m',     unitPrice:17.72, unit:'each', prefix:'FIN', number:'012'},
+  {category:'FINIALS',name:'Copper M16 1m',       unitPrice:32.36, unit:'each', prefix:'FIN', number:'013'},
+  {category:'FINIALS',name:'Copper M16 1.5m',     unitPrice:47.97, unit:'each', prefix:'FIN', number:'014'},
+  {category:'FINIALS',name:'Copper M16 2m',       unitPrice:59.10, unit:'each', prefix:'FIN', number:'015'},
+  {category:'FINIALS',name:'Copper M16 3m',       unitPrice:56.15, unit:'each', prefix:'FIN', number:'016'},
+  {category:'FINIALS',name:'Base M10 (A)',        unitPrice:6.00,  unit:'each', prefix:'FIN', number:'017'},
+  {category:'FINIALS',name:'Base M10 (GM)',       unitPrice:12.34, unit:'each', prefix:'FIN', number:'018'},
+  // ESE
+  {category:'ESE',   name:'20kg M16 Base',        unitPrice:18.00, unit:'each', prefix:'ESE', number:'001'},
+  {category:'ESE',   name:'ALPS ESE 20',          unitPrice:350.00,unit:'each', prefix:'ESE', number:'002'},
+  {category:'ESE',   name:'ALPS ESE 35.5',        unitPrice:425.00,unit:'each', prefix:'ESE', number:'003'},
+  {category:'ESE',   name:'ALPS ESE 60',          unitPrice:640.00,unit:'each', prefix:'ESE', number:'004'},
+  {category:'ESE',   name:'ALPS Brkt 250mm',      unitPrice:32.50, unit:'each', prefix:'ESE', number:'005'},
+  {category:'ESE',   name:'ALPS Brkt 350mm',      unitPrice:32.50, unit:'each', prefix:'ESE', number:'006'},
+  {category:'ESE',   name:'ALPS Head Coupler',    unitPrice:50.00, unit:'each', prefix:'ESE', number:'007'},
+  {category:'ESE',   name:'Tripod',               unitPrice:162.00,unit:'each', prefix:'ESE', number:'008'},
+  {category:'ESE',   name:'ESE Mast 2m',          unitPrice:60.00, unit:'each', prefix:'ESE', number:'009'},
+  {category:'ESE',   name:'ESE Mast 3m',          unitPrice:125.00,unit:'each', prefix:'ESE', number:'010'},
+  {category:'ESE',   name:'ESE Mast 4m',          unitPrice:160.00,unit:'each', prefix:'ESE', number:'011'},
+  {category:'ESE',   name:'Lighting Counter',     unitPrice:75.00, unit:'each', prefix:'ESE', number:'012'},
+  // CLAMPS
+  {category:'CLAMPS',name:'A-Clamp (GM)',         unitPrice:2.29,  unit:'each', prefix:'CLM', number:'001'},
+  {category:'CLAMPS',name:'Alu Square',           unitPrice:2.42,  unit:'each', prefix:'CLM', number:'002'},
+  {category:'CLAMPS',name:'GM Square',            unitPrice:2.77,  unit:'each', prefix:'CLM', number:'003'},
+  {category:'CLAMPS',name:'G-Clamp',              unitPrice:2.10,  unit:'each', prefix:'CLM', number:'004'},
+  {category:'CLAMPS',name:'16mm (CR320)',         unitPrice:6.12,  unit:'each', prefix:'CLM', number:'005'},
+  {category:'CLAMPS',name:'SS Test Clamp',        unitPrice:6.98,  unit:'each', prefix:'CLM', number:'006'},
+  {category:'CLAMPS',name:'SS Test 8mm',          unitPrice:6.75,  unit:'each', prefix:'CLM', number:'007'},
+  {category:'CLAMPS',name:'GM Oblong',            unitPrice:4.43,  unit:'each', prefix:'CLM', number:'008'},
+  {category:'CLAMPS',name:'Alu B-Bond',           unitPrice:2.38,  unit:'each', prefix:'CLM', number:'009'},
+  {category:'CLAMPS',name:'GM B-Bond',            unitPrice:1.95,  unit:'each', prefix:'CLM', number:'010'},
+  {category:'CLAMPS',name:'Alu RWP Bond',         unitPrice:3.77,  unit:'each', prefix:'CLM', number:'011'},
+  {category:'CLAMPS',name:'GM RWP Bond',          unitPrice:5.40,  unit:'each', prefix:'CLM', number:'012'},
+  {category:'CLAMPS',name:'DEHN Band (570mm)',    unitPrice:5.00,  unit:'each', prefix:'CLM', number:'013'},
+  {category:'CLAMPS',name:'DEHN RWP Clamp',       unitPrice:3.05,  unit:'each', prefix:'CLM', number:'014'},
+  {category:'CLAMPS',name:'Ali Bond Complete',    unitPrice:15.00, unit:'each', prefix:'CLM', number:'015'},
+  {category:'CLAMPS',name:'Adhoc - DEHN',         unitPrice:3200.00,unit:'each',prefix:'CLM', number:'016'},
+  {category:'CLAMPS',name:'Alu Coffin Clamp',     unitPrice:7.35,  unit:'each', prefix:'CLM', number:'017'},
+  // CIVILS
+  {category:'CIVILS',name:'Bond + 2m Tape',       unitPrice:15.00, unit:'each', prefix:'CIV', number:'001'},
+  {category:'CIVILS',name:'Concrete (40N)',        unitPrice:10.00, unit:'bag',  prefix:'CIV', number:'002'},
+  {category:'CIVILS',name:'Tarmac',               unitPrice:10.00, unit:'bag',  prefix:'CIV', number:'003'},
+  {category:'CIVILS',name:'Sand',                 unitPrice:3.00,  unit:'bag',  prefix:'CIV', number:'004'},
+  {category:'CIVILS',name:'Gravel',               unitPrice:4.00,  unit:'bag',  prefix:'CIV', number:'005'},
+  // OTHER
+  {category:'OTHER', name:'Tripod Bases',         unitPrice:25.00, unit:'each', prefix:'OTH', number:'001'},
+  {category:'OTHER', name:'3m Vandel Guard',      unitPrice:20.00, unit:'each', prefix:'OTH', number:'002'},
+  {category:'OTHER', name:'Fixings',              unitPrice:30.00, unit:'each', prefix:'OTH', number:'003'},
+  {category:'OTHER', name:'MEWP',                 unitPrice:650.00,unit:'day',  prefix:'OTH', number:'004'},
+  {category:'OTHER', name:'Man Anchor',           unitPrice:260.00,unit:'each', prefix:'OTH', number:'005'},
+  {category:'OTHER', name:'Roof Ladder',          unitPrice:78.06, unit:'each', prefix:'OTH', number:'006'},
+  // SURGE
+  {category:'SURGE', name:'Type 1 SPD',           unitPrice:1450.00,unit:'each',prefix:'SPD', number:'001'},
+  {category:'SURGE', name:'Type 2 SPD',           unitPrice:1000.00,unit:'each',prefix:'SPD', number:'002'},
+  {category:'SURGE', name:'Type 3 SPD',           unitPrice:850.00, unit:'each',prefix:'SPD', number:'003'},
+  // LABOUR
+  {category:'LABOUR',name:'2 Men 1 Day',          unitPrice:650.00, unit:'day', prefix:'LAB', number:'001'},
+  {category:'LABOUR',name:'2 Men 1 Hour',         unitPrice:81.25,  unit:'hour',prefix:'LAB', number:'002'},
+  {category:'LABOUR',name:'1 Man 1 Day',          unitPrice:325.00, unit:'day', prefix:'LAB', number:'003'},
+  {category:'LABOUR',name:'1 Man 1 Hour',         unitPrice:40.63,  unit:'hour',prefix:'LAB', number:'004'},
+  // HOTEL & OTHER COSTS
+  {category:'HOTEL', name:'1 Man Per Night',      unitPrice:150.00, unit:'night',prefix:'HTL', number:'001'},
+  {category:'HOTEL', name:'2+ Men Per Night',     unitPrice:250.00, unit:'night',prefix:'HTL', number:'002'},
+  {category:'ACCESS',name:'Rope Access',          unitPrice:1310.00,unit:'day', prefix:'ACC', number:'001'},
+  {category:'ACCESS',name:'Rope Access Survey',   unitPrice:650.00, unit:'day', prefix:'ACC', number:'002'},
+];
+
+// ── INIT ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  currentUser = requireAuth();
+  if (!currentUser) return;
+  if (currentUser.role !== 'manager') {
+    window.location.href = '/Wiggle/index.html';
+    return;
+  }
+  document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  document.getElementById('btn-back').style.display = 'inline-flex';
+
+  initFirebase().then(function() {
+    loadParts();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Connection error — please refresh.', 'error');
+  });
+});
+
+// ── LOAD ─────────────────────────────────────
+function loadParts() {
+  _db.collection('parts').orderBy('category').orderBy('name').get().then(function(snap) {
+    allParts = snap.docs.map(function(d) { return Object.assign({ _id: d.id }, d.data()); });
+    if (!allParts.length) {
+      document.getElementById('seed-banner').classList.remove('hidden');
+    }
+    populateCatFilter();
+    renderCatalogue();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Error loading parts.', 'error');
+  });
+}
+
+// ── POPULATE CATEGORY FILTER ──────────────────
+function populateCatFilter() {
+  var cats = [...new Set(allParts.map(function(p) { return p.category; }))].sort();
+  var sel = document.getElementById('cat-filter');
+  sel.innerHTML = '<option value="">All Categories</option>';
+  cats.forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+  // Also populate datalist for new part form
+  var dl = document.getElementById('cat-list');
+  dl.innerHTML = '';
+  cats.forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c;
+    dl.appendChild(opt);
+  });
+}
+
+// ── RENDER CATALOGUE ─────────────────────────
+function renderCatalogue() {
+  var q = document.getElementById('search-input').value.toLowerCase().trim();
+  var catFilter = document.getElementById('cat-filter').value;
+
+  var filtered = allParts.filter(function(p) {
+    var matchCat = !catFilter || p.category === catFilter;
+    var matchQ = !q ||
+      (p.name||'').toLowerCase().includes(q) ||
+      (p.partNumber||'').toLowerCase().includes(q) ||
+      (p.category||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  // Update stats
+  document.getElementById('stat-total').textContent = allParts.length;
+  var cats = new Set(allParts.map(function(p) { return p.category; }));
+  document.getElementById('stat-cats').textContent = cats.size;
+  var labour = allParts.filter(function(p) { return p.category === 'LABOUR'; });
+  document.getElementById('stat-labour').textContent = labour.length;
+
+  var area = document.getElementById('catalogue-area');
+  if (!filtered.length) {
+    area.innerHTML = '<div style="text-align:center;padding:48px;color:var(--text-muted);"><div style="font-size:36px;margin-bottom:12px;">&#128230;</div><div>No parts found.</div></div>';
+    return;
+  }
+
+  // Group by category
+  var groups = {};
+  filtered.forEach(function(p) {
+    var c = p.category || 'Uncategorised';
+    if (!groups[c]) groups[c] = [];
+    groups[c].push(p);
+  });
+
+  var html = '';
+  Object.keys(groups).sort().forEach(function(cat) {
+    var parts = groups[cat];
+    var catId = 'cat-' + cat.replace(/\W/g,'_');
+    html += '<div class="cat-section">';
+    html += '<div class="cat-header" onclick="toggleCat(\'' + catId + '\')">'
+      + '<span style="font-size:16px;">' + getCatIcon(cat) + '</span>'
+      + '<span class="cat-title">' + esc(cat) + '</span>'
+      + '<span class="cat-count">' + parts.length + ' part' + (parts.length !== 1 ? 's' : '') + '</span>'
+      + '<span class="cat-chevron open" id="chev-' + catId + '">&#9660;</span>'
+      + '</div>';
+    html += '<div class="cat-body" id="' + catId + '">';
+    html += '<table class="parts-table"><thead><tr>'
+      + '<th>Part #</th><th>Name</th><th>Unit</th><th>Unit Price</th><th style="text-align:right;">Actions</th>'
+      + '</tr></thead><tbody>';
+    parts.forEach(function(p) {
+      html += '<tr>'
+        + '<td><span class="part-num">' + esc(p.partNumber || '—') + '</span></td>'
+        + '<td class="part-name">' + esc(p.name) + (p.notes ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + esc(p.notes) + '</div>' : '') + '</td>'
+        + '<td style="color:var(--text-muted);">' + esc(p.unit || 'each') + '</td>'
+        + '<td class="part-price">&pound;' + parseFloat(p.unitPrice || 0).toFixed(2) + '</td>'
+        + '<td><div class="part-actions">'
+        +   '<button class="btn btn-secondary btn-xs" onclick="openEditPart(\'' + p._id + '\')">&#9998; Edit</button>'
+        +   '<button class="btn btn-danger btn-xs" onclick="openDeletePart(\'' + p._id + '\',\'' + esc(p.name) + '\')">&#128465;</button>'
+        + '</div></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+
+  area.innerHTML = html;
+}
+
+function toggleCat(catId) {
+  var body = document.getElementById(catId);
+  var chev = document.getElementById('chev-' + catId);
+  if (!body) return;
+  var isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? '' : 'none';
+  if (chev) chev.classList.toggle('open', isHidden);
+}
+
+function getCatIcon(cat) {
+  var icons = {
+    EARTH:'&#127774;', ALU:'&#9889;', COPPER:'&#127981;', CLIPS:'&#128206;',
+    FINIALS:'&#9650;', ESE:'&#127352;', CLAMPS:'&#128295;', CIVILS:'&#127959;',
+    OTHER:'&#128230;', SURGE:'&#9889;', LABOUR:'&#128119;', HOTEL:'&#127970;', ACCESS:'&#129047;'
+  };
+  return icons[cat] || '&#128230;';
+}
+
+// ── PART NUMBER PREVIEW ───────────────────────
+function updatePartNumPreview() {
+  var prefix = document.getElementById('p-prefix').value.trim();
+  var number = document.getElementById('p-number').value.trim();
+  var preview = document.getElementById('p-num-preview');
+  if (prefix || number) {
+    var pn = (prefix && number) ? prefix + number : (prefix || number);
+    preview.textContent = 'Preview: ' + pn;
+    preview.style.display = 'block';
+  } else {
+    preview.textContent = '';
+  }
+}
+
+// ── OPEN NEW PART ─────────────────────────────
+function openNewPart() {
+  editingPartId = null;
+  document.getElementById('modal-part-title').textContent = 'Add Part';
+  document.getElementById('btn-save-part').textContent = 'Save Part';
+  document.getElementById('p-category').value = '';
+  document.getElementById('p-prefix').value = '';
+  document.getElementById('p-number').value = '';
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-price').value = '';
+  document.getElementById('p-unit').value = 'each';
+  document.getElementById('p-notes').value = '';
+  document.getElementById('p-num-preview').textContent = '';
+  document.getElementById('modal-part').classList.remove('hidden');
+}
+
+// ── OPEN EDIT PART ────────────────────────────
+function openEditPart(id) {
+  var p = allParts.find(function(x) { return x._id === id; });
+  if (!p) return;
+  editingPartId = id;
+  document.getElementById('modal-part-title').textContent = 'Edit Part';
+  document.getElementById('btn-save-part').textContent = 'Save Changes';
+  // Split partNumber back into prefix + number
+  var pn = p.partNumber || '';
+  var prefixVal = '', numberVal = '';
+  var match = pn.match(/^([A-Za-z\/]+)(\d+)$/);
+  if (match) { prefixVal = match[1]; numberVal = match[2]; }
+  else { prefixVal = pn; }
+  document.getElementById('p-category').value = p.category || '';
+  document.getElementById('p-prefix').value   = prefixVal;
+  document.getElementById('p-number').value   = numberVal;
+  document.getElementById('p-name').value     = p.name || '';
+  document.getElementById('p-price').value    = p.unitPrice || '';
+  document.getElementById('p-unit').value     = p.unit || 'each';
+  document.getElementById('p-notes').value    = p.notes || '';
+  updatePartNumPreview();
+  document.getElementById('modal-part').classList.remove('hidden');
+}
+
+function closePartModal() {
+  document.getElementById('modal-part').classList.add('hidden');
+  editingPartId = null;
+}
+
+// ── SAVE PART ─────────────────────────────────
+function savePart() {
+  var category = document.getElementById('p-category').value.trim().toUpperCase();
+  var prefix   = document.getElementById('p-prefix').value.trim();
+  var number   = document.getElementById('p-number').value.trim();
+  var name     = document.getElementById('p-name').value.trim();
+  var price    = parseFloat(document.getElementById('p-price').value) || 0;
+  var unit     = document.getElementById('p-unit').value.trim() || 'each';
+  var notes    = document.getElementById('p-notes').value.trim();
+
+  if (!category) { showToast('Please enter a category.', 'error'); return; }
+  if (!name)     { showToast('Please enter a part name.', 'error'); return; }
+  if (!price)    { showToast('Please enter a unit price.', 'error'); return; }
+
+  var partNumber = prefix && number ? prefix + number : (prefix || number || '');
+  var data = { category, name, partNumber, unitPrice: price, unit, notes, updatedAt: new Date().toISOString() };
+
+  var btn = document.getElementById('btn-save-part');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  var promise = editingPartId
+    ? _db.collection('parts').doc(editingPartId).update(data)
+    : _db.collection('parts').add(Object.assign({ createdAt: new Date().toISOString() }, data));
+
+  promise.then(function() {
+    closePartModal();
+    showToast(editingPartId ? 'Part updated ✓' : 'Part added ✓', 'success');
+    loadParts();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Error saving part.', 'error');
+  }).finally(function() {
+    btn.disabled = false;
+    btn.textContent = editingPartId ? 'Save Changes' : 'Save Part';
+  });
+}
+
+// ── DELETE ────────────────────────────────────
+function openDeletePart(id, name) {
+  pendingDeleteId = id;
+  document.getElementById('delete-part-name').textContent = name;
+  document.getElementById('modal-delete').classList.remove('hidden');
+}
+
+function confirmDeletePart() {
+  if (!pendingDeleteId) return;
+  _db.collection('parts').doc(pendingDeleteId).delete().then(function() {
+    pendingDeleteId = null;
+    document.getElementById('modal-delete').classList.add('hidden');
+    showToast('Part deleted ✓', 'success');
+    loadParts();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Error deleting part.', 'error');
+  });
+}
+
+// ── SEED CATALOGUE ────────────────────────────
+function seedCatalogue() {
+  var btn = document.querySelector('#seed-banner button');
+  btn.disabled = true; btn.textContent = 'Importing...';
+  var batch = _db.batch();
+  DEFAULT_PARTS.forEach(function(p) {
+    var ref = _db.collection('parts').doc();
+    var partNumber = p.prefix + p.number;
+    batch.set(ref, {
+      category:   p.category,
+      name:       p.name,
+      partNumber: partNumber,
+      unitPrice:  p.unitPrice,
+      unit:       p.unit,
+      notes:      '',
+      createdAt:  new Date().toISOString(),
+      updatedAt:  new Date().toISOString()
+    });
+  });
+  batch.commit().then(function() {
+    document.getElementById('seed-banner').classList.add('hidden');
+    showToast('Default parts imported ✓', 'success');
+    loadParts();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Error importing parts.', 'error');
+    btn.disabled = false;
+    btn.textContent = '↓ Import Default Parts';
+  });
+}
+
+// ── HELPERS ───────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(function() { t.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>
