@@ -632,17 +632,35 @@ function onJobTypeChange() {
 }
 
 function buildRef(c) {
-  var rand3 = String(Math.floor(Math.random() * 900) + 100);
-  var jobRef = (c.clientRef || '') + rand3;
-  var jobType = document.getElementById('q-job-type').value;
+  var jobType = document.getElementById('q-job-type').value || 'QTE';
   var d = new Date();
   var dd = String(d.getDate()).padStart(2,'0');
   var mm = String(d.getMonth()+1).padStart(2,'0');
   var yy = String(d.getFullYear()).slice(-2);
-  var dateStr = dd + mm + yy;
-  var quoteRef = 'Q' + (c.clientRef||'') + '-' + jobType + '-' + jobRef + '-' + c.company + ' ' + dateStr;
-  document.getElementById('q-job-ref').value = jobRef;
-  document.getElementById('editor-ref').textContent = quoteRef;
+  var dateStr = dd + '-' + mm + '-' + yy;
+  var clientRef = c.clientRef || '00';
+
+  // Get used numbers and generate a unique random 4-digit number
+  _db.collection('meta').doc('quoteCounter').get().then(function(snap) {
+    var used = (snap.exists && snap.data().used) ? snap.data().used : [];
+    var rand4;
+    var attempts = 0;
+    do {
+      rand4 = String(Math.floor(Math.random() * 9000) + 1000);
+      attempts++;
+    } while (used.indexOf(rand4) !== -1 && attempts < 100);
+    var jobRef   = clientRef + rand4;
+    var quoteRef = 'QSPLP-' + jobRef + '-' + jobType + '-' + dateStr;
+    document.getElementById('q-job-ref').value = jobRef;
+    document.getElementById('editor-ref').textContent = quoteRef;
+  }).catch(function(err) {
+    console.error('Counter error', err);
+    var rand4    = String(Math.floor(Math.random() * 9000) + 1000);
+    var jobRef   = clientRef + rand4;
+    var quoteRef = 'QSPLP-' + jobRef + '-' + jobType + '-' + dateStr;
+    document.getElementById('q-job-ref').value = jobRef;
+    document.getElementById('editor-ref').textContent = quoteRef;
+  });
 }
 
 // ---- LINE ITEMS ----
@@ -745,6 +763,13 @@ function saveQuote() {
   promise.then(function(docRef) {
     if (!currentQuoteId && docRef) {
       currentQuoteId = docRef.id;
+      // Increment the quote counter now that the quote is saved
+      var usedNum = document.getElementById('q-job-ref').value.slice(-4);
+      _db.collection('meta').doc('quoteCounter').get().then(function(snap) {
+        var used = (snap.exists && snap.data().used) ? snap.data().used : [];
+        if (used.indexOf(usedNum) === -1) used.push(usedNum);
+        _db.collection('meta').doc('quoteCounter').set({ used: used });
+      }).catch(function(err) { console.error('Counter save error', err); });
       document.getElementById('editor-title').textContent = ref;
       document.getElementById('btn-pdf').classList.remove('hidden');
       document.getElementById('btn-save').textContent = 'Save Changes';
@@ -1191,7 +1216,6 @@ function generateMaterialsPDF() {
   lineItems.forEach(function(li) {
     if (!li.builderParts) return;
     li.builderParts.forEach(function(p) {
-      // Skip SERVICE category items (labour, MEWPs, rope access etc)
       var partRecord = allParts.find(function(x) { return x.partNumber === p.partNumber && x.name === p.name; });
       if (partRecord && partRecord.category === 'SERVICE') return;
       var key = p.partNumber + '||' + p.name;
