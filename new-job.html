@@ -303,6 +303,7 @@
 <script>
 // ── Init ─────────────────────────────────────
 let currentUser;
+var allCustomersData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireManager();
@@ -344,8 +345,6 @@ function updateBackButton() {
   btn.textContent = labels[from] || '← Dashboard';
 }
 
-var allCustomersData = []; // store full customer records for site lookup
-
       function loadCompanyList() {
       _db.collection('crm_customers').orderBy('company').get().then(function(snap) {
         allCustomersData = snap.docs.map(function(d) { return Object.assign({ _id: d.id }, d.data()); });
@@ -354,7 +353,6 @@ var allCustomersData = []; // store full customer records for site lookup
           if (c.parentCustomerId) return; // skip entities
           var opt = document.createElement('option');
           opt.value = c.company;
-          opt.dataset.id = c._id;
           opt.textContent = c.company;
           sel.appendChild(opt);
         });
@@ -363,21 +361,18 @@ var allCustomersData = []; // store full customer records for site lookup
 
 function onCompanyChange() {
   var companyName = document.getElementById('f-company').value;
-  var wrap  = document.getElementById('site-dropdown-wrap');
-  var sel   = document.getElementById('f-site-select');
+  var wrap = document.getElementById('site-dropdown-wrap');
+  var sel  = document.getElementById('f-site-select');
 
-  // Clear site fields
   document.getElementById('f-sitename').value = '';
   document.getElementById('f-address').value  = '';
   document.getElementById('f-postcode').value = '';
 
   if (!companyName) { wrap.style.display = 'none'; return; }
 
-  var customer = allCustomersData.find(function(c) {
-    return c.company === companyName;
-  });
-
+  var customer = allCustomersData.find(function(c) { return c.company === companyName; });
   var sites = (customer && customer.siteAddresses) ? customer.siteAddresses : [];
+
   if (!sites.length) { wrap.style.display = 'none'; return; }
 
   sel.innerHTML = '<option value="">— Select a site —</option>';
@@ -388,7 +383,6 @@ function onCompanyChange() {
     sel.appendChild(opt);
   });
   wrap.style.display = 'block';
-  // Store sites on the select for use in onSiteSelect
   sel._sites = sites;
   sel._customerId = customer ? customer._id : null;
 }
@@ -521,7 +515,6 @@ function submitJob() {
   if (customerId) {
     var siteName = document.getElementById('f-sitename').value.trim();
     var address  = document.getElementById('f-address').value.trim();
-    var postcode = document.getElementById('f-postcode').value.trim().toUpperCase();
     var customer = allCustomersData.find(function(c) { return c._id === customerId; });
     var sites    = (customer && customer.siteAddresses) ? customer.siteAddresses : [];
     var exists   = sites.some(function(s) {
@@ -536,9 +529,7 @@ function submitJob() {
     }
   }
 
-  // Clear form ready for next job — keep company, date and engineers selected
-  var keepCompany = document.getElementById('f-company').value;
-  var keepDate    = document.getElementById('f-date').value;
+  // Clear form ready for next job — keep company and date
   document.getElementById('f-ref').value      = '';
   document.getElementById('f-time').value     = '';
   document.getElementById('f-sitename').value = '';
@@ -549,9 +540,8 @@ function submitJob() {
   document.getElementById('f-rep').value      = '';
   document.getElementById('f-status').value   = 'live';
   document.getElementById('f-site-select').value = '';
-  // Reset site dropdown
+  var keepCompany = document.getElementById('f-company').value;
   if (keepCompany) onCompanyChange();
-  // Scroll to top of form
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
