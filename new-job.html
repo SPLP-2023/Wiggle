@@ -304,6 +304,7 @@
 // ── Init ─────────────────────────────────────
 let currentUser;
 var allCustomersData = [];
+var prefilledQuoteId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireManager();
@@ -316,11 +317,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('user-name-display').textContent = currentUser.name;
     updateBackButton();
     buildEngineerList();
-    loadCompanyList();  // ADD THIS LINE
+    loadCompanyList();
     // Pre-fill date — use ?date= param from calendar click, or today
     const dateParam = new URLSearchParams(window.location.search).get('date');
     document.getElementById('f-date').value = dateParam || new Date().toISOString().split('T')[0];
     if (dateParam) document.getElementById('cal-date-banner').style.display = 'block';
+    // Pre-fill from accepted quote if ?quoteid= present
+    const quoteId = new URLSearchParams(window.location.search).get('quoteid');
+    if (quoteId) prefillFromQuote(quoteId);
   }).catch(err => {
     hideLoader();
     console.error('Firebase error', err);
@@ -343,6 +347,80 @@ function updateBackButton() {
   if (!btn) return;
   const labels = { dashboard: '← Dashboard', calendar: '← Calendar', search: '← Search' };
   btn.textContent = labels[from] || '← Dashboard';
+}
+
+// ── Pre-fill from accepted quote ──────────────
+function prefillFromQuote(quoteId) {
+  prefilledQuoteId = quoteId;
+  _db.collection('crm_quotes').doc(quoteId).get().then(function(snap) {
+    if (!snap.exists()) return;
+    var q = snap.data();
+
+    // Map job type from quote job type
+    var typeMap = {
+      'T&I': 'Test & Inspection', 'RPS': 'Remedial Repairs',
+      'Installation': 'Installation', 'Survey': 'Survey',
+      'Risk Assessment': 'Risk Assessment'
+    };
+    var jobType = typeMap[q.jobType] || '';
+
+    // Pre-fill company — wait for company list to be ready
+    var waitForCompanies = setInterval(function() {
+      if (!allCustomersData.length) return;
+      clearInterval(waitForCompanies);
+      var companyEl = document.getElementById('f-company');
+      if (q.company) {
+        companyEl.value = q.company;
+        onCompanyChange();
+        // After company change, set site fields
+        setTimeout(function() {
+          if (q.siteName)  document.getElementById('f-sitename').value = q.siteName;
+          if (q.serviceAddress) document.getElementById('f-address').value = q.serviceAddress;
+          if (q.postcode)  document.getElementById('f-postcode').value = q.postcode;
+        }, 300);
+      }
+    }, 100);
+
+    // Job type
+    if (jobType) document.getElementById('f-type').value = jobType;
+    onTypeChange();
+
+    // Rep from preparedFor
+    if (q.preparedFor) document.getElementById('f-rep').value = q.preparedFor;
+
+    // Job value from quote total (ex VAT = subtotal)
+    if (q.subtotal) {
+      document.getElementById('f-value-ti').value    = parseFloat(q.subtotal).toFixed(2);
+      document.getElementById('f-value-other').value = parseFloat(q.subtotal).toFixed(2);
+    }
+
+    // PO from quote acceptedBy / poNumber
+    if (q.poNumber) document.getElementById('f-po').value = q.poNumber;
+
+    // Now try to load acceptance form data for description
+    _db.collection('crm_quote_acceptance').where('quoteId', '==', quoteId).get().then(function(aSnap) {
+      var lines = [];
+      if (!aSnap.empty) {
+        var a = aSnap.docs[0].data();
+        if (a.induction)    lines.push('Site Induction: ' + a.induction);
+        if (a.parking)      lines.push('Parking: ' + a.parking);
+        if (a.credentials)  lines.push('Credentials Required: ' + a.credentials);
+        if (a.access)       lines.push('Roof Access: ' + a.access);
+        if (a.site_contact) lines.push('Site Contact: ' + a.site_contact);
+        if (a.po)           { document.getElementById('f-po').value = a.po; }
+      }
+      if (lines.length) document.getElementById('f-desc').value = lines.join('\n');
+    }).catch(function() {});
+
+    // Show a banner so the user knows this is pre-filled
+    var banner = document.getElementById('cal-date-banner');
+    banner.style.display = 'block';
+    banner.style.background = 'rgba(34,197,94,0.1)';
+    banner.style.borderColor = 'rgba(34,197,94,0.3)';
+    banner.style.color = '#22c55e';
+    banner.innerHTML = '&#10003; Pre-filled from accepted quote <strong>' + (q.ref || quoteId) + '</strong>. Please review and complete before saving.';
+
+  }).catch(function(err) { console.error('Quote prefill error', err); });
 }
 
       function loadCompanyList() {
@@ -508,6 +586,21 @@ function submitJob() {
   appData.jobs.push(job);
   saveData();
   showToast('Job #' + job.ref + ' created! ✓', 'success');
+
+  // If created from an accepted quote — update quote to 'booked' and store quoteId on job
+  if (prefilledQuoteId) {
+    _db.collection('crm_quotes').doc(prefilledQuoteId).update({
+      status: 'booked',
+      linkedJobRef: job.ref,
+      updatedAt: new Date().toISOString()
+    }).catch(function(err) { console.error('Quote booked update error', err); });
+    // Also store quoteId on the Firestore job document for invoice linking later
+    _db.collection('jobs').where('id', '==', job.id).limit(1).get().then(function(snap) {
+      if (!snap.empty) {
+        snap.docs[0].ref.update({ quoteId: prefilledQuoteId });
+      }
+    }).catch(function() {});
+  }
 
   // Save new site back to customer if it doesn't already exist
   var sel = document.getElementById('f-site-select');
