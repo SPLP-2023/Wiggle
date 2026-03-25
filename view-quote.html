@@ -1,17 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Quote Submission</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quote Submission &mdash; Strike Point</title>
+<style>
+:root{
+  --primary:#f59e0b; --primary-dark:#d97706;
+  --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+  --text:#f1f5f9; --text-muted:#94a3b8;
+  --border:#334155; --card-bg:#1e293b;
+  --success:#22c55e; --danger:#ef4444; --info:#3b82f6;
+  --radius:10px; --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--dark);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+header{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+.header-brand{display:flex;align-items:center;gap:10px;}
+.header-brand img{height:34px;width:auto;object-fit:contain;}
+.header-brand span{font-weight:700;font-size:15px;color:var(--primary);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;}
+.btn-secondary{background:var(--dark3);color:var(--text);}
+.btn-secondary:hover{background:#475569;}
+.btn-primary{background:var(--primary);color:var(--dark);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* MAIN */
+main{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:20px;font-weight:700;}
+.page-header p{font-size:13px;color:var(--text-muted);margin-top:4px;}
+
+/* STATE CARDS */
+.state-card{background:var(--dark2);border:1px solid var(--border);border-radius:14px;padding:48px 24px;text-align:center;}
+.state-icon{font-size:48px;margin-bottom:16px;}
+.state-title{font-size:20px;font-weight:700;margin-bottom:8px;}
+.state-sub{font-size:14px;color:var(--text-muted);line-height:1.6;}
+
+/* QUOTE HEADER CARD */
+.quote-header-card{background:var(--dark2);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.qh-ref{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;}
+.qh-company{font-size:18px;font-weight:700;margin-top:3px;}
+.qh-address{font-size:13px;color:var(--text-muted);margin-top:3px;}
+.qh-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.status-badge{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.s-accepted{background:rgba(34,197,94,.2);color:#22c55e;}
+.s-sent{background:rgba(59,130,246,.2);color:#3b82f6;}
+.s-draft{background:rgba(148,163,184,.2);color:#94a3b8;}
+.qh-total{font-size:20px;font-weight:800;color:var(--primary);}
+.qh-meta{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.qh-meta-item{font-size:12px;color:var(--text-muted);}
+.qh-meta-item strong{color:var(--text);margin-left:4px;}
+
+/* SUBMISSION CARD */
+.submission-card{background:var(--card-bg);border:1px solid var(--success);border-radius:14px;padding:22px 24px;margin-bottom:20px;}
+.submission-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.submission-card-header h3{font-size:14px;font-weight:700;color:var(--success);display:flex;align-items:center;gap:8px;}
+.submitted-at{font-size:12px;color:var(--text-muted);}
+
+/* DATA SECTIONS */
+.data-section{margin-bottom:20px;}
+.data-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--primary);padding:8px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.data-item{}
+.data-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.data-value{font-size:14px;color:var(--text);line-height:1.5;}
+.data-value.empty{color:var(--text-muted);font-style:italic;}
+.data-value.highlight{color:var(--primary);font-weight:700;}
+.data-item.full{grid-column:1/-1;}
+
+/* NO SUBMISSION */
+.no-submission{background:var(--dark2);border:1px dashed var(--border);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted);font-size:14px;}
+
+/* ACTIONS BAR */
+.actions-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+
+@media(max-width:580px){
+  .data-grid{grid-template-columns:1fr;}
+  .data-item.full{grid-column:1;}
+  .quote-header-card{flex-direction:column;}
+  .qh-right{align-items:flex-start;}
+}
+</style>
 </head>
 <body>
 
-<h2>Quote Submission Details</h2>
+<header>
+  <div class="header-brand">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Strike Point">
+    <span>Strike Point</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">&#128176; Quotes</button>
+  </div>
+</header>
 
-<div id="output"></div>
+<main>
+  <!-- Loading -->
+  <div id="state-loading" class="state-card">
+    <div class="state-icon">&#9881;</div>
+    <div class="state-title">Loading&hellip;</div>
+  </div>
+
+  <!-- Error -->
+  <div id="state-error" class="state-card" style="display:none;border-color:var(--danger);">
+    <div class="state-icon">&#9888;</div>
+    <div class="state-title">Not Found</div>
+    <div class="state-sub">No quote found for this link.</div>
+  </div>
+
+  <!-- Content -->
+  <div id="state-content" style="display:none;">
+
+    <div class="page-header">
+      <h1>&#128203; Quote Submission Details</h1>
+      <p>Customer acceptance form data and quote information.</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-bar">
+      <button class="btn btn-secondary btn-sm" id="btn-open-quote" onclick="openQuote()">&#128176; Open in Quotes</button>
+      <button class="btn btn-secondary btn-sm" onclick="copyAcceptLink()">&#128279; Copy Accept Link</button>
+    </div>
+
+    <!-- Quote header -->
+    <div class="quote-header-card" id="quote-header"></div>
+
+    <!-- Submission data -->
+    <div id="submission-area"></div>
+
+  </div>
+</main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDdsoekUkPFOaOcY4mm6UmoXVn1BKCLoXI",
@@ -23,47 +150,140 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-// Get jobRef from URL
-const params = new URLSearchParams(window.location.search);
-const jobRef = params.get("quote");
+function show(id) { document.getElementById(id).style.display = ''; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function esc(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtMoney(v){ return '£' + parseFloat(v||0).toFixed(2); }
+function fmtDate(ds){ if (!ds) return '—'; var p=ds.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:ds; }
+function fmtDateTime(iso){ if (!iso) return '—'; var d=new Date(iso); return d.toLocaleDateString('en-GB')+' at '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+function val(v){ return v ? esc(v) : '<span class="empty">Not provided</span>'; }
 
-// Query submissions
-const q = query(
-  collection(db, "crm_quote_acceptance"),
-  where("jobRef", "==", jobRef)
-);
+const params  = new URLSearchParams(window.location.search);
+const quoteId = params.get('id');
+let quoteData = null;
 
-const snapshot = await getDocs(q);
+window.openQuote = function() {
+  if (quoteId) window.location.href = '/Wiggle/crm-quotes.html?id=' + quoteId;
+};
 
-let html = "";
+window.copyAcceptLink = function() {
+  var link = window.location.origin + '/Wiggle/accept-quote.html?id=' + quoteId;
+  navigator.clipboard.writeText(link).then(function() {
+    var btn = document.querySelector('[onclick="copyAcceptLink()"]');
+    var orig = btn.innerHTML;
+    btn.innerHTML = '&#10003; Copied!';
+    setTimeout(function() { btn.innerHTML = orig; }, 2000);
+  });
+};
 
-snapshot.forEach(doc => {
-  const d = doc.data();
+async function init() {
+  if (!quoteId) { hide('state-loading'); show('state-error'); return; }
 
-  html += `
-    <hr>
-    <p><strong>Name:</strong> ${d.first_name} ${d.last_name}</p>
-    <p><strong>Email:</strong> ${d.email}</p>
+  try {
+    // Load quote
+    const qSnap = await getDoc(doc(db, 'crm_quotes', quoteId));
+    if (!qSnap.exists()) { hide('state-loading'); show('state-error'); return; }
+    quoteData = qSnap.data();
 
-    <p><strong>Site Address:</strong> ${d.site_address}</p>
-    <p><strong>PO:</strong> ${d.po}</p>
+    // Render quote header
+    var statusClass = 's-' + (quoteData.status||'draft').toLowerCase();
+    document.getElementById('quote-header').innerHTML =
+      '<div>'
+      + '<div class="qh-ref">' + esc(quoteData.ref||quoteData.jobRef||'') + '</div>'
+      + '<div class="qh-company">' + esc(quoteData.company||'—') + '</div>'
+      + '<div class="qh-address">' + esc(quoteData.serviceAddress||quoteData.siteName||'—') + '</div>'
+      + '<div class="qh-meta">'
+      +   '<div class="qh-meta-item">Date:<strong>' + fmtDate(quoteData.quoteDate||'') + '</strong></div>'
+      +   '<div class="qh-meta-item">Type:<strong>' + esc(quoteData.jobType||'—') + '</strong></div>'
+      +   '<div class="qh-meta-item">Prepared by:<strong>' + esc(quoteData.preparedBy||'—') + '</strong></div>'
+      +   (quoteData.acceptedBy ? '<div class="qh-meta-item">Accepted by:<strong style="color:var(--success);">' + esc(quoteData.acceptedBy) + '</strong></div>' : '')
+      +   (quoteData.poNumber ? '<div class="qh-meta-item">PO Number:<strong style="color:var(--primary);">' + esc(quoteData.poNumber) + '</strong></div>' : '')
+      + '</div>'
+      + '</div>'
+      + '<div class="qh-right">'
+      +   '<span class="status-badge ' + statusClass + '">' + esc(quoteData.status||'draft') + '</span>'
+      +   '<div class="qh-total">' + fmtMoney(quoteData.total||0) + '</div>'
+      + '</div>';
 
-    <p><strong>Induction:</strong> ${d.induction}</p>
-    <p><strong>Parking:</strong> ${d.parking}</p>
-    <p><strong>Credentials:</strong> ${d.credentials}</p>
-    <p><strong>Access:</strong> ${d.access}</p>
+    // Load acceptance submission
+    const aQuery = query(collection(db, 'crm_quote_acceptance'), where('quoteId', '==', quoteId));
+    const aSnap  = await getDocs(aQuery);
 
-    <p><strong>Site Contact:</strong> ${d.site_contact}</p>
-    <p><strong>Reports To:</strong> ${d.report_contact}</p>
+    var subArea = document.getElementById('submission-area');
 
-    <p><strong>Billing:</strong> ${d.billing}</p>
-  `;
-});
+    if (aSnap.empty) {
+      // Check legacy jobRef-based submissions too
+      const legacyQuery = query(collection(db, 'crm_quote_acceptance'), where('jobRef', '==', quoteData.jobRef||''));
+      const legacySnap  = await getDocs(legacyQuery);
 
-document.getElementById("output").innerHTML = html;
+      if (legacySnap.empty) {
+        subArea.innerHTML = '<div class="no-submission">&#128203; No customer submission yet.<br><br>Share the accept link with your customer to collect their details.</div>';
+      } else {
+        renderSubmission(legacySnap.docs[0].data(), subArea);
+      }
+    } else {
+      renderSubmission(aSnap.docs[0].data(), subArea);
+    }
+
+    hide('state-loading');
+    show('state-content');
+
+  } catch(err) {
+    console.error(err);
+    hide('state-loading');
+    show('state-error');
+  }
+}
+
+function renderSubmission(d, container) {
+  container.innerHTML =
+    '<div class="submission-card">'
+    + '<div class="submission-card-header">'
+    +   '<h3>&#10003; Customer Submission Received</h3>'
+    +   '<span class="submitted-at">Submitted: ' + fmtDateTime(d.submitted_at) + '</span>'
+    + '</div>'
+
+    + '<div class="data-section">'
+    +   '<div class="data-section-title">&#128100; Contact Details</div>'
+    +   '<div class="data-grid">'
+    +     '<div class="data-item"><div class="data-label">Name</div><div class="data-value highlight">' + val(d.first_name + ' ' + d.last_name) + '</div></div>'
+    +     '<div class="data-item"><div class="data-label">Email</div><div class="data-value">' + val(d.email) + '</div></div>'
+    +   '</div>'
+    + '</div>'
+
+    + '<div class="data-section">'
+    +   '<div class="data-section-title">&#127959; Site Details</div>'
+    +   '<div class="data-grid">'
+    +     '<div class="data-item full"><div class="data-label">Site Address</div><div class="data-value">' + val(d.site_address) + '</div></div>'
+    +     '<div class="data-item"><div class="data-label">PO Number</div><div class="data-value highlight">' + val(d.po) + '</div></div>'
+    +     '<div class="data-item"><div class="data-label">Roof Access</div><div class="data-value">' + val(d.access) + '</div></div>'
+    +     '<div class="data-item full"><div class="data-label">Site Induction</div><div class="data-value">' + val(d.induction) + '</div></div>'
+    +     '<div class="data-item full"><div class="data-label">Parking</div><div class="data-value">' + val(d.parking) + '</div></div>'
+    +     '<div class="data-item full"><div class="data-label">Credentials Required</div><div class="data-value">' + val(d.credentials) + '</div></div>'
+    +   '</div>'
+    + '</div>'
+
+    + '<div class="data-section">'
+    +   '<div class="data-section-title">&#128222; Contacts</div>'
+    +   '<div class="data-grid">'
+    +     '<div class="data-item full"><div class="data-label">Site Contact</div><div class="data-value">' + val(d.site_contact) + '</div></div>'
+    +     '<div class="data-item full"><div class="data-label">Reports Contact</div><div class="data-value">' + val(d.report_contact) + '</div></div>'
+    +   '</div>'
+    + '</div>'
+
+    + '<div class="data-section">'
+    +   '<div class="data-section-title">&#128179; Billing</div>'
+    +   '<div class="data-grid">'
+    +     '<div class="data-item full"><div class="data-label">Billing Details</div><div class="data-value">' + val(d.billing) + '</div></div>'
+    +   '</div>'
+    + '</div>'
+
+    + '</div>';
+}
+
+init();
 </script>
-
 </body>
 </html>
