@@ -1191,6 +1191,9 @@ function generateMaterialsPDF() {
   lineItems.forEach(function(li) {
     if (!li.builderParts) return;
     li.builderParts.forEach(function(p) {
+      // Skip SERVICE category items (labour, MEWPs, rope access etc)
+      var partRecord = allParts.find(function(x) { return x.partNumber === p.partNumber && x.name === p.name; });
+      if (partRecord && partRecord.category === 'SERVICE') return;
       var key = p.partNumber + '||' + p.name;
       if (!partsMap[key]) partsMap[key] = { partNumber: p.partNumber, name: p.name, unitPrice: p.unitPrice, qty: 0, lineTotal: 0 };
       partsMap[key].qty       += p.qty;
@@ -1267,7 +1270,7 @@ function generateMaterialsPDF() {
       pdf.text('Total Parts Cost:', lm+100, ty);
       pdf.text('£'+grandTotal.toFixed(2), rm, ty, { align:'right' });
 
-      pdf.save((ref||'quote') + '-materials.pdf');
+      pdf.save('Materials List - ' + (ref||'quote') + '.pdf');
     } catch(e) { console.error(e); showToast('PDF error.', 'error'); }
     btn.disabled = false; btn.textContent = '📦 Materials PDF';
   });
