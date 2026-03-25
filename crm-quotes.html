@@ -140,6 +140,14 @@
     .builder-total-row.grand { font-weight:700; font-size:15px; color:var(--primary); border-top:1px solid var(--border); margin-top:6px; padding-top:8px; }
     .btn-materials-pdf { background:var(--info); color:#fff; }
 
+    /* Email template */
+    .email-template-section { margin-top:20px; }
+    .email-template-box { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:16px 18px; font-size:14px; line-height:1.8; color:var(--text); white-space:pre-wrap; font-family:'Segoe UI',system-ui,sans-serif; }
+    .email-template-box a { color:var(--primary); text-decoration:underline; }
+    .copy-btn { margin-top:10px; display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:8px; background:var(--dark3); border:1px solid var(--border); color:var(--text); font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; }
+    .copy-btn:hover { background:#475569; }
+    .copy-btn.copied { border-color:var(--success); color:var(--success); }
+
     /* Common Remedials selector */
     .cr-select-wrap { background:var(--dark); border:1px solid rgba(245,158,11,.3); border-radius:8px; padding:10px 14px; margin-bottom:4px; }
     .cr-select-wrap label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--primary); display:block; margin-bottom:6px; }
@@ -321,6 +329,14 @@
       <div class="sec-div" style="margin-top:20px;">Additional Notes</div>
       <div class="form-group">
         <textarea class="form-input" id="q-notes" rows="3" style="resize:vertical;" placeholder="Any additional notes to include on the quote..."></textarea>
+      </div>
+
+      <!-- EMAIL TEMPLATE — shown after save -->
+      <div class="email-template-section hidden" id="email-template-section">
+        <div class="sec-div" style="margin-top:20px;">&#128139; Quote Acceptance Email</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Copy this into your email alongside the PDF attachment.</p>
+        <div class="email-template-box" id="email-template-box"></div>
+        <button class="copy-btn" id="copy-email-btn" onclick="copyEmailTemplate()">&#128203; Copy to Clipboard</button>
       </div>
     </div>
   </div>
@@ -621,12 +637,14 @@ function openExistingQuote(id) {
     lineItems = (q.lineItems || []).map(function(li) { return Object.assign({}, li); });
     renderLines();
     recalc();
+    renderEmailTemplate(id, q);
   }).catch(function(err) { console.error(err); showToast('Error loading quote.', 'error'); });
 }
 
 function closeEditor() {
   document.getElementById('view-editor').classList.add('hidden');
   document.getElementById('view-list').classList.remove('hidden');
+  document.getElementById('email-template-section').classList.add('hidden');
   currentQuoteId = null;
   loadQuotes();
 }
@@ -870,6 +888,7 @@ function saveQuote() {
       document.getElementById('btn-save').textContent = 'Save Changes';
       document.getElementById('status-bar').classList.remove('hidden');
       updateStatusBadge('draft');
+      renderEmailTemplate(currentQuoteId, null);
     }
     document.getElementById('btn-materials-pdf').classList.remove('hidden');
     showToast('Quote saved', 'success');
@@ -938,11 +957,17 @@ function generatePDF() {
       try {
         var pdf = new window.jspdf.jsPDF();
         buildPDF(pdf, data, logoB64, footerB64);
-        pdf.save((ref || 'quote') + '.pdf');
+        var siteName = document.getElementById('q-site-name').value.trim() || document.getElementById('q-address').value.trim().split(',')[0].trim();
+        var jobType  = document.getElementById('q-job-type').value || '';
+        var qDate    = document.getElementById('q-date').value || '';
+        var dateParts = qDate.split('-');
+        var dateStr  = dateParts.length === 3 ? dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0].slice(-2) : qDate;
+        var jobRef   = document.getElementById('q-job-ref').value || '';
+        var pdfName  = ('Q' + jobRef + ' ' + jobType + (siteName ? ' ' + siteName : '') + (dateStr ? ' ' + dateStr : '')).trim();
+        pdf.save(pdfName + '.pdf');
       } catch(e) { console.error(e); showToast('PDF error - check console.', 'error'); }
       btn.disabled = false;
-      btn.innerHTML = '&#128438; PDF';
-    });
+      btn.innerHTML = '&#128438; PDF';    });
   });
 }
 
@@ -1433,6 +1458,63 @@ function generateMaterialsPDF() {
     } catch(e) { console.error(e); showToast('PDF error.', 'error'); }
     btn.disabled = false; btn.textContent = '📦 Materials PDF';
   });
+}
+
+// ════════════════════════════════════════════
+// EMAIL TEMPLATE
+// ════════════════════════════════════════════
+function renderEmailTemplate(docId, quoteData) {
+  var section = document.getElementById('email-template-section');
+  var box     = document.getElementById('email-template-box');
+  if (!section || !box || !docId) return;
+
+  var clientName = (quoteData && quoteData.preparedFor) || document.getElementById('q-prepared-for').value.trim() || 'there';
+  var ref        = (quoteData && quoteData.ref) || document.getElementById('editor-ref').textContent || '';
+  var acceptLink = 'https://splp-2023.github.io/Wiggle/accept-quote.html?id=' + docId;
+
+  box.innerHTML =
+    'Hi ' + esc(clientName) + ',\n\n'
+    + 'Please find your quote ' + (ref ? '(' + esc(ref) + ') ' : '') + 'attached.\n\n'
+    + 'To accept the quote, please complete the form below:\n'
+    + '<a href="' + acceptLink + '" target="_blank">Quote Acceptance Form</a>\n\n'
+    + 'Once submitted, we will proceed with scheduling your visit.';
+
+  box.dataset.plainText =
+    'Hi ' + clientName + ',\n\n'
+    + 'Please find your quote ' + (ref ? '(' + ref + ') ' : '') + 'attached.\n\n'
+    + 'To accept the quote, please complete the form below:\n'
+    + acceptLink + '\n\n'
+    + 'Once submitted, we will proceed with scheduling your visit.';
+
+  section.classList.remove('hidden');
+}
+
+function copyEmailTemplate() {
+  var box  = document.getElementById('email-template-box');
+  var btn  = document.getElementById('copy-email-btn');
+  var text = box.dataset.plainText || box.innerText;
+  var html = box.innerHTML.replace(/\n/g, '<br>');
+  var blob = new Blob([
+    '<html><body><div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.8;">' + html + '</div></body></html>'
+  ], { type: 'text/html' });
+  var plainBlob = new Blob([text], { type: 'text/plain' });
+  try {
+    var item = new ClipboardItem({ 'text/html': blob, 'text/plain': plainBlob });
+    navigator.clipboard.write([item]).then(function() {
+      btn.innerHTML = '&#10003; Copied!'; btn.classList.add('copied');
+      setTimeout(function() { btn.innerHTML = '&#128203; Copy to Clipboard'; btn.classList.remove('copied'); }, 2500);
+    }).catch(function() {
+      navigator.clipboard.writeText(text).then(function() {
+        btn.innerHTML = '&#10003; Copied!'; btn.classList.add('copied');
+        setTimeout(function() { btn.innerHTML = '&#128203; Copy to Clipboard'; btn.classList.remove('copied'); }, 2500);
+      });
+    });
+  } catch(e) {
+    navigator.clipboard.writeText(text).then(function() {
+      btn.innerHTML = '&#10003; Copied!'; btn.classList.add('copied');
+      setTimeout(function() { btn.innerHTML = '&#128203; Copy to Clipboard'; btn.classList.remove('copied'); }, 2500);
+    });
+  }
 }
 
 // ── helpers ──
