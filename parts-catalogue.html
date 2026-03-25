@@ -118,6 +118,35 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
 .seed-banner strong{color:var(--primary);}
 
 .hidden{display:none!important;}
+
+/* COMMON REMEDIALS */
+.cr-section{margin-bottom:40px;}
+.cr-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.cr-header h2{font-size:17px;font-weight:700;}
+.cr-header p{font-size:13px;color:var(--text-muted);margin-top:2px;}
+.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.cr-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s;}
+.cr-card:hover{border-color:var(--primary);}
+.cr-card-name{font-size:15px;font-weight:700;}
+.cr-card-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+.cr-card-parts{display:flex;flex-wrap:wrap;gap:5px;}
+.cr-part-chip{font-size:10px;font-weight:700;font-family:monospace;color:var(--primary);background:rgba(245,158,11,.1);padding:2px 7px;border-radius:5px;border:1px solid rgba(245,158,11,.25);}
+.cr-card-actions{display:flex;gap:6px;margin-top:4px;}
+.cr-empty{text-align:center;padding:40px;color:var(--text-muted);font-size:13px;background:var(--card-bg);border:1px dashed var(--border);border-radius:12px;}
+
+/* REMEDIAL MODAL PARTS PICKER */
+.rp-part-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;transition:background .1s;}
+.rp-part-row:hover{background:var(--dark3);}
+.rp-part-num{font-size:10px;font-weight:700;color:var(--primary);font-family:monospace;min-width:65px;}
+.rp-part-name{flex:1;font-size:13px;}
+.rp-part-price{font-size:12px;color:var(--text-muted);min-width:50px;text-align:right;}
+.rp-part-qty{width:60px;padding:4px 7px;background:var(--dark);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;text-align:center;}
+.rp-part-qty:focus{outline:none;border-color:var(--primary);}
+.rp-cat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;padding:6px 0 4px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.rp-cat-label::before{content:'▶';font-size:8px;transition:transform .15s;}
+.rp-cat-label.open::before{transform:rotate(90deg);}
+.rp-cat-items{display:none;}
+.rp-cat-items.open{display:block;}
 </style>
 </head>
 <body>
@@ -156,7 +185,25 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
     <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Total Parts</div></div>
     <div class="stat-card"><div class="stat-num" id="stat-cats">0</div><div class="stat-lbl">Categories</div></div>
     <div class="stat-card"><div class="stat-num" id="stat-labour">0</div><div class="stat-lbl">Labour Rates</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-presets">0</div><div class="stat-lbl">Common Remedials</div></div>
   </div>
+
+  <!-- Common Remedials -->
+  <div class="cr-section">
+    <div class="cr-header">
+      <div>
+        <h2>&#128295; Common Remedials</h2>
+        <p>Pre-built remedial items. Select one in the Remedials Builder to auto-fill description and parts.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openNewPreset()">&#43; Add Common Remedial</button>
+    </div>
+    <div id="presets-area">
+      <div class="cr-empty">Loading&hellip;</div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div style="border-top:1px solid var(--border);margin-bottom:32px;"></div>
 
   <!-- Toolbar -->
   <div class="toolbar">
@@ -223,6 +270,54 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closePartModal()">Cancel</button>
       <button class="btn btn-primary" id="btn-save-part" onclick="savePart()">Save Part</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMON REMEDIALS ADD/EDIT MODAL -->
+<div class="modal-overlay hidden" id="modal-preset">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h3 id="modal-preset-title">Add Common Remedial</h3>
+      <button class="modal-close" onclick="closePresetModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" class="form-input" id="pr-name" placeholder="e.g. Install Alu B-Bond Clamps">
+      </div>
+      <div class="form-group">
+        <label>Description * <span style="font-weight:400;text-transform:none;font-size:11px;">(auto-fills in Remedials Builder)</span></label>
+        <textarea class="form-input" id="pr-desc" rows="3" style="resize:vertical;" placeholder="e.g. Supply and installation of Alu B-Bond clamps to roof plant..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Parts <span style="font-weight:400;text-transform:none;font-size:11px;">(set quantities to include)</span></label>
+        <input type="text" class="form-input" id="pr-parts-search" placeholder="&#128269; Search parts..." oninput="renderPresetPartsPicker()" style="margin-bottom:10px;">
+        <div id="pr-parts-picker" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;">
+          <div style="color:var(--text-muted);font-size:13px;">Loading parts&hellip;</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePresetModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-preset" onclick="savePreset()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE PRESET CONFIRM -->
+<div class="modal-overlay hidden" id="modal-delete-preset">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>&#128465; Delete Common Remedial</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-delete-preset').classList.add('hidden')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to delete <strong id="delete-preset-name" style="color:var(--text);"></strong>? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-delete-preset').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDeletePreset()">Delete</button>
     </div>
   </div>
 </div>
@@ -392,6 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   initFirebaseWithAuth().then(function() {
     loadParts();
+    loadPresets();
   }).catch(function(err) {
     console.error(err);
     showToast('Connection error — please refresh.', 'error');
@@ -453,6 +549,7 @@ function renderCatalogue() {
   document.getElementById('stat-cats').textContent = cats.size;
   var labour = allParts.filter(function(p) { return p.category === 'LABOUR'; });
   document.getElementById('stat-labour').textContent = labour.length;
+  document.getElementById('stat-presets').textContent = allPresets.length;
 
   var area = document.getElementById('catalogue-area');
   if (!filtered.length) {
@@ -663,6 +760,202 @@ function seedCatalogue() {
     showToast('Error importing parts.', 'error');
     btn.disabled = false;
     btn.textContent = '↓ Import Default Parts';
+  });
+}
+
+// ════════════════════════════════════════════
+// COMMON REMEDIALS
+// ════════════════════════════════════════════
+var allPresets = [];
+var editingPresetId = null;
+var pendingDeletePresetId = null;
+var presetPartQtys = {}; // partId -> qty
+
+function loadPresets() {
+  _db.collection('remedial_presets').orderBy('name').get().then(function(snap) {
+    allPresets = snap.docs.map(function(d) { return Object.assign({ _id: d.id }, d.data()); });
+    renderPresets();
+    // Update stat
+    document.getElementById('stat-presets').textContent = allPresets.length;
+  }).catch(function(err) {
+    console.error(err);
+    document.getElementById('presets-area').innerHTML = '<div class="cr-empty">Could not load common remedials.</div>';
+  });
+}
+
+function renderPresets() {
+  var area = document.getElementById('presets-area');
+  if (!allPresets.length) {
+    area.innerHTML = '<div class="cr-empty">No common remedials yet. Click <strong>+ Add Common Remedial</strong> to create one.</div>';
+    return;
+  }
+  var html = '<div class="cr-grid">';
+  allPresets.forEach(function(pr) {
+    var parts = (pr.parts || []);
+    var chips = parts.slice(0,5).map(function(p) {
+      return '<span class="cr-part-chip">' + esc(p.partNumber || p.name) + ' &times;' + p.qty + '</span>';
+    }).join('');
+    if (parts.length > 5) chips += '<span class="cr-part-chip">+' + (parts.length - 5) + ' more</span>';
+    html += '<div class="cr-card">'
+      + '<div class="cr-card-name">' + esc(pr.name) + '</div>'
+      + (pr.description ? '<div class="cr-card-desc">' + esc(pr.description.substring(0,120)) + (pr.description.length > 120 ? '&hellip;' : '') + '</div>' : '')
+      + (chips ? '<div class="cr-card-parts">' + chips + '</div>' : '')
+      + '<div class="cr-card-actions">'
+      +   '<button class="btn btn-secondary btn-xs" onclick="openEditPreset(\'' + pr._id + '\')">&#9998; Edit</button>'
+      +   '<button class="btn btn-danger btn-xs" onclick="openDeletePreset(\'' + pr._id + '\',\'' + esc(pr.name) + '\')">&#128465;</button>'
+      + '</div></div>';
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function openNewPreset() {
+  editingPresetId = null;
+  presetPartQtys = {};
+  document.getElementById('modal-preset-title').textContent = 'Add Common Remedial';
+  document.getElementById('btn-save-preset').textContent = 'Save';
+  document.getElementById('pr-name').value = '';
+  document.getElementById('pr-desc').value = '';
+  document.getElementById('pr-parts-search').value = '';
+  renderPresetPartsPicker();
+  document.getElementById('modal-preset').classList.remove('hidden');
+}
+
+function openEditPreset(id) {
+  var pr = allPresets.find(function(x) { return x._id === id; });
+  if (!pr) return;
+  editingPresetId = id;
+  presetPartQtys = {};
+  (pr.parts || []).forEach(function(p) {
+    // find matching part in allParts by partNumber
+    var found = allParts.find(function(x) { return x.partNumber === p.partNumber && x.name === p.name; });
+    if (found) presetPartQtys[found._id] = p.qty;
+  });
+  document.getElementById('modal-preset-title').textContent = 'Edit Common Remedial';
+  document.getElementById('btn-save-preset').textContent = 'Save Changes';
+  document.getElementById('pr-name').value = pr.name || '';
+  document.getElementById('pr-desc').value = pr.description || '';
+  document.getElementById('pr-parts-search').value = '';
+  renderPresetPartsPicker();
+  document.getElementById('modal-preset').classList.remove('hidden');
+}
+
+function closePresetModal() {
+  document.getElementById('modal-preset').classList.add('hidden');
+  editingPresetId = null;
+  presetPartQtys = {};
+}
+
+function renderPresetPartsPicker() {
+  var q = (document.getElementById('pr-parts-search').value || '').toLowerCase().trim();
+  var filtered = allParts.filter(function(p) {
+    if (!q) return true;
+    return (p.name||'').toLowerCase().includes(q) ||
+           (p.partNumber||'').toLowerCase().includes(q) ||
+           (p.category||'').toLowerCase().includes(q);
+  });
+
+  // Group by category
+  var groups = {};
+  filtered.forEach(function(p) {
+    var c = p.category || 'Other';
+    if (!groups[c]) groups[c] = [];
+    groups[c].push(p);
+  });
+
+  var html = '';
+  Object.keys(groups).sort().forEach(function(cat) {
+    var catId = 'rpcat_' + cat.replace(/\W/g,'_');
+    var isOpen = !!q;
+    html += '<div>'
+      + '<div class="rp-cat-label ' + (isOpen?'open':'') + '" onclick="toggleRpCat(\'' + catId + '\')" id="rplbl-' + catId + '">' + esc(cat) + '</div>'
+      + '<div class="rp-cat-items ' + (isOpen?'open':'') + '" id="' + catId + '">';
+    groups[cat].forEach(function(p) {
+      var qty = presetPartQtys[p._id] || 0;
+      html += '<div class="rp-part-row">'
+        + '<span class="rp-part-num">' + esc(p.partNumber||'—') + '</span>'
+        + '<span class="rp-part-name">' + esc(p.name) + '</span>'
+        + '<span class="rp-part-price">&pound;' + parseFloat(p.unitPrice||0).toFixed(2) + '</span>'
+        + '<input type="number" class="rp-part-qty" min="0" step="1" value="' + qty + '" placeholder="0"'
+        + ' oninput="setPresetQty(\'' + p._id + '\',this.value)">'
+        + '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  if (!html) html = '<div style="color:var(--text-muted);font-size:13px;padding:8px;">No parts found.</div>';
+  document.getElementById('pr-parts-picker').innerHTML = html;
+}
+
+function toggleRpCat(catId) {
+  var body = document.getElementById(catId);
+  var lbl  = document.getElementById('rplbl-' + catId);
+  if (!body) return;
+  var open = body.classList.toggle('open');
+  if (lbl) lbl.classList.toggle('open', open);
+}
+
+function setPresetQty(partId, val) {
+  var qty = parseFloat(val) || 0;
+  if (qty > 0) presetPartQtys[partId] = qty;
+  else delete presetPartQtys[partId];
+}
+
+function savePreset() {
+  var name = document.getElementById('pr-name').value.trim();
+  var desc = document.getElementById('pr-desc').value.trim();
+  if (!name) { showToast('Please enter a name.', 'error'); return; }
+
+  // Build parts array from selected qtys
+  var parts = [];
+  Object.keys(presetPartQtys).forEach(function(pid) {
+    var p = allParts.find(function(x) { return x._id === pid; });
+    if (p) parts.push({
+      partNumber: p.partNumber || '',
+      name:       p.name,
+      qty:        presetPartQtys[pid],
+      unitPrice:  p.unitPrice || 0,
+      category:   p.category || ''
+    });
+  });
+
+  var data = { name: name, description: desc, parts: parts, updatedAt: new Date().toISOString() };
+  var btn = document.getElementById('btn-save-preset');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  var promise = editingPresetId
+    ? _db.collection('remedial_presets').doc(editingPresetId).update(data)
+    : _db.collection('remedial_presets').add(Object.assign({ createdAt: new Date().toISOString() }, data));
+
+  promise.then(function() {
+    closePresetModal();
+    showToast(editingPresetId ? 'Common remedial updated ✓' : 'Common remedial added ✓', 'success');
+    loadPresets();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Error saving.', 'error');
+  }).finally(function() {
+    btn.disabled = false;
+    btn.textContent = editingPresetId ? 'Save Changes' : 'Save';
+  });
+}
+
+function openDeletePreset(id, name) {
+  pendingDeletePresetId = id;
+  document.getElementById('delete-preset-name').textContent = name;
+  document.getElementById('modal-delete-preset').classList.remove('hidden');
+}
+
+function confirmDeletePreset() {
+  if (!pendingDeletePresetId) return;
+  _db.collection('remedial_presets').doc(pendingDeletePresetId).delete().then(function() {
+    pendingDeletePresetId = null;
+    document.getElementById('modal-delete-preset').classList.add('hidden');
+    showToast('Common remedial deleted ✓', 'success');
+    loadPresets();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Error deleting.', 'error');
   });
 }
 
