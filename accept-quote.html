@@ -105,21 +105,21 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--text-muted);}
   <div id="state-error" class="state-card error" style="display:none;">
     <div class="state-icon">&#9888;</div>
     <div class="state-title" id="error-title">Quote not found</div>
-    <div class="state-sub" id="error-msg">We couldn't find the quote you're looking for. Please check your link or contact us at <a href="mailto:info@strikepoint.uk" style="color:var(--primary);">info@strikepoint.uk</a>.</div>
+    <div class="state-sub" id="error-msg">We couldn't find the quote you're looking for. Please check your link or contact us at <a href="mailto:operations@strikepoint.uk" style="color:var(--primary);">operations@strikepoint.uk</a>.</div
   </div>
 
   <!-- Already accepted state -->
   <div id="state-accepted" class="state-card success" style="display:none;">
     <div class="state-icon">&#10003;</div>
     <div class="state-title">Quote Already Accepted</div>
-    <div class="state-sub">This quote has already been accepted. If you need to make changes please contact us at <a href="mailto:info@strikepoint.uk" style="color:var(--primary);">info@strikepoint.uk</a>.</div>
+    <div class="state-sub">This quote has already been accepted. If you need to make changes please contact us at <a href="mailto:operations@strikepoint.uk" style="color:var(--primary);">operations@strikepoint.uk</a>.</div>
   </div>
 
   <!-- Success state -->
   <div id="state-success" class="state-card success" style="display:none;">
     <div class="state-icon">&#127881;</div>
     <div class="state-title">Quote Accepted!</div>
-    <div class="state-sub">Thank you for accepting your quote. Our team will be in touch shortly to confirm your booking.<br><br>If you have any questions please contact us at <a href="mailto:info@strikepoint.uk" style="color:var(--primary);">info@strikepoint.uk</a> or call <strong style="color:var(--text);">0115 990 3220</strong>.</div>
+    <div class="state-sub">Thank you for accepting your quote. Our team will be in touch shortly to confirm your booking.<br><br>If you have any questions please contact us at <a href="mailto:operations@strikepoint.uk" style="color:var(--primary);">operations@strikepoint.uk</a> or call <strong style="color:var(--text);">0115 990 3220</strong>.</div>
   </div>
 
   <!-- Main form -->
@@ -128,7 +128,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--text-muted);}
     <!-- Quote summary -->
     <div class="quote-summary" id="quote-summary"></div>
 
-    <p style="font-size:14px;color:var(--text-muted);margin-bottom:24px;line-height:1.6;">Please review the details below, complete any missing information, and click <strong style="color:var(--text);">Accept Quote</strong> to confirm your order.</p>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:24px;line-height:1.6;">Please review the details below, complete any missing/incorrect information, and click <strong style="color:var(--text);">Accept Quote</strong> to confirm your order.</p>
 
     <!-- Your Details -->
     <div class="form-card">
@@ -227,7 +227,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--text-muted);}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, addDoc, updateDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, addDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDdsoekUkPFOaOcY4mm6UmoXVn1BKCLoXI",
@@ -320,8 +320,57 @@ async function init() {
       document.getElementById('site-prefilled').style.display = 'block';
     }
     if (quoteDoc.company) {
-      document.getElementById('billing').value = quoteDoc.company;
-      document.getElementById('billing-prefilled').style.display = 'block';
+      // Try to find entity billing address for this site
+      if (quoteDoc.customerId) {
+        try {
+          const custSnap = await getDoc(doc(db, 'crm_customers', quoteDoc.customerId));
+          if (custSnap.exists()) {
+            const cust = custSnap.data();
+            const sitePostcode = (quoteDoc.postcode||'').replace(/\s+/g,'').toUpperCase();
+            const siteName     = (quoteDoc.siteName||'').toLowerCase();
+
+            // Find matching site address
+            const sites = cust.siteAddresses || [];
+            let matchedSite = null;
+            sites.forEach(function(s) {
+              const sp = (s.postcode||'').replace(/\s+/g,'').toUpperCase();
+              const sn = (s.name||'').toLowerCase();
+              if (sitePostcode && sp === sitePostcode) matchedSite = s;
+              else if (siteName && (sn.includes(siteName) || siteName.includes(sn))) matchedSite = s;
+            });
+
+            if (matchedSite && matchedSite.entityCustomerId) {
+              // Load entity details
+              const entitySnap = await getDoc(doc(db, 'crm_customers', matchedSite.entityCustomerId));
+              if (entitySnap.exists()) {
+                const entity = entitySnap.data();
+                var billingLines = [];
+                if (entity.company)        billingLines.push(entity.company);
+                if (entity.invoiceAddress) billingLines.push(entity.invoiceAddress);
+                else if (entity.address)   billingLines.push(entity.address);
+                if (billingLines.length) {
+                  document.getElementById('billing').value = billingLines.join('\n');
+                  document.getElementById('billing-prefilled').style.display = 'block';
+                }
+              }
+            } else {
+              // No entity — fall back to customer name + invoiceAddress
+              var billingFallback = [];
+              if (cust.company)        billingFallback.push(cust.company);
+              if (cust.invoiceAddress) billingFallback.push(cust.invoiceAddress);
+              document.getElementById('billing').value = billingFallback.join('\n') || quoteDoc.company;
+              document.getElementById('billing-prefilled').style.display = 'block';
+            }
+          }
+        } catch(e) {
+          // Fallback to just company name
+          document.getElementById('billing').value = quoteDoc.company;
+          document.getElementById('billing-prefilled').style.display = 'block';
+        }
+      } else {
+        document.getElementById('billing').value = quoteDoc.company;
+        document.getElementById('billing-prefilled').style.display = 'block';
+      }
     }
 
     hide('state-loading');
@@ -331,7 +380,7 @@ async function init() {
     console.error(err);
     hide('state-loading');
     document.getElementById('error-title').textContent = 'Something went wrong';
-    document.getElementById('error-msg').textContent = 'Please try refreshing the page. If the problem persists contact us at info@strikepoint.uk';
+    document.getElementById('error-msg').textContent = 'Please try refreshing the page. If the problem persists contact us at operations@strikepoint.uk';
     show('state-error');
   }
 }
@@ -396,7 +445,7 @@ window.submitForm = async function() {
     console.error(err);
     btn.disabled = false;
     btn.innerHTML = '&#10003; Accept Quote';
-    alert('Something went wrong. Please try again or contact us at info@strikepoint.uk');
+    alert('Something went wrong. Please try again or contact us at operations@strikepoint.uk');
   }
 };
 
