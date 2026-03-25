@@ -259,6 +259,22 @@
       </div>
       <div class="form-row">
         <div class="form-group">
+          <label>Site Name <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--text-muted);">(for linking — not on PDF)</span></label>
+          <input type="text" class="form-input" id="q-site-name" placeholder="e.g. The Foundry">
+        </div>
+        <div class="form-group">
+          <label>Site Postcode <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--text-muted);">(for linking — not on PDF)</span></label>
+          <input type="text" class="form-input" id="q-postcode" placeholder="e.g. LE1 1AA" style="text-transform:uppercase;">
+        </div>
+      </div>
+      <div id="q-site-dropdown-wrap" style="display:none;margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;">Select Existing Site</label>
+        <select class="form-input" id="q-site-select" onchange="onQuoteSiteSelect()">
+          <option value="">— Select a site to auto-fill —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
           <label>Job Reference (auto-generated)</label>
           <input type="text" class="form-input" id="q-job-ref" readonly style="opacity:0.6;cursor:not-allowed;">
         </div>
@@ -550,6 +566,9 @@ function openNewQuote(preselectCid) {
   document.getElementById('q-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('q-notes').value = '';
   document.getElementById('q-address').value = '';
+  document.getElementById('q-site-name').value = '';
+  document.getElementById('q-postcode').value = '';
+  document.getElementById('q-site-dropdown-wrap').style.display = 'none';
   document.getElementById('q-prepared-by').value = currentUser.name;
   document.getElementById('q-prepared-for').value = '';
   document.getElementById('q-email').value = '';
@@ -586,6 +605,8 @@ function openExistingQuote(id) {
     document.getElementById('q-email').value        = q.clientEmail || '';
     document.getElementById('q-prepared-by').value  = q.preparedBy || '';
     document.getElementById('q-address').value      = q.serviceAddress || '';
+    document.getElementById('q-site-name').value    = q.siteName || '';
+    document.getElementById('q-postcode').value     = q.postcode || '';
     document.getElementById('q-job-type').value     = q.jobType || 'T&I';
     var isRPS = (q.jobType === 'RPS');
     var btnBuilder = document.getElementById('btn-open-builder');
@@ -613,16 +634,50 @@ function closeEditor() {
 // ---- CUSTOMER CHANGE ----
 function onCustomerChange() {
   var cid = document.getElementById('q-customer').value;
-  if (!cid) { document.getElementById('q-job-ref').value = ''; document.getElementById('editor-ref').textContent = ''; return; }
+  if (!cid) {
+    document.getElementById('q-job-ref').value = '';
+    document.getElementById('editor-ref').textContent = '';
+    document.getElementById('q-site-dropdown-wrap').style.display = 'none';
+    return;
+  }
   var c = allCustomers.find(function(x) { return x.id === cid; });
   if (!c) return;
   currentCustomerId = cid;
   if (c.contact) document.getElementById('q-prepared-for').value = c.contact;
   if (c.email)   document.getElementById('q-email').value = c.email;
   buildRef(c);
+
+  // Populate site dropdown
+  var sites = c.siteAddresses || [];
+  var wrap  = document.getElementById('q-site-dropdown-wrap');
+  var sel   = document.getElementById('q-site-select');
+  if (sites.length) {
+    sel.innerHTML = '<option value="">— Select a site to auto-fill —</option>';
+    sites.forEach(function(s, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = (s.name || s.address) + (s.postcode ? ' · ' + s.postcode : '');
+      sel.appendChild(opt);
+    });
+    sel._sites = sites;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
 }
 
-var JOB_PRESETS = {
+function onQuoteSiteSelect() {
+  var sel = document.getElementById('q-site-select');
+  var idx = sel.value;
+  if (idx === '' || !sel._sites) return;
+  var site = sel._sites[parseInt(idx)];
+  if (!site) return;
+  document.getElementById('q-site-name').value = site.name    || '';
+  document.getElementById('q-address').value   = site.address || (site.name || '');
+  document.getElementById('q-postcode').value  = site.postcode|| '';
+}
+
+
   'T&I':             'Test and inspection of lightning protection systems (tested in accordance with BS 6651, BS EN62305, NF C 17-102:2011 and BS 7430), visual roof inspection, where possible, and visual inspection of surge protection provisions.',
   'Survey':          'Attendance to site to perform a lightning protection survey. Visual inspections of roof areas, main electrical intake boards and ground areas. Followed up with a site report on our findings and quotation for any recommendations.',
   'Risk Assessment': 'Lightning protection risk assessment for the above address based on survey findings.',
@@ -761,6 +816,8 @@ function saveQuote() {
     clientEmail:    document.getElementById('q-email').value.trim(),
     preparedBy:     document.getElementById('q-prepared-by').value.trim(),
     serviceAddress: document.getElementById('q-address').value.trim(),
+    siteName:       document.getElementById('q-site-name').value.trim(),
+    postcode:       document.getElementById('q-postcode').value.trim().toUpperCase(),
     jobType:        jobType,
     jobRef:         jobRef,
     ref:            ref,
@@ -774,6 +831,25 @@ function saveQuote() {
     total:          totals.total,
     updatedAt:      new Date().toISOString()
   };
+
+  // Save new site back to customer if postcode not already known
+  var siteName = document.getElementById('q-site-name').value.trim();
+  var postcode = document.getElementById('q-postcode').value.trim().toUpperCase();
+  if (!currentQuoteId && siteName && postcode && c.id) {
+    var existingSites = c.siteAddresses || [];
+    var siteExists = existingSites.some(function(s) {
+      return (s.postcode||'').toUpperCase().replace(/\s+/g,'') === postcode.replace(/\s+/g,'');
+    });
+    if (!siteExists) {
+      var newSite = { name: siteName, address: document.getElementById('q-address').value.trim(), postcode: postcode, entityCustomerId: null };
+      existingSites.push(newSite);
+      _db.collection('crm_customers').doc(c.id).update({ siteAddresses: existingSites })
+        .catch(function(err) { console.error('Site save error', err); });
+      // Update local customer record
+      var localC = allCustomers.find(function(x) { return x.id === c.id; });
+      if (localC) localC.siteAddresses = existingSites;
+    }
+  }
   var btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = 'Saving...';
   var promise = currentQuoteId
