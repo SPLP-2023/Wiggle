@@ -6,9 +6,7 @@
 <title>Site History &mdash; Strike Point</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
 <style>
 :root{--dark:#0f1117;--dark2:#1a1d27;--dark3:#22263a;--border:#2e3350;--accent:#f59e0b;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--purple:#a855f7;--text:#f1f5f9;--muted:#94a3b8;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -130,7 +128,6 @@ var currentUser, siteName, companyName, fromPage;
 document.addEventListener('DOMContentLoaded', function() {
   currentUser = requireAuth();
   if (!currentUser) return;
-  if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
 
@@ -148,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
   updateBackButton();
   document.title = siteName + ' \u2014 Site History';
 
-  initFirebaseWithAuth().then(function() { loadSiteHistory(); })
+  initFirebase().then(function() { loadSiteHistory(); })
     .catch(function(err) { console.error(err); showToast('Connection error - please refresh.', 'error'); });
 });
 
@@ -189,11 +186,24 @@ function loadSiteHistory() {
     // Build set of job refs for this site
     var siteRefs = new Set(siteJobs.map(function(j){ return String(j.ref||'').trim(); }));
 
-    // Match quotes and invoices by job ref
+    // Get the postcode and company for this site from the first job
+    var sitePostcode = siteJobs.length ? (siteJobs[0].postcode||'').trim().toUpperCase().replace(/\s+/g,'') : '';
+    var siteCompany  = companyName.trim().toLowerCase();
+
+    // Match quotes — by job ref OR by siteName+postcode+company
     var siteQuotes = allQuotes.filter(function(q) {
       var jr = String(q.jobRef||'').trim();
       if (!jr) { var m=String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/); jr=m?m[1]:''; }
-      return siteRefs.has(jr);
+      if (siteRefs.has(jr)) return true;
+      // Tier 2: same company + postcode
+      if (!sitePostcode) return false;
+      var qPostcode = (q.postcode||'').replace(/\s+/g,'').toUpperCase();
+      if (!qPostcode && q.serviceAddress) {
+        var pm = q.serviceAddress.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+        if (pm) qPostcode = pm[0].replace(/\s+/g,'').toUpperCase();
+      }
+      var qCompany = (q.company||'').trim().toLowerCase();
+      return qPostcode === sitePostcode && qCompany === siteCompany;
     });
     var siteInvoices = allInvoices.filter(function(inv) {
       return siteRefs.has(String(inv.jobRef||inv.linkedJobRef||'').trim());
@@ -237,10 +247,15 @@ function renderVisits(jobs, quotes, invoices) {
   }
 
   // Build quote/invoice lookup by job ref
+  // Quotes with no matching job ref (tier 2 matches) go under the most recent job
+  var siteRefs = new Set(jobs.map(function(j){ return String(j.ref||'').trim(); }));
+  var mostRecentRef = jobs.length ? String(jobs[0].ref||'').trim() : '';
   var quotesByRef = {}, invoicesByRef = {};
   quotes.forEach(function(q) {
     var jr = String(q.jobRef||'').trim();
     if (!jr) { var m=String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/); jr=m?m[1]:''; }
+    // If this ref doesn't match any job at this site, file under most recent job
+    if (!siteRefs.has(jr)) jr = mostRecentRef;
     if (!quotesByRef[jr]) quotesByRef[jr] = [];
     quotesByRef[jr].push(q);
   });
@@ -276,7 +291,7 @@ function renderVisits(jobs, quotes, invoices) {
       + invInd
       + '<span class="visit-value">'+val+'</span>'
       + '<span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span>'
-      + '<a class="btn btn-secondary btn-sm" href="/Wiggle/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &amp; Docs &#8594;</a>'
+      + '<a class="btn btn-secondary btn-sm" href="/Wiggle/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &#8594;</a>'
       + '</div>';
 
     // Linked quotes and invoices
