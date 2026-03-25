@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quote Acceptance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<h2>Accept Your Quote</h2>
+
+<form id="form">
+
+  <h3>Your Details</h3>
+  <input id="first_name" placeholder="First Name"><br><br>
+  <input id="last_name" placeholder="Last Name"><br><br>
+  <input id="email" placeholder="Email"><br><br>
+
+  <h3>Site Details</h3>
+  <textarea id="site_address" placeholder="Site Name & Address"></textarea><br><br>
+  <input id="po" placeholder="PO Number"><br><br>
+
+  <input id="induction" placeholder="Site induction details"><br><br>
+  <input id="parking" placeholder="Parking details"><br><br>
+  <input id="credentials" placeholder="Credentials required"><br><br>
+  <input id="access" placeholder="Roof access type"><br><br>
+
+  <h3>Contacts</h3>
+  <textarea id="site_contact" placeholder="Site contact (name, phone, email)"></textarea><br><br>
+  <input id="report_contact" placeholder="Reports contact (name & email)"><br><br>
+
+  <h3>Billing</h3>
+  <textarea id="billing" placeholder="Company name, address, email"></textarea><br><br>
+
+  <button type="submit">Submit</button>
+
+</form>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ⚠️ USE YOUR EXISTING CONFIG (copy from your app)
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ✅ Get quote ID from URL
+const params = new URLSearchParams(window.location.search);
+const quoteId = params.get("quote");
+
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const data = {
+    quote_id: quoteId,
+
+    first_name: document.getElementById("first_name").value,
+    last_name: document.getElementById("last_name").value,
+    email: document.getElementById("email").value,
+
+    site_address: document.getElementById("site_address").value,
+    po: document.getElementById("po").value,
+
+    induction: document.getElementById("induction").value,
+    parking: document.getElementById("parking").value,
+    credentials: document.getElementById("credentials").value,
+    access: document.getElementById("access").value,
+
+    site_contact: document.getElementById("site_contact").value,
+    report_contact: document.getElementById("report_contact").value,
+
+    billing: document.getElementById("billing").value,
+
+    submitted_at: new Date()
+  };
+
+  // ✅ Save submission
+  await addDoc(collection(db, "crm_quote_acceptance"), data);
+
+  // ✅ Update quote status
+  await updateDoc(doc(db, "crm_quotes", quoteId), {
+    status: "Accepted",
+    accepted_at: new Date()
+  });
+
+  alert("Quote submitted successfully!");
+});
+</script>
+
+</body>
+</html>
