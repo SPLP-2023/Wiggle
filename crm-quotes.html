@@ -65,6 +65,10 @@
     .badge-sent     { background:rgba(59,130,246,0.2);  color:#3b82f6; }
     .badge-accepted { background:rgba(34,197,94,0.2);   color:#22c55e; }
     .badge-declined { background:rgba(239,68,68,0.2);   color:#ef4444; }
+    .badge-booked   { background:rgba(245,158,11,0.2);  color:#f59e0b; }
+    .badge-invoiced { background:rgba(168,85,247,0.2);  color:#a855f7; }
+    .badge-booked   { background:rgba(245,158,11,0.2);  color:#f59e0b; }
+    .badge-invoiced { background:rgba(168,85,247,0.2);  color:#a855f7; }
     .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
     .editor { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:24px; }
     .editor-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
@@ -190,6 +194,8 @@
       <button class="filter-btn" onclick="setFilter('draft',this)">Draft</button>
       <button class="filter-btn" onclick="setFilter('sent',this)">Sent</button>
       <button class="filter-btn" onclick="setFilter('accepted',this)">Accepted</button>
+      <button class="filter-btn" onclick="setFilter('booked',this)">Booked</button>
+      <button class="filter-btn" onclick="setFilter('invoiced',this)">Invoiced</button>
       <button class="filter-btn" onclick="setFilter('declined',this)">Declined</button>
     </div>
     <div id="quote-list"></div>
@@ -910,9 +916,11 @@ function updateStatusBadge(status) {
   var badge = document.getElementById('status-badge');
   badge.textContent = cap(status);
   badge.className = 'sbadge badge-' + status;
-  document.getElementById('btn-sent').style.display     = (status === 'draft')    ? 'inline-flex' : 'none';
-  document.getElementById('btn-accepted').style.display = (status === 'sent')     ? 'inline-flex' : 'none';
-  document.getElementById('btn-declined').style.display = (status === 'sent')     ? 'inline-flex' : 'none';
+  // Manual status buttons — hidden for auto-set statuses
+  var isAutoStatus = (status === 'booked' || status === 'invoiced');
+  document.getElementById('btn-sent').style.display     = (status === 'draft' && !isAutoStatus)    ? 'inline-flex' : 'none';
+  document.getElementById('btn-accepted').style.display = (status === 'sent')                      ? 'inline-flex' : 'none';
+  document.getElementById('btn-declined').style.display = (status === 'sent')                      ? 'inline-flex' : 'none';
 }
 
 // ---- DELETE ----
