@@ -353,7 +353,7 @@ function updateBackButton() {
 function prefillFromQuote(quoteId) {
   prefilledQuoteId = quoteId;
   _db.collection('crm_quotes').doc(quoteId).get().then(function(snap) {
-    if (!snap.exists()) return;
+    if (!snap.exists) return;
     var q = snap.data();
 
     // Map job type from quote job type
