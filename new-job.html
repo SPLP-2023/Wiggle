@@ -157,6 +157,12 @@
     <div class="form-group">
         <label>Site Name</label>
         <input type="text" id="f-sitename" placeholder="e.g. The Chuckery">
+        <div id="site-dropdown-wrap" style="display:none;margin-top:6px;">
+          <label style="font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;">Or select an existing site:</label>
+          <select id="f-site-select" onchange="onSiteSelect()" style="width:100%;padding:10px 13px;background:var(--dark);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;">
+            <option value="">— Select a site —</option>
+          </select>
+        </div>
     </div>
 
     <div class="form-row">
@@ -173,7 +179,7 @@
       </div>
         <div class="form-group">
           <label>Company Name</label>
-          <select id="f-company" class="form-input">
+          <select id="f-company" class="form-input" onchange="onCompanyChange()">
             <option value="">-- Select Company --</option>
           </select>
       </div>
@@ -285,8 +291,8 @@
 
   <!-- ── ACTIONS ── -->
   <div class="form-actions">
-    <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
-    <button class="btn btn-primary" onclick="submitJob()">✓ Create Job</button>
+    <button class="btn btn-secondary" onclick="goBack()">&#127968; Go to Dashboard</button>
+    <button class="btn btn-primary" onclick="submitJob()">&#10003; Save &amp; Add Another</button>
   </div>
 </main>
 
@@ -338,17 +344,65 @@ function updateBackButton() {
   btn.textContent = labels[from] || '← Dashboard';
 }
 
+var allCustomersData = []; // store full customer records for site lookup
+
       function loadCompanyList() {
       _db.collection('crm_customers').orderBy('company').get().then(function(snap) {
-        var dl = document.getElementById('f-company');
-        snap.docs.forEach(function(d) {
+        allCustomersData = snap.docs.map(function(d) { return Object.assign({ _id: d.id }, d.data()); });
+        var sel = document.getElementById('f-company');
+        allCustomersData.forEach(function(c) {
+          if (c.parentCustomerId) return; // skip entities
           var opt = document.createElement('option');
-          opt.value = d.data().company;
-          opt.textContent = d.data().company;
-          dl.appendChild(opt);
+          opt.value = c.company;
+          opt.dataset.id = c._id;
+          opt.textContent = c.company;
+          sel.appendChild(opt);
         });
       }).catch(function(err) { console.error('Company list error', err); });
     }
+
+function onCompanyChange() {
+  var companyName = document.getElementById('f-company').value;
+  var wrap  = document.getElementById('site-dropdown-wrap');
+  var sel   = document.getElementById('f-site-select');
+
+  // Clear site fields
+  document.getElementById('f-sitename').value = '';
+  document.getElementById('f-address').value  = '';
+  document.getElementById('f-postcode').value = '';
+
+  if (!companyName) { wrap.style.display = 'none'; return; }
+
+  var customer = allCustomersData.find(function(c) {
+    return c.company === companyName;
+  });
+
+  var sites = (customer && customer.siteAddresses) ? customer.siteAddresses : [];
+  if (!sites.length) { wrap.style.display = 'none'; return; }
+
+  sel.innerHTML = '<option value="">— Select a site —</option>';
+  sites.forEach(function(s, i) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = (s.name || s.address) + (s.postcode ? ' · ' + s.postcode : '');
+    sel.appendChild(opt);
+  });
+  wrap.style.display = 'block';
+  // Store sites on the select for use in onSiteSelect
+  sel._sites = sites;
+  sel._customerId = customer ? customer._id : null;
+}
+
+function onSiteSelect() {
+  var sel = document.getElementById('f-site-select');
+  var idx = sel.value;
+  if (idx === '' || !sel._sites) return;
+  var site = sel._sites[parseInt(idx)];
+  if (!site) return;
+  document.getElementById('f-sitename').value = site.name    || '';
+  document.getElementById('f-address').value  = site.address || '';
+  document.getElementById('f-postcode').value = site.postcode|| '';
+}
 
 // ── Engineer multi-select ─────────────────────
 function buildEngineerList() {
@@ -460,7 +514,45 @@ function submitJob() {
   appData.jobs.push(job);
   saveData();
   showToast('Job #' + job.ref + ' created! ✓', 'success');
-  setTimeout(() => { window.location.href = '/Wiggle/index.html'; }, 1200);
+
+  // Save new site back to customer if it doesn't already exist
+  var sel = document.getElementById('f-site-select');
+  var customerId = sel._customerId || null;
+  if (customerId) {
+    var siteName = document.getElementById('f-sitename').value.trim();
+    var address  = document.getElementById('f-address').value.trim();
+    var postcode = document.getElementById('f-postcode').value.trim().toUpperCase();
+    var customer = allCustomersData.find(function(c) { return c._id === customerId; });
+    var sites    = (customer && customer.siteAddresses) ? customer.siteAddresses : [];
+    var exists   = sites.some(function(s) {
+      return s.postcode && s.postcode.toUpperCase() === postcode;
+    });
+    if (!exists && siteName && postcode) {
+      var newSite = { name: siteName, address: address, postcode: postcode, entityCustomerId: null };
+      sites.push(newSite);
+      _db.collection('crm_customers').doc(customerId).update({ siteAddresses: sites })
+        .catch(function(err) { console.error('Site save error', err); });
+      if (customer) customer.siteAddresses = sites;
+    }
+  }
+
+  // Clear form ready for next job — keep company, date and engineers selected
+  var keepCompany = document.getElementById('f-company').value;
+  var keepDate    = document.getElementById('f-date').value;
+  document.getElementById('f-ref').value      = '';
+  document.getElementById('f-time').value     = '';
+  document.getElementById('f-sitename').value = '';
+  document.getElementById('f-address').value  = '';
+  document.getElementById('f-postcode').value = '';
+  document.getElementById('f-po').value       = '';
+  document.getElementById('f-desc').value     = '';
+  document.getElementById('f-rep').value      = '';
+  document.getElementById('f-status').value   = 'live';
+  document.getElementById('f-site-select').value = '';
+  // Reset site dropdown
+  if (keepCompany) onCompanyChange();
+  // Scroll to top of form
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
   <script>
