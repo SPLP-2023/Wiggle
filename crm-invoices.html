@@ -11,7 +11,6 @@
   <title>Invoices - Strike Point CRM</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root { --primary:#f59e0b; --primary-dark:#d97706; --dark:#0f172a; --dark2:#1e293b; --dark3:#334155; --text:#f1f5f9; --text-muted:#94a3b8; --card-bg:#1e293b; --border:#334155; --success:#22c55e; --danger:#ef4444; --info:#3b82f6; --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4); }
@@ -97,25 +96,17 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html?from=invoices'">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/customers.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
-    <span>Strike Point</span>
+    <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <div id="manager-nav-links" style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=invoices'">&#127968; Dashboard</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=invoices'">&#128197; Calendar</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=invoices'">&#128101; Customers</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=invoices'">&#128176; Quotes</button>
-      <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#129534; Invoices</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=invoices'">&#9881;&#65039; Settings</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=invoices'">&#128269; Search</button>
-    </div>
-    <div id="accountant-nav-links" style="display:none;gap:10px;">
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/banking.html?from=invoices'">&#128178; Banking</button>
-      <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#129534; Invoices</button>
-    </div>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#9889; FSM</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html'">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -128,7 +119,7 @@
       <div class="page-title">&#129534; <span>Invoices</span></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-secondary" onclick="exportToCSV()">&#11123; Export CSV</button>
-        <button class="btn btn-primary" id="btn-new-invoice" onclick="openNewInvoice(null)">&#43; New Invoice</button>
+        <button class="btn btn-primary" onclick="openNewInvoice(null)">&#43; New Invoice</button>
       </div>
     </div>
     <div class="filter-bar">
@@ -224,7 +215,7 @@
         </tr></thead>
         <tbody id="li-body"></tbody>
       </table>
-      <button class="add-line-btn" id="btn-add-line" onclick="addLine()">&#43; Add Line Item</button>
+      <button class="add-line-btn" onclick="addLine()">&#43; Add Line Item</button>
       <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
           <input type="checkbox" id="cis-toggle" onchange="recalc()" style="width:16px;height:16px;accent-color:var(--primary);">
@@ -234,7 +225,7 @@
       <div class="totals-box">
         <div class="tot-row"><span>Subtotal</span><span id="t-sub">&#163;0.00</span></div>
         <div class="tot-row" id="t-cis-row" style="display:none;color:#ef4444;"><span>CIS Deduction (20%)</span><span id="t-cis">&#8722;&#163;0.00</span></div>
-        <div class="tot-row" id="t-vat-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
+        <div class="tot-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
         <div class="tot-row grand"><span>Total Due</span><span id="t-total">&#163;0.00</span></div>
       </div>
       <div class="sec-div" style="margin-top:20px;">Notes</div>
@@ -244,7 +235,6 @@
 </main>
 <div class="toast" id="toast"></div>
 <script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
 <script id="app-script">
 var currentUser,allInvoices=[],allCustomers=[],lineItems=[];
 var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCounter=1;
@@ -266,6 +256,7 @@ var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCount
     }, 80);
   }
 
+  // Use the job ref search system — cleaner than URL params
   if (jobId) {
     setTimeout(function() { selectJobRef(jobId); }, 120);
   }
@@ -277,43 +268,31 @@ var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCount
   const cid    = params.get('cid');
   if (from === 'customer' && cid) {
     window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
-  } else if (from === 'job') {
-    history.back();
-  } else if (from === 'search') {
-    window.location.href = '/Wiggle/job-search.html';
-  } else if (from === 'calendar') {
-    window.location.href = '/Wiggle/calendar.html';
   } else if (from === 'customers') {
     window.location.href = '/Wiggle/customers.html';
-  } else if (from === 'quotes') {
-    window.location.href = '/Wiggle/crm-quotes.html';
-  } else if (from === 'settings') {
-    window.location.href = '/Wiggle/settings.html';
   } else {
-    window.location.href = '/Wiggle/index.html';
+    window.location.href = '/Wiggle/customers.html';
   }
 }
 
 function updateBackButton() {
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
+  const cid    = params.get('cid');
   const btn    = document.getElementById('btn-back');
   if (!btn || !from) return;
   btn.style.display = 'inline-flex';
-  const labels = {
-    customer: '← Back to Customer', job: '← Back to Job',
-    search: '← Search', calendar: '← Calendar',
-    customers: '← Customers', quotes: '← Quotes',
-    settings: '← Settings', dashboard: '← Dashboard'
-  };
-  if (labels[from]) btn.textContent = labels[from];
+  if (from === 'customer')   btn.textContent = '← Back to Customer';
+  else if (from === 'customers') btn.textContent = '← Customers';
+  else if (from === 'job')   btn.textContent = '← Back to Job';
+  else if (from === 'search') btn.textContent = '← Search';
 }
 
 // ════════════════════════════════════════════
 // JOB REF SEARCH & AUTO-FILL
 // ════════════════════════════════════════════
-var linkedJobId = null;
-var jobRefTimer = null;
+var linkedJobId  = null;
+var jobRefTimer  = null;
 
 function onJobRefInput(val) {
   clearTimeout(jobRefTimer);
@@ -358,33 +337,19 @@ function selectJobRef(jobId) {
   document.getElementById('jobref-search-input').value = String(j.ref);
   document.getElementById('jobref-selected-text').textContent = 'Linked to Job #' + j.ref + ' \u2014 ' + (j.siteName||j.company||'');
   document.getElementById('jobref-selected-banner').style.display = 'flex';
+  // Auto-fill PO
   if (j.poRef) document.getElementById('i-order-ref').value = j.poRef;
+  // Auto-fill site name
   if (j.siteName) document.getElementById('i-site-name').value = j.siteName;
-
-  // Map job type to the standard invoice description preset
-  var typeLow = (j.type || '').toLowerCase();
-  var desc = '';
-  if (typeLow.includes('test') || typeLow.includes('inspection') || typeLow.includes('t&i') || typeLow.includes('t & i')) {
-    desc = 'Lightning Protection Test & Inspection Service';
-  } else if (typeLow.includes('survey') || typeLow.includes('svy') || typeLow.includes('svt')) {
-    desc = 'Lightning Protection Survey & Inspection';
-  } else if (typeLow.includes('remedial') || typeLow.includes('repair') || typeLow.includes('rps')) {
-    desc = 'Lightning protection system repairs as per quote:';
-  } else if (typeLow.includes('install')) {
-    desc = 'Lightning protection system installation';
-  }
-
+  // Auto-fill first line item if empty
   var jobValue = (j.costs && j.costs.jobValue) ? parseFloat(j.costs.jobValue) : 0;
-  if (lineItems.length > 0 && (!lineItems[0].unitPrice || lineItems[0].unitPrice === 0)) {
-    if (desc) lineItems[0].description = desc;
-    if (jobValue > 0) lineItems[0].unitPrice = jobValue;
+  if (jobValue > 0 && lineItems.length > 0 && (!lineItems[0].unitPrice || lineItems[0].unitPrice === 0)) {
+    lineItems[0].unitPrice = jobValue;
+    if (!lineItems[0].description) lineItems[0].description = (j.type||'') + ' \u2014 ' + (j.siteName||j.company||'');
     renderLines(); recalc();
   } else if (jobValue > 0 && lineItems.length === 0) {
-    lineItems = [{ description: desc || j.type || '', type:'Labour', qty:1, unitPrice:jobValue, vatRate:20 }];
+    lineItems = [{ description: (j.type||'')+' \u2014 '+(j.siteName||j.company||''), type:'Labour', qty:1, unitPrice:jobValue, vatRate:20 }];
     renderLines(); recalc();
-  } else if (desc && lineItems.length > 0 && !lineItems[0].description) {
-    lineItems[0].description = desc;
-    renderLines();
   }
 }
 
@@ -402,16 +367,9 @@ function escInv(s) {
 document.addEventListener('DOMContentLoaded',function(){
   currentUser=requireAuth();
   if(!currentUser)return;
-  if(currentUser.role!=='manager' && currentUser.role!=='accountant'){window.location.href='/Wiggle/index.html';return;}
+  if(currentUser.role!=='manager'){window.location.href='/Wiggle/index.html';return;}
   document.getElementById('user-avatar').textContent=currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent=currentUser.name;
-  if(currentUser.role==='accountant'){
-    document.getElementById('btn-new-invoice').style.display='none';
-    document.getElementById('manager-nav-links').style.display='none';
-    document.getElementById('accountant-nav-links').style.display='flex';
-    document.getElementById('btn-add-line').style.display='none';
-    document.getElementById('btn-back').style.display='none';
-  }
   var params=new URLSearchParams(window.location.search);
   var iid=params.get('id');
   currentCustomerId=params.get('customer');
@@ -419,6 +377,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var d=new Date(this.value);d.setDate(d.getDate()+30);
     document.getElementById('i-due-date').value=d.toISOString().split('T')[0];
   });
+  // Close job ref dropdown when clicking outside
   document.addEventListener('click', function(e) {
     var wrap = document.getElementById('jobref-search-wrap');
     if (wrap && !wrap.contains(e.target)) {
@@ -427,9 +386,9 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   });
   showLoader();
-  initFirebaseWithAuth().then(function(){
+  initFirebase().then(function(){
     hideLoader();
-    if(currentUser.role!=='accountant') updateBackButton();
+    updateBackButton();
     loadCustomersDD(function(){
       getCount(function(){
         if(iid) openExistingInvoice(iid);
@@ -458,19 +417,10 @@ function loadCustomersDD(cb){
 
 function getCount(cb){
   _db.collection('crm_invoices').get().then(function(s){
-    var maxNum = 0;
-    s.docs.forEach(function(d){
-      var num = d.data().number || d.data().ref || '';
-      var match = String(num).match(/(\d+)$/);
-      if(match){
-        var n = parseInt(match[1]);
-        if(n > maxNum) maxNum = n;
-      }
-    });
-    invoiceCounter = maxNum > 0 ? maxNum + 1 : 1;
-    if(cb)cb();
+    invoiceCounter=s.size+1;if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
+
 function loadInvoices(){
   var today=new Date().toISOString().split('T')[0];
   _db.collection('crm_invoices').orderBy('createdAt','desc').get().then(function(snap){
@@ -502,31 +452,15 @@ function renderList(){
   empty.classList.add('hidden');
   list.innerHTML=f.map(function(inv){
     var col=inv.status==='paid'?'color:var(--success);':inv.status==='overdue'?'color:var(--danger);':'';
-    // Day counter
-    var dayBadge='';
-    if(inv.status!=='paid'&&inv.status!=='cancelled'&&inv.status!=='draft'&&inv.dueDate){
-      var today=new Date(); today.setHours(0,0,0,0);
-      var due=new Date(inv.dueDate); due.setHours(0,0,0,0);
-      var diff=Math.round((due-today)/(1000*60*60*24));
-      if(diff>0){
-        dayBadge='<span style="font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;background:rgba(59,130,246,0.15);color:#3b82f6;">Due in '+diff+' day'+(diff===1?'':'s')+'</span>';
-      } else if(diff===0){
-        dayBadge='<span style="font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;background:rgba(239,68,68,0.15);color:#ef4444;">Due today</span>';
-      } else {
-        var over=Math.abs(diff);
-        dayBadge='<span style="font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;background:rgba(239,68,68,0.15);color:#ef4444;">'+over+' day'+(over===1?'':'s')+' overdue</span>';
-      }
-    }
     return '<div class="inv-row">'
       +'<div class="inv-row-info"><div class="iref">'+esc(inv.number||'-')+'</div>'
       +'<div class="icompany">'+esc(inv.company||'-')+'</div>'
       +'<div class="imeta">Due: '+formatDate(inv.dueDate)+' &middot; '+esc(inv.siteName||inv.siteRef||'-')+'</div></div>'
       +'<div class="inv-row-right">'
-      +dayBadge
       +'<span class="sbadge badge-'+esc(inv.status)+'">'+cap(inv.status)+'</span>'
       +'<span class="itotal" style="'+col+'">'+fmtMoney(inv.totalDue||0)+'</span>'
       +'<button class="btn btn-secondary btn-xs" onclick="openExistingInvoice(\''+esc(inv.id)+'\')">View</button>'
-        +(currentUser.role!=='accountant'?'<button class="btn btn-danger btn-xs" onclick="confirmDelete(\''+esc(inv.id)+'\')">&#128465;</button>':'')
+      +'<button class="btn btn-danger btn-xs" onclick="confirmDelete(\''+esc(inv.id)+'\')">&#128465;</button>'
       +'</div></div>';
   }).join('');
 }
@@ -567,8 +501,7 @@ function openExistingInvoice(id){
     document.getElementById('editor-ref').textContent=inv.ref||'';
     document.getElementById('btn-pdf').classList.remove('hidden');
     document.getElementById('btn-save').textContent='Save Changes';
-    if(currentUser.role==='accountant') document.getElementById('btn-save').style.display='none';
-    if(currentUser.role!=='accountant') document.getElementById('status-bar').classList.remove('hidden');
+    document.getElementById('status-bar').classList.remove('hidden');
     updateStatusBadge(inv.status||'draft');
     var today=new Date().toISOString().split('T')[0];
     if((inv.status==='sent'||inv.status==='overdue')&&inv.dueDate&&inv.dueDate<today){
@@ -576,7 +509,6 @@ function openExistingInvoice(id){
       document.getElementById('overdue-banner').classList.remove('hidden');
     } else {document.getElementById('overdue-banner').classList.add('hidden');}
     document.getElementById('i-customer').value=inv.customerId||'';
-    // Rebuild entity site dropdown for this customer
     if(inv.customerId) onCustomerChange();
     document.getElementById('i-number').value=inv.number||'';
     document.getElementById('i-site-name').value=inv.siteName||'';
@@ -588,7 +520,6 @@ function openExistingInvoice(id){
     document.getElementById('i-client-address').value=inv.clientAddress||'';
     document.getElementById('i-notes').value=inv.notes||'';
     document.getElementById('cis-toggle').checked=inv.cis||false;
-    // Restore c/o indicator if this invoice had an entity
     if(inv.entityCustomerId){
       document.getElementById('i-entity-site').value=inv.entityCustomerId;
       var parentCustomer=allCustomers.find(function(x){return x.id===inv.customerId;});
@@ -597,7 +528,7 @@ function openExistingInvoice(id){
     } else {
       document.getElementById('co-indicator').classList.add('hidden');
     }
-    lineItems=(inv.lineItems||[]).map(function(li){return Object.assign({},li);});
+    // Restore linked job ref banner if saved
     clearJobRefLink();
     if(inv.linkedJobRef){
       linkedJobId = inv.linkedJobId || null;
@@ -605,6 +536,7 @@ function openExistingInvoice(id){
       document.getElementById('jobref-selected-text').textContent = 'Linked to Job #' + inv.linkedJobRef;
       document.getElementById('jobref-selected-banner').style.display = 'flex';
     }
+    lineItems=(inv.lineItems||[]).map(function(li){return Object.assign({},li);});
     renderLines();recalc();
   }).catch(function(err){console.error(err);showToast('Error loading.','error');});
 }
@@ -716,11 +648,9 @@ function addLine(){lineItems.push({description:'',type:'Labour',qty:1,unitPrice:
         +'<option value="20"'+(li.vatRate==20?' selected':'')+'>20%</option>'
         +'<option value="0"'+(li.vatRate==0?' selected':'')+'>0%</option>'
         +'<option value="5"'+(li.vatRate==5?' selected':'')+'>5%</option>'
-        +'</select>'
-        +'<div id="li-drc-'+i+'" style="display:none;font-size:11px;color:#94a3b8;text-align:center;margin-top:2px;">DRC</div>'
-        +'</td>'
-        +'<td style="text-align:right;font-weight:600;padding-right:6px;" id="li-amt-'+i+'">'+fmtMoney(net+vat)+'</td>'
-        +'<td style="text-align:center;">'+(currentUser.role!=='accountant'?'<button class="btn btn-danger btn-xs" onclick="removeLI('+i+')">&#10005;</button>':'')+'</td>'
+        +'</select></td>'
+        +'<td style="text-align:right;font-weight:600;padding-right:6px;">'+fmtMoney(net+vat)+'</td>'
+        +'<td style="text-align:center;"><button class="btn btn-danger btn-xs" onclick="removeLI('+i+')">&#10005;</button></td>'
         +'</tr>';
     }).join('');
   }
@@ -734,28 +664,20 @@ function removeLI(i){lineItems.splice(i,1);renderLines();recalc();}
 
 function recalc(){
   var sub=0,vat=0,labourNet=0;
-  var cis=document.getElementById('cis-toggle').checked;
-  lineItems.forEach(function(li,i){
+  lineItems.forEach(function(li){
     var net=(parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0);
-    var liVat=net*((parseFloat(li.vatRate)||0)/100);
-    sub+=net;
-    vat+=liVat;
+    sub+=net;vat+=net*((parseFloat(li.vatRate)||0)/100);
     if(!li.type||li.type==='Labour') labourNet+=net;
-    // Update per-line VAT display and Amount Due
-    var drcEl=document.getElementById('li-drc-'+i);
-    var amtEl=document.getElementById('li-amt-'+i);
-    if(drcEl) drcEl.style.display=cis?'block':'none';
-    if(amtEl) amtEl.textContent=cis?fmtMoney(net):fmtMoney(net+liVat);
   });
+  var cis=document.getElementById('cis-toggle').checked;
   var cisAmt=cis?labourNet*0.20:0;
-  var total=cis?(sub-cisAmt):(sub+vat);
-  document.getElementById('t-cis-row').style.display=cis?'flex':'none';
-  document.getElementById('t-vat-row').style.display=cis?'none':'flex';
+  var cisRow=document.getElementById('t-cis-row');
+  cisRow.style.display=cis?'flex':'none';
   document.getElementById('t-sub').textContent=fmtMoney(sub);
   document.getElementById('t-cis').textContent='\u2212'+fmtMoney(cisAmt);
   document.getElementById('t-vat').textContent=fmtMoney(vat);
-  document.getElementById('t-total').textContent=fmtMoney(total);
-  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:total};
+  document.getElementById('t-total').textContent=fmtMoney(sub-cisAmt+vat);
+  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:sub-cisAmt+vat};
 }
 
 function saveInvoice(){
@@ -796,9 +718,18 @@ function saveInvoice(){
       document.getElementById('editor-title').textContent=number;
       document.getElementById('btn-pdf').classList.remove('hidden');
       document.getElementById('btn-save').textContent='Save Changes';
-    if(currentUser.role==='accountant') document.getElementById('btn-save').style.display='none';
       document.getElementById('status-bar').classList.remove('hidden');
       updateStatusBadge('draft');
+      // If linked to a job that has a quoteId — mark quote as invoiced
+      if (linkedJobId) {
+        var linkedJob = (appData.jobs||[]).find(function(j){ return j.id === linkedJobId; });
+        if (linkedJob && linkedJob.quoteId) {
+          _db.collection('crm_quotes').doc(linkedJob.quoteId).update({
+            status: 'invoiced',
+            updatedAt: new Date().toISOString()
+          }).catch(function(err){ console.error('Quote invoiced update error', err); });
+        }
+      }
     }
     showToast('Invoice saved','success');
   }).catch(function(err){console.error(err);showToast('Error saving.','error');})
@@ -960,8 +891,8 @@ function buildPDF(pdf,d,logo,footerImg){
     pdf.text(dl[0]||'',lm+2,ty);
     pdf.text(String(li.qty||1),108,ty,{align:'right'});
     pdf.text(fmtMoney(li.unitPrice||0),138,ty,{align:'right'});
-    pdf.text(d.cis?'DRC':(li.vatRate||0)+'%',156,ty,{align:'right'});
-    pdf.text(d.cis?fmtMoney(net):fmtMoney(net+vat),rm,ty,{align:'right'});
+    pdf.text((li.vatRate||0)+'%',156,ty,{align:'right'});
+    pdf.text(fmtMoney(net+vat),rm,ty,{align:'right'});
     ty+=8;
     if(ty>210){addFtr(pdf,footerImg);pdf.addPage();ty=20;}
   });
@@ -985,9 +916,9 @@ function buildPDF(pdf,d,logo,footerImg){
     pdf.text('CIS Deduction (20% Labour):',148,ty,{align:'right'});pdf.text('-'+fmtMoney(cisDeduction),rm,ty,{align:'right'});ty+=7;
     pdf.setTextColor(0,0,0);
   }
-  if(!d.cis){pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;}
+  pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;
   pdf.setFontSize(11);pdf.setFont(undefined,'bold');
-  var pdfTotal=d.cis?(d.subtotal-cisDeduction):(d.subtotal-cisDeduction+d.vat);
+  var pdfTotal=d.subtotal-cisDeduction+d.vat;
   pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(pdfTotal),rm,ty,{align:'right'});
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty+2,rm,ty+2);
   pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);
