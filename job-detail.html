@@ -1008,14 +1008,15 @@ function loadLinkedRecords() {
       }
       // Tier 2: same company + postcode + fuzzy site name
       if (!jobPostcode) return;
-      var qPostcode = (q.postcode||q.serviceAddress||'').replace(/\s+/g,'').toUpperCase();
-      // Try to extract postcode from serviceAddress if no dedicated field
+      var qPostcode = (q.postcode||'').replace(/\s+/g,'').toUpperCase();
+      // Fall back to extracting from serviceAddress if no dedicated postcode field
       if (!qPostcode && q.serviceAddress) {
         var pm = q.serviceAddress.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
         if (pm) qPostcode = pm[0].replace(/\s+/g,'').toUpperCase();
       }
       var qCompany = (q.company||'').trim().toLowerCase();
-      var qSite    = (q.serviceAddress||'').trim().toLowerCase();
+      // Prefer dedicated siteName field, fall back to serviceAddress
+      var qSite    = (q.siteName || q.serviceAddress||'').trim().toLowerCase();
       if (qPostcode === jobPostcode && qCompany === jobCompany && siteMatch(qSite, jobSite)) {
         q._matchTier = 2;
         linkedQuotes.push(q);
