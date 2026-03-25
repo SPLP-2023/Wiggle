@@ -1017,7 +1017,11 @@ function loadLinkedRecords() {
       var qCompany = (q.company||'').trim().toLowerCase();
       // Prefer dedicated siteName field, fall back to serviceAddress
       var qSite    = (q.siteName || q.serviceAddress||'').trim().toLowerCase();
-      if (qPostcode === jobPostcode && qCompany === jobCompany && siteMatch(qSite, jobSite)) {
+      // Match on company + postcode — site name is used as additional check only if both have it
+      var postcodeMatch = qPostcode === jobPostcode;
+      var companyMatch  = qCompany === jobCompany;
+      var siteOk = (!jobSite || !qSite) ? true : siteMatch(qSite, jobSite);
+      if (postcodeMatch && companyMatch && siteOk) {
         q._matchTier = 2;
         linkedQuotes.push(q);
         seenQIds.add(q._id);
