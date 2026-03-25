@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quote Submission</title>
+</head>
+<body>
+
+<h2>Quote Submission Details</h2>
+
+<div id="output"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Get jobRef from URL
+const params = new URLSearchParams(window.location.search);
+const jobRef = params.get("quote");
+
+// Query submissions
+const q = query(
+  collection(db, "crm_quote_acceptance"),
+  where("jobRef", "==", jobRef)
+);
+
+const snapshot = await getDocs(q);
+
+let html = "";
+
+snapshot.forEach(doc => {
+  const d = doc.data();
+
+  html += `
+    <hr>
+    <p><strong>Name:</strong> ${d.first_name} ${d.last_name}</p>
+    <p><strong>Email:</strong> ${d.email}</p>
+
+    <p><strong>Site Address:</strong> ${d.site_address}</p>
+    <p><strong>PO:</strong> ${d.po}</p>
+
+    <p><strong>Induction:</strong> ${d.induction}</p>
+    <p><strong>Parking:</strong> ${d.parking}</p>
+    <p><strong>Credentials:</strong> ${d.credentials}</p>
+    <p><strong>Access:</strong> ${d.access}</p>
+
+    <p><strong>Site Contact:</strong> ${d.site_contact}</p>
+    <p><strong>Reports To:</strong> ${d.report_contact}</p>
+
+    <p><strong>Billing:</strong> ${d.billing}</p>
+  `;
+});
+
+document.getElementById("output").innerHTML = html;
+</script>
+
+</body>
+</html>
