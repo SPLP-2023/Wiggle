@@ -959,7 +959,6 @@ function loadLinkedRecords() {
   if (!currentUser || currentUser.role !== 'manager') {
     var sidebar = document.getElementById('linked-sidebar');
     if (sidebar) sidebar.style.display = 'none';
-    // Also collapse the layout to single column
     var layout = document.querySelector('.job-layout');
     if (layout) layout.style.gridTemplateColumns = '1fr';
     return;
@@ -969,7 +968,20 @@ function loadLinkedRecords() {
       '<div class="linked-empty">No job ref set.</div>';
     return;
   }
-  var refStr = String(job.ref).trim();
+
+  var refStr      = String(job.ref).trim();
+  var jobPostcode = (job.postcode||'').trim().toUpperCase().replace(/\s+/g,'');
+  var jobCompany  = (job.company||'').trim().toLowerCase();
+  var jobSite     = (job.siteName||'').trim().toLowerCase();
+
+  // Helper: fuzzy site name match
+  function siteMatch(a, b) {
+    if (!a || !b) return false;
+    var al = a.trim().toLowerCase();
+    var bl = b.trim().toLowerCase();
+    return al === bl || al.includes(bl) || bl.includes(al);
+  }
+
   Promise.all([
     _db.collection('crm_quotes').get(),
     _db.collection('crm_invoices').get()
@@ -977,14 +989,69 @@ function loadLinkedRecords() {
     var quotes   = snaps[0].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
     var invoices = snaps[1].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
 
-    var linkedQuotes = quotes.filter(function(q) {
-      if (String(q.jobRef||'').trim() === refStr) return true;
-      var m = String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/);
-      return m && m[1] === refStr;
+    // ── QUOTES ──
+    var linkedQuotes = [];
+    var seenQIds = new Set();
+    quotes.forEach(function(q) {
+      if (seenQIds.has(q._id)) return;
+      // Tier 1: exact job ref match
+      var t1 = String(q.jobRef||'').trim() === refStr;
+      if (!t1) {
+        var m = String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/);
+        t1 = !!(m && m[1] === refStr);
+      }
+      if (t1) {
+        q._matchTier = 1;
+        linkedQuotes.push(q);
+        seenQIds.add(q._id);
+        return;
+      }
+      // Tier 2: same company + postcode + fuzzy site name
+      if (!jobPostcode) return;
+      var qPostcode = (q.postcode||q.serviceAddress||'').replace(/\s+/g,'').toUpperCase();
+      // Try to extract postcode from serviceAddress if no dedicated field
+      if (!qPostcode && q.serviceAddress) {
+        var pm = q.serviceAddress.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+        if (pm) qPostcode = pm[0].replace(/\s+/g,'').toUpperCase();
+      }
+      var qCompany = (q.company||'').trim().toLowerCase();
+      var qSite    = (q.serviceAddress||'').trim().toLowerCase();
+      if (qPostcode === jobPostcode && qCompany === jobCompany && siteMatch(qSite, jobSite)) {
+        q._matchTier = 2;
+        linkedQuotes.push(q);
+        seenQIds.add(q._id);
+      }
     });
-    var linkedInvoices = invoices.filter(function(inv) {
-      return String(inv.jobRef||inv.linkedJobRef||'').trim() === refStr;
+
+    // ── INVOICES ──
+    var linkedInvoices = [];
+    var seenInvIds = new Set();
+    invoices.forEach(function(inv) {
+      if (seenInvIds.has(inv._id)) return;
+      // Tier 1: exact job ref match
+      var t1 = String(inv.jobRef||inv.linkedJobRef||'').trim() === refStr;
+      if (t1) {
+        inv._matchTier = 1;
+        linkedInvoices.push(inv);
+        seenInvIds.add(inv._id);
+        return;
+      }
+      // Tier 2: same company + postcode + fuzzy site name
+      if (!jobPostcode) return;
+      var invPostcode = (inv.postcode||'').replace(/\s+/g,'').toUpperCase();
+      if (!invPostcode && inv.clientAddress) {
+        var pm2 = inv.clientAddress.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+        if (pm2) invPostcode = pm2[0].replace(/\s+/g,'').toUpperCase();
+      }
+      var invCompany = (inv.company||inv.clientName||'').trim().toLowerCase();
+      var invSite    = (inv.siteName||'').trim().toLowerCase();
+      if (invPostcode === jobPostcode && invCompany === jobCompany && siteMatch(invSite, jobSite)) {
+        inv._matchTier = 2;
+        linkedInvoices.push(inv);
+        seenInvIds.add(inv._id);
+      }
     });
+
     renderLinkedSidebar(linkedQuotes, linkedInvoices);
   }).catch(function(err) {
     console.error('Linked records error', err);
@@ -1012,11 +1079,15 @@ function renderLinkedSidebar(quotes, invoices) {
       var val = q.total ? '&pound;' + parseFloat(q.total).toFixed(2) : '&mdash;';
       var sc  = 'ls-' + (q.status||'draft').toLowerCase();
       var ref = q.ref || q.quoteRef || q._id;
+      var siteTag = q._matchTier === 2
+        ? '<span style="font-size:10px;color:var(--info);font-weight:600;">&#127959; Same site</span>'
+        : '';
       html += '<a class="linked-item" href="/Wiggle/crm-quotes.html?view=' + q._id + '&from=job">'
         + '<div class="linked-item-icon">&#128203;</div>'
         + '<div class="linked-item-body">'
         +   '<div class="linked-item-title">' + escHtml(q.serviceAddress||q.company||ref) + '</div>'
-        +   '<div class="linked-item-sub">' + escHtml(String(ref).substring(0,28)) + '</div>'
+        +   '<div class="linked-item-sub">' + escHtml(String(ref).substring(0,28)) + (siteTag ? ' ' : '') + '</div>'
+        +   (siteTag ? '<div>' + siteTag + '</div>' : '')
         + '</div>'
         + '<div class="linked-item-right">'
         +   '<div class="linked-item-value">' + val + '</div>'
@@ -1030,11 +1101,15 @@ function renderLinkedSidebar(quotes, invoices) {
       var val = inv.total||inv.totalDue ? '&pound;' + parseFloat(inv.total||inv.totalDue||0).toFixed(2) : '&mdash;';
       var sc  = 'ls-' + (inv.status||'draft').toLowerCase();
       var num = inv.invoiceNumber||inv.number||inv.ref||inv._id;
+      var siteTag = inv._matchTier === 2
+        ? '<span style="font-size:10px;color:var(--info);font-weight:600;">&#127959; Same site</span>'
+        : '';
       html += '<a class="linked-item" href="/Wiggle/crm-invoices.html?view=' + inv._id + '&from=job">'
         + '<div class="linked-item-icon">&#129534;</div>'
         + '<div class="linked-item-body">'
         +   '<div class="linked-item-title">' + escHtml(inv.siteName||inv.clientName||num) + '</div>'
         +   '<div class="linked-item-sub">' + escHtml(num) + '</div>'
+        +   (siteTag ? '<div>' + siteTag + '</div>' : '')
         + '</div>'
         + '<div class="linked-item-right">'
         +   '<div class="linked-item-value">' + val + '</div>'
