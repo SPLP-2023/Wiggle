@@ -705,6 +705,7 @@ function recalc(){
     if(!li.type||li.type==='Labour') labourNet+=net;
   });
   var cis=document.getElementById('cis-toggle').checked;
+  // CIS base is the net subtotal after all deductions (inc. retention negative lines)
   var cisAmt=cis?labourNet*0.20:0;
   // CIS reverse charge: VAT is noted in the reverse charge text but NOT added to the total
   var totalDue=cis?(sub-cisAmt):(sub-cisAmt+vat);
@@ -953,9 +954,9 @@ function buildPDF(pdf,d,logo,footerImg){
     pdf.text('CIS Deduction (20% Labour):',148,ty,{align:'right'});pdf.text('-'+fmtMoney(cisDeduction),rm,ty,{align:'right'});ty+=7;
     pdf.setTextColor(0,0,0);
   }
-  pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;
+  if(!d.cis){pdf.text('VAT:',148,ty,{align:'right'});pdf.text(fmtMoney(d.vat),rm,ty,{align:'right'});ty+=7;}
   pdf.setFontSize(11);pdf.setFont(undefined,'bold');
-  var pdfTotal=d.subtotal-cisDeduction+d.vat;
+  var pdfTotal=d.cis?(d.subtotal-cisDeduction):(d.subtotal-cisDeduction+d.vat);
   pdf.text('Total Due:',148,ty,{align:'right'});pdf.text(fmtMoney(pdfTotal),rm,ty,{align:'right'});
   pdf.setDrawColor(51,102,153);pdf.setLineWidth(0.4);pdf.line(120,ty+2,rm,ty+2);
   pdf.setDrawColor(0,0,0);pdf.setLineWidth(0.2);
