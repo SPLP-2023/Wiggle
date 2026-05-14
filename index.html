@@ -311,6 +311,27 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <!-- SheetJS — Excel/CSV parsing -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    /* ── IMPORT MODAL ── */
+    .import-drop-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 40px 20px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s; margin-bottom: 16px;
+    }
+    .import-drop-zone:hover, .import-drop-zone.dragging {
+      border-color: var(--primary); background: rgba(245,158,11,0.04);
+    }
+    .import-drop-icon { font-size: 36px; margin-bottom: 10px; }
+    .import-drop-text { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+    .import-preview-wrap { overflow-x: auto; max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .import-preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .import-preview-table th { padding: 8px 10px; text-align: left; white-space: nowrap; font-weight: 600; color: var(--text-muted); background: var(--dark3); position: sticky; top: 0; }
+    .import-preview-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .import-preview-table tr.row-error { background: rgba(239,68,68,0.07); }
+    .import-summary { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; font-size: 13px; font-weight: 600; }
+  </style>
 </head>
 <body>
 
@@ -395,6 +416,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-secondary btn-sm" id="btn-calendar-view" onclick="showCalendar()">📅 Calendar</button>
           <button class="btn btn-primary btn-sm" id="btn-new-job" style="display:none;" onclick="showNewJobModal()">＋ New Job</button>
+          <button class="btn btn-secondary btn-sm" id="btn-import-jobs" style="display:none;" onclick="openImportModal()">&#128229; Multiple Jobs</button>
         </div>
       </div>
 
@@ -474,6 +496,46 @@
       <p style="color:var(--text-muted);font-size:14px;">Full job creation form coming in Stage 2. For now, a sample job is added to demonstrate the dashboard.</p>
       <br>
       <button class="btn btn-primary" onclick="addSampleJob()">Add Sample Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     IMPORT JOBS MODAL
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-import-jobs" style="display:none;" onclick="closeModalOutside(event,'modal-import-jobs')">
+  <div class="modal" style="max-width:860px;">
+    <div class="modal-header">
+      <h3>&#128229; Import Multiple Jobs</h3>
+      <button class="modal-close" onclick="closeModal('modal-import-jobs')">&#10005;</button>
+    </div>
+
+    <!-- Step 1: Upload -->
+    <div id="import-step-upload" class="modal-body">
+      <div class="import-drop-zone" id="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
+        <div class="import-drop-icon">&#128196;</div>
+        <div class="import-drop-text">Drop your Excel or CSV file here, or click to browse</div>
+        <span class="btn btn-secondary btn-sm" style="pointer-events:none;">Browse file</span>
+        <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none;">
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);text-align:center;">
+        Required columns: <strong>Date</strong>, <strong>Company</strong>, <strong>Type</strong> &nbsp;·&nbsp;
+        Optional: End Date, Time, Site Name, Address, Postcode, Description, Rep
+      </p>
+    </div>
+
+    <!-- Step 2: Preview -->
+    <div id="import-step-preview" style="display:none;">
+      <div class="modal-body" style="padding-bottom:0;">
+        <div class="import-summary" id="import-summary"></div>
+        <div class="import-preview-wrap">
+          <table class="import-preview-table" id="import-preview-table"></table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="importReset()">&#8592; Back</button>
+        <button class="btn btn-primary" id="import-confirm-btn" onclick="runImport()">&#128229; Import Jobs</button>
+      </div>
     </div>
   </div>
 </div>
@@ -568,6 +630,7 @@ function initApp() {
   if (currentUser.role === 'manager') {
     document.getElementById('summary-panel').style.display = 'block';
     document.getElementById('btn-new-job').style.display = 'inline-flex';
+    document.getElementById('btn-import-jobs').style.display = 'inline-flex';
     document.getElementById('tab-pending').style.display = 'inline-flex';
     document.getElementById('tab-notconfirmed').style.display = 'inline-flex';
     document.getElementById('tab-tobook').style.display = 'inline-flex';
@@ -1113,6 +1176,195 @@ function showToast(msg, type='success') {
   toastTimer = setTimeout(() => { t.className = ''; }, 3000);
 }
 </script>
+
+<script>
+// ══════════════════════════════════════════════
+// IMPORT JOBS
+// ══════════════════════════════════════════════
+var importRows = [];
+
+function openImportModal() {
+  importReset();
+  document.getElementById('modal-import-jobs').style.display = 'flex';
+
+  // Wire file input and drag-drop once
+  var inp = document.getElementById('import-file-input');
+  inp.onchange = function(e) { if (e.target.files[0]) parseImportFile(e.target.files[0]); };
+
+  var zone = document.getElementById('import-drop-zone');
+  zone.ondragover  = function(e) { e.preventDefault(); zone.classList.add('dragging'); };
+  zone.ondragleave = function()  { zone.classList.remove('dragging'); };
+  zone.ondrop      = function(e) {
+    e.preventDefault(); zone.classList.remove('dragging');
+    if (e.dataTransfer.files[0]) parseImportFile(e.dataTransfer.files[0]);
+  };
+}
+
+function importReset() {
+  importRows = [];
+  document.getElementById('import-step-upload').style.display = '';
+  document.getElementById('import-step-preview').style.display = 'none';
+  var inp = document.getElementById('import-file-input');
+  if (inp) inp.value = '';
+}
+
+function parseImportFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb   = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      if (!rows.length) { showToast('No data rows found in the file.', 'error'); return; }
+      processImportRows(rows);
+    } catch(err) {
+      console.error(err);
+      showToast('Could not read file — use .xlsx, .xls or .csv format.', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseUKDate(val) {
+  if (!val && val !== 0) return null;
+  if (val instanceof Date) {
+    var y = val.getFullYear();
+    var m = String(val.getMonth() + 1).padStart(2, '0');
+    var d = String(val.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  var s = String(val).trim();
+  var dm = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dm) return dm[3] + '-' + dm[2].padStart(2,'0') + '-' + dm[1].padStart(2,'0');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return null;
+}
+
+function nextImportRef() {
+  var max = 999;
+  (appData.jobs || []).forEach(function(j) {
+    var n = parseInt(j.ref, 10);
+    if (!isNaN(n) && n > max) max = n;
+  });
+  return max + 1;
+}
+
+function processImportRows(raw) {
+  var refCounter = nextImportRef();
+  importRows = raw.map(function(r, i) {
+    var errors      = [];
+    var bookingDate = parseUKDate(r['Date']);
+    var endDate     = r['End Date'] ? parseUKDate(r['End Date']) : null;
+    var time        = String(r['Time'] || '').trim();
+    var company     = String(r['Company'] || '').trim();
+    var type        = String(r['Type'] || '').trim();
+
+    if (!bookingDate)                        errors.push('Invalid Date');
+    if (!company)                            errors.push('Company required');
+    if (!type)                               errors.push('Type required');
+    if (endDate && endDate < bookingDate)    errors.push('End Date before Date');
+    if (time && !/^\d{1,2}:\d{2}$/.test(time)) errors.push('Invalid Time format');
+
+    var ref = String(refCounter++);
+    return {
+      _row:   i + 2,
+      _valid: errors.length === 0,
+      _errors: errors,
+      id:          genId(),
+      ref:         ref,
+      bookingDate: bookingDate || '',
+      endDate:     endDate     || null,
+      jobTime:     time        || null,
+      company:     company,
+      siteName:    String(r['Site Name']   || '').trim() || company,
+      address:     String(r['Address']     || '').trim(),
+      postcode:    String(r['Postcode']    || '').trim().toUpperCase(),
+      type:        type,
+      description: String(r['Description']|| '').trim(),
+      rep:         String(r['Rep']         || '').trim(),
+      engineers:   [],
+      status:      'pending',
+      costs:       {},
+      comments:    [],
+      history:     [],
+      auditLog:    [{ action: 'Imported', user: currentUser.name, ts: new Date().toISOString() }],
+      isNew:       true,
+      createdAt:   new Date().toISOString(),
+      completedAt: null, startedAt: null, finishedAt: null, duration: null,
+    };
+  });
+  renderImportPreview();
+}
+
+function renderImportPreview() {
+  var valid   = importRows.filter(function(r) { return r._valid; });
+  var invalid = importRows.length - valid.length;
+
+  document.getElementById('import-summary').innerHTML =
+    '<span style="color:var(--success);">&#10003; ' + valid.length + ' ready to import</span>' +
+    (invalid ? '<span style="color:var(--danger);">&#10005; ' + invalid + ' row' + (invalid > 1 ? 's' : '') + ' with errors (will be skipped)</span>' : '');
+
+  var cols = ['Row','Ref','Date','End Date','Time','Company','Type','Status'];
+  var thead = '<thead><tr>' + cols.map(function(c) {
+    return '<th>' + c + '</th>';
+  }).join('') + '</tr></thead>';
+
+  var tbody = '<tbody>' + importRows.map(function(r) {
+    var cls = r._valid ? '' : ' class="row-error"';
+    return '<tr' + cls + '>'
+      + '<td style="color:var(--text-muted);">'  + r._row + '</td>'
+      + '<td style="color:var(--primary);font-weight:700;">' + r.ref + '</td>'
+      + '<td>' + (r.bookingDate || '<span style="color:var(--danger);">missing</span>') + '</td>'
+      + '<td>' + (r.endDate  || '—') + '</td>'
+      + '<td>' + (r.jobTime  || '—') + '</td>'
+      + '<td style="font-weight:600;">' + (r.company || '<span style="color:var(--danger);">missing</span>') + '</td>'
+      + '<td>' + (r.type || '<span style="color:var(--danger);">missing</span>') + '</td>'
+      + '<td>' + (r._valid
+          ? '<span style="color:var(--success);font-weight:600;">&#10003; Ready</span>'
+          : '<span style="color:var(--danger);font-size:11px;">' + r._errors.join(', ') + '</span>')
+      + '</td>'
+      + '</tr>';
+  }).join('') + '</tbody>';
+
+  document.getElementById('import-preview-table').innerHTML = thead + tbody;
+
+  var btn = document.getElementById('import-confirm-btn');
+  btn.textContent = '\u{1F4E5} Import ' + valid.length + ' Job' + (valid.length !== 1 ? 's' : '');
+  btn.disabled    = valid.length === 0;
+
+  document.getElementById('import-step-upload').style.display   = 'none';
+  document.getElementById('import-step-preview').style.display  = '';
+}
+
+function runImport() {
+  var valid = importRows.filter(function(r) { return r._valid; });
+  if (!valid.length) return;
+
+  var btn = document.getElementById('import-confirm-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Importing…';
+
+  var promises = valid.map(function(r) {
+    var job = Object.assign({}, r);
+    delete job._row; delete job._valid; delete job._errors;
+    appData.jobs.push(job);
+    return _db.collection('jobs').doc(job.id).set(job);
+  });
+
+  Promise.all(promises)
+    .then(function() {
+      closeModal('modal-import-jobs');
+      renderJobs();
+      showToast('✓ ' + valid.length + ' job' + (valid.length !== 1 ? 's' : '') + ' imported.', 'success');
+    })
+    .catch(function(err) {
+      console.error('Import error', err);
+      btn.disabled    = false;
+      btn.textContent = 'Retry Import';
+      showToast('Import failed — check connection and try again.', 'error');
+    });
+}
+</script>
+
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/Wiggle/sw.js');
