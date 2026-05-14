@@ -715,7 +715,7 @@ function recalc(){
   document.getElementById('t-cis').textContent='\u2212'+fmtMoney(cisAmt);
   document.getElementById('t-vat').textContent=fmtMoney(vat);
   document.getElementById('t-total').textContent=fmtMoney(totalDue);
-  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:totalDue};
+  return{subtotal:sub,vat:cis?labourNet*0.20:vat,cisDeduction:cisAmt,total:totalDue};
 }
 
 function saveInvoice(){
