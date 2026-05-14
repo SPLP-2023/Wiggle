@@ -1179,7 +1179,7 @@ function renderHeader() {
   document.getElementById('h-ref-inline').textContent = '#' + job.ref;
   document.getElementById('h-type').textContent    = job.type;
   document.getElementById('h-company').textContent = job.company;
-  document.getElementById('h-address').textContent = job.address || '—';
+  setAddressLink('h-address', job.address);
   document.getElementById('h-date').textContent    = formatDate(job.bookingDate);
   document.getElementById('h-postcode').textContent= job.postcode || '—';
   document.getElementById('h-rep').textContent     = job.rep || 'No representative';
@@ -1197,7 +1197,7 @@ function renderDetails() {
   document.getElementById('d-company').textContent = job.company;
   document.getElementById('d-rep').textContent     = job.rep || '—';
   document.getElementById('d-postcode').textContent= job.postcode;
-  document.getElementById('d-address').textContent = job.address;
+  setAddressLink('d-address', job.address);
   document.getElementById('d-desc').textContent    = job.description || 'No description provided.';
   document.getElementById('d-po').textContent      = job.poRef || '—';
   document.getElementById('d-time').textContent    = job.jobTime ? formatJobTime(job.jobTime) : '—';
@@ -2152,6 +2152,14 @@ function confirmCreateInvoice() {
   if (entityId)   url += '&entity='   + entityId;
 
   window.location.href = url;
+}
+
+function setAddressLink(id, address) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!address) { el.textContent = '—'; return; }
+  const url = 'https://maps.google.com/maps?q=' + encodeURIComponent(address);
+  el.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">' + address + '</a>';
 }
 
 function openReportPicker() {
