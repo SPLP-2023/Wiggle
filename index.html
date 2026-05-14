@@ -593,6 +593,7 @@ function buildNav() {
     ...(isManager ? [{ label: '⚙️ Settings', page: 'settings' }] : []),
     ...(isManager ? [{ label: '👥 Customers', page: 'crm' }] : []),
     ...(isManager ? [{ label: '📄 Quotes', page: 'quotes' }] : []),
+    ...(isManager ? [{ label: '✅ Acceptances', page: 'acceptances' }] : []),
     ...(isManager ? [{ label: '🧾 Invoices', page: 'invoices' }] : []),
     ...(isManager ? [{ label: '🔍 Search', page: 'search' }] : []),
     ...(isManager ? [{ label: '📦 Parts', page: 'parts' }] : []),
@@ -607,6 +608,8 @@ function buildNav() {
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/customers.html?from=dashboard'">${l.label}</button>`
     : l.page === 'quotes'
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-quotes.html?from=dashboard'">${l.label}</button>`
+    : l.page === 'acceptances'
+    ? `<button class="nav-link" onclick="window.location.href='/Wiggle/quote-acceptances.html?from=dashboard'">${l.label}</button>`
     : l.page === 'invoices'
     ? `<button class="nav-link" onclick="window.location.href='/Wiggle/crm-invoices.html?from=dashboard'">${l.label}</button>`
     : l.page === 'search'

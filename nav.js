@@ -204,6 +204,40 @@
     };
     dropdown.appendChild(logoutBtn);
 
+    // ── Universal back button ─────────────────────
+    var urlParams  = new URLSearchParams(window.location.search);
+    var fromVal    = urlParams.get('from');
+    var backBtn    = document.getElementById('btn-back');
+
+    if (backBtn) {
+      var cid   = urlParams.get('cid');
+      var jobid = urlParams.get('jobid');
+
+      var backRoutes = {
+        'dashboard':   { label: '← Dashboard',    href: '/Wiggle/index.html' },
+        'calendar':    { label: '← Calendar',     href: '/Wiggle/calendar.html' },
+        'customers':   { label: '← Customers',    href: '/Wiggle/customers.html' },
+        'customer':    { label: '← Customer',     href: cid ? '/Wiggle/crm-customer.html?id=' + cid : '/Wiggle/customers.html' },
+        'quotes':      { label: '← Quotes',       href: '/Wiggle/crm-quotes.html' },
+        'invoices':    { label: '← Invoices',     href: '/Wiggle/crm-invoices.html' },
+        'job':         { label: '← Job',          href: jobid ? '/Wiggle/job-detail.html?id=' + jobid : '/Wiggle/index.html' },
+        'search':      { label: '← Search',       href: '/Wiggle/job-search.html' },
+        'settings':    { label: '← Settings',     href: '/Wiggle/settings.html' },
+        'banking':     { label: '← Banking',      href: '/Wiggle/banking.html' },
+        'acceptances': { label: '← Acceptances',  href: '/Wiggle/quote-acceptances.html' },
+        'site':        { label: '← Site History', href: '/Wiggle/site-history.html' },
+      };
+
+      var route = fromVal && fromVal !== 'nav' ? backRoutes[fromVal] : null;
+      if (route) {
+        backBtn.textContent   = route.label;
+        backBtn.style.display = 'inline-flex';
+        backBtn.onclick       = function() { window.location.href = route.href; };
+      } else {
+        backBtn.style.display = 'none';
+      }
+    }
+
     // ── Insert into DOM ──
     // Insert hamburger before user-badge (or at end of nav-right)
     var userBadgeEl = navRight.querySelector('.user-badge');
