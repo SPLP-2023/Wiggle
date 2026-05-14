@@ -324,6 +324,7 @@
     <div class="action-bar">
       <!-- Engineer actions -->
       <button class="btn btn-success"  id="btn-start"    onclick="startJob()"           >▶ Start Job</button>
+      <button class="btn btn-info"     id="btn-add-report" onclick="openReportPicker()">📋 Add Report</button>
       <button class="btn btn-warning"  id="btn-finish"   onclick="finishJob()">⏹ Finish Job</button>
       <div class="timer-display"       id="timer-display"><div class="timer-dot"></div><span id="timer-text">00:00:00</span></div>
       <button class="btn btn-purple"   id="btn-eng-complete" onclick="engineerComplete()">✓ Mark Complete</button>
@@ -746,6 +747,42 @@
 </main>
 
 <!-- DELETE DOCUMENT MODAL -->
+<!-- ══ Add Report Picker Modal ══ -->
+<div class="modal-overlay hidden" id="modal-add-report">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>📋 Add Report</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-report')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Select the report type to complete for this job. Site details will be pre-filled automatically.</p>
+      <div style="display:grid;gap:12px;">
+        <div onclick="launchReport('ti')" style="display:flex;align-items:center;gap:16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:2em;">⚡</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px;">Test &amp; Inspection</div>
+            <div style="font-size:12px;color:var(--text-muted);">Full T&amp;I report with earth resistance testing, defects and compliance certification</div>
+          </div>
+        </div>
+        <div onclick="launchReport('survey')" style="display:flex;align-items:center;gap:16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:2em;">🔍</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px;">Survey Report</div>
+            <div style="font-size:12px;color:var(--text-muted);">Site survey with structure assessment, existing system evaluation and risk factors</div>
+          </div>
+        </div>
+        <div onclick="launchReport('remedial')" style="display:flex;align-items:center;gap:16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:2em;">🔧</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px;">Remedial Report</div>
+            <div style="font-size:12px;color:var(--text-muted);">Document remedial works carried out and generate a completion report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-delete-doc">
   <div class="modal">
     <div class="modal-header">
@@ -2115,6 +2152,28 @@ function confirmCreateInvoice() {
   if (entityId)   url += '&entity='   + entityId;
 
   window.location.href = url;
+}
+
+function openReportPicker() {
+  document.getElementById('modal-add-report').classList.remove('hidden');
+}
+
+function launchReport(type) {
+  const pageMap = { ti: 'ti-report.html', survey: 'survey.html', remedial: 'remedial-report.html' };
+  const base = 'https://splp-2023.github.io/splp-reports/';
+  const returnUrl = 'https://splp-2023.github.io/Wiggle/job-detail.html?id=' + (job.id || '');
+
+  const params = new URLSearchParams({
+    site:      job.siteName   || '',
+    address:   job.address    || '',
+    engineer:  currentUser.name || '',
+    ref:       job.ref        || '',
+    jobId:     job.id         || '',
+    returnUrl: returnUrl
+  });
+
+  closeModal('modal-add-report');
+  window.location.href = base + pageMap[type] + '?' + params.toString();
 }
 </script>
   <script>
