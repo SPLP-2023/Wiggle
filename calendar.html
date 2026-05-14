@@ -410,8 +410,20 @@
     </div>
     <div class="modal-body">
       <div class="leave-form-group">
+        <label>Leave Type</label>
+        <select id="leave-type" onchange="onLeaveTypeChange()">
+          <option value="Holiday">Holiday</option>
+          <option value="Annual Leave">Annual Leave</option>
+          <option id="leave-type-bh" value="Bank Holiday" style="display:none;">Bank Holiday</option>
+        </select>
+      </div>
+      <div class="leave-form-group" id="leave-user-group">
         <label>Staff Member</label>
         <select id="leave-user"></select>
+      </div>
+      <div class="leave-form-group" id="leave-bh-name-group" style="display:none;">
+        <label>Holiday Name</label>
+        <input type="text" id="leave-bh-name" placeholder="e.g. Christmas Day">
       </div>
       <div class="leave-form-row">
         <div class="leave-form-group">
@@ -423,18 +435,11 @@
           <input type="date" id="leave-end">
         </div>
       </div>
-      <div class="leave-form-group">
-        <label>Leave Type</label>
-        <select id="leave-type">
-          <option value="Holiday">Holiday</option>
-          <option value="Annual Leave">Annual Leave</option>
-        </select>
-      </div>
-      <div class="leave-form-group">
+      <div class="leave-form-group" id="leave-notes-group">
         <label>Notes <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
         <textarea id="leave-notes" rows="3" placeholder="Any additional info..."></textarea>
       </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="submitLeave()">&#10003; Submit Leave Request</button>
+      <button class="btn btn-primary" style="width:100%;" id="leave-submit-btn" onclick="submitLeave()">&#10003; Submit Leave Request</button>
     </div>
   </div>
 </div>
@@ -815,12 +820,14 @@ function renderSpanningOverlay() {
   if (showLeave) {
     (appData.leave || []).filter(l => l.status !== 'rejected').forEach(l => {
       const colour = l.status === 'pending' ? LEAVE_PENDING : LEAVE_COLOUR;
-      const icon   = l.type === 'Holiday' ? '✈️' : '📅';
+      const icon   = l.type === 'Bank Holiday' ? '🏦' : l.type === 'Holiday' ? '✈️' : '📅';
+      const label  = l.type === 'Bank Holiday'
+        ? icon + ' ' + (l.notes || 'Bank Holiday')
+        : icon + ' ' + l.userName;
       events.push({
         type: 'leave', id: l.id,
         startDate: l.startDate, endDate: l.endDate,
-        label: icon + ' ' + l.userName,
-        colour, isPending: l.status === 'pending',
+        label, colour, isPending: l.status === 'pending',
         onclick: () => openLeavePopup(l.id)
       });
     });
@@ -1038,16 +1045,36 @@ function openAddLeaveModal(prefillDate) {
     userSel.disabled = false;
   }
 
+  // Show/hide Bank Holiday option (managers only)
+  const bhOpt = document.getElementById('leave-type-bh');
+  if (bhOpt) bhOpt.style.display = currentUser.role === 'manager' ? '' : 'none';
+
   const today = new Date().toISOString().slice(0, 10);
   const start = prefillDate || today;
-  document.getElementById('leave-start').value = start;
-  document.getElementById('leave-start').min   = '';
-  document.getElementById('leave-end').value   = start;
-  document.getElementById('leave-end').min     = start;
-  document.getElementById('leave-type').value  = 'Holiday';
-  document.getElementById('leave-notes').value = '';
+  document.getElementById('leave-start').value    = start;
+  document.getElementById('leave-start').min      = '';
+  document.getElementById('leave-end').value      = start;
+  document.getElementById('leave-end').min        = start;
+  document.getElementById('leave-type').value     = 'Holiday';
+  document.getElementById('leave-notes').value    = '';
+  document.getElementById('leave-bh-name').value  = '';
+
+  // Reset type-specific UI to default (normal leave)
+  document.getElementById('leave-user-group').style.display    = '';
+  document.getElementById('leave-bh-name-group').style.display = 'none';
+  document.getElementById('leave-notes-group').style.display   = '';
+  document.getElementById('leave-submit-btn').textContent      = '✓ Submit Leave Request';
 
   document.getElementById('modal-add-leave').classList.remove('hidden');
+}
+
+function onLeaveTypeChange() {
+  const type    = document.getElementById('leave-type').value;
+  const isBH    = type === 'Bank Holiday';
+  document.getElementById('leave-user-group').style.display    = isBH ? 'none' : '';
+  document.getElementById('leave-bh-name-group').style.display = isBH ? '' : 'none';
+  document.getElementById('leave-notes-group').style.display   = isBH ? 'none' : '';
+  document.getElementById('leave-submit-btn').textContent      = isBH ? '🏦 Add Bank Holiday' : '✓ Submit Leave Request';
 }
 
 function closeAddLeaveModal() {
@@ -1062,38 +1089,56 @@ function onLeaveStartChange() {
 }
 
 function submitLeave() {
-  const userId    = document.getElementById('leave-user').value;
+  const type      = document.getElementById('leave-type').value;
   const startDate = document.getElementById('leave-start').value;
   const endDate   = document.getElementById('leave-end').value;
-  const type      = document.getElementById('leave-type').value;
-  const notes     = document.getElementById('leave-notes').value.trim();
+  const isBH      = type === 'Bank Holiday';
 
-  if (!userId)    { showToast('Please select a staff member.', 'error'); return; }
   if (!startDate) { showToast('Please select a start date.', 'error');  return; }
   if (!endDate)   { showToast('Please select an end date.', 'error');   return; }
   if (endDate < startDate) { showToast('End date must be on or after start date.', 'error'); return; }
 
-  const user = appData.users.find(u => u.id === userId);
-  const leaveItem = {
-    id:        genLeaveId(),
-    userId,
-    userName:  user ? user.name : 'Unknown',
-    startDate, endDate, type, notes,
-    status:    'pending',
-    createdAt: new Date().toISOString(),
-    approvedBy: null
-  };
+  let leaveItem;
+  if (isBH) {
+    const bhName = document.getElementById('leave-bh-name').value.trim();
+    if (!bhName) { showToast('Please enter a holiday name.', 'error'); return; }
+    leaveItem = {
+      id:        genLeaveId(),
+      userId:    'all',
+      userName:  'All Staff',
+      startDate, endDate,
+      type:      'Bank Holiday',
+      notes:     bhName,
+      status:    'approved',
+      createdAt: new Date().toISOString(),
+      approvedBy: currentUser.name
+    };
+  } else {
+    const userId = document.getElementById('leave-user').value;
+    const notes  = document.getElementById('leave-notes').value.trim();
+    if (!userId) { showToast('Please select a staff member.', 'error'); return; }
+    const user = appData.users.find(u => u.id === userId);
+    leaveItem = {
+      id:        genLeaveId(),
+      userId,
+      userName:  user ? user.name : 'Unknown',
+      startDate, endDate, type, notes,
+      status:    'pending',
+      createdAt: new Date().toISOString(),
+      approvedBy: null
+    };
+  }
 
   appData.leave.push(leaveItem);
   _saveLeave(leaveItem)
     .then(() => {
-      showToast('Leave request submitted — awaiting manager approval.', 'success');
+      showToast(isBH ? 'Bank Holiday added.' : 'Leave request submitted — awaiting manager approval.', 'success');
       closeAddLeaveModal();
       renderCalendar();
     })
     .catch(err => {
       console.error('Leave save error', err);
-      showToast('Error saving leave request. Please try again.', 'error');
+      showToast('Error saving. Please try again.', 'error');
     });
 }
 
@@ -1105,13 +1150,34 @@ function openLeavePopup(id) {
   if (!l) return;
   selectedLeaveId = id;
 
-  const icon = l.type === 'Holiday' ? '✈️' : '📅';
-  document.getElementById('leave-popup-title').textContent = icon + ' ' + l.type + ' — ' + l.userName;
+  const isBH = l.type === 'Bank Holiday';
+  const icon = isBH ? '🏦' : l.type === 'Holiday' ? '✈️' : '📅';
+  const titleName = isBH ? (l.notes || 'Bank Holiday') : l.userName;
+  document.getElementById('leave-popup-title').textContent = icon + ' ' + l.type + ' — ' + titleName;
 
   const statusColor = l.status === 'approved' ? '#22c55e' : l.status === 'pending' ? '#f59e0b' : '#ef4444';
   const statusLabel = l.status === 'approved' ? 'Approved' : l.status === 'pending' ? 'Pending Approval' : 'Rejected';
 
-  document.getElementById('leave-popup-details').innerHTML = `
+  document.getElementById('leave-popup-details').innerHTML = isBH ? `
+    <div class="popup-grid" style="margin-bottom:16px;">
+      <div class="popup-section">
+        <label>From</label>
+        <div class="val">${formatDate(l.startDate)}</div>
+      </div>
+      <div class="popup-section">
+        <label>To</label>
+        <div class="val">${formatDate(l.endDate)}</div>
+      </div>
+      <div class="popup-section">
+        <label>Applies To</label>
+        <div class="val">All Staff</div>
+      </div>
+      <div class="popup-section">
+        <label>Added By</label>
+        <div class="val">${l.approvedBy || '—'}</div>
+      </div>
+    </div>
+  ` : `
     <div class="popup-grid" style="margin-bottom:16px;">
       <div class="popup-section">
         <label>Staff Member</label>
@@ -1139,7 +1205,7 @@ function openLeavePopup(id) {
   `;
 
   const actionsEl = document.getElementById('leave-popup-actions');
-  const showActions = currentUser.role === 'manager' && l.status === 'pending';
+  const showActions = !isBH && currentUser.role === 'manager' && l.status === 'pending';
   actionsEl.style.display = showActions ? 'flex' : 'none';
 
   document.getElementById('modal-leave-popup').classList.remove('hidden');
