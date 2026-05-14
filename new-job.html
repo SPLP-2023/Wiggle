@@ -146,7 +146,11 @@
       </div>
       <div class="form-group">
         <label>Booking Date</label>
-        <input type="date" id="f-date">
+        <input type="date" id="f-date" onchange="updateEndDateMin()">
+      </div>
+      <div class="form-group">
+        <label>End Date <span class="optional-tag">optional — multi-day jobs</span></label>
+        <input type="date" id="f-end-date">
       </div>
       <div class="form-group">
         <label>Job Time <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
@@ -528,7 +532,17 @@ function validateForm() {
   const ref = document.getElementById('f-ref').value.trim();
   if (!/^\d{1,10}$/.test(ref)) { showToast('Job reference must be 1–10 digits.', 'error'); return false; }
   if (!getSelectedEngineers().length) { showToast('Please assign at least one engineer.', 'error'); return false; }
+  const startDate = document.getElementById('f-date').value;
+  const endDate   = document.getElementById('f-end-date').value;
+  if (endDate && endDate < startDate) { showToast('End date cannot be before the booking date.', 'error'); return false; }
   return true;
+}
+
+function updateEndDateMin() {
+  const d = document.getElementById('f-date').value;
+  const endEl = document.getElementById('f-end-date');
+  endEl.min = d;
+  if (endEl.value && endEl.value < d) endEl.value = d;
 }
 
 // ── Submit ────────────────────────────────────
@@ -560,6 +574,7 @@ function submitJob() {
     id:          genId(),
     ref:         document.getElementById('f-ref').value.trim(),
     bookingDate: document.getElementById('f-date').value,
+    endDate:     document.getElementById('f-end-date').value || null,
     jobTime:     document.getElementById('f-time').value || null,
     type,
     siteName:    document.getElementById('f-sitename').value.trim(),
@@ -624,6 +639,7 @@ function submitJob() {
 
   // Clear form ready for next job — keep company and date
   document.getElementById('f-ref').value      = '';
+  document.getElementById('f-end-date').value = '';
   document.getElementById('f-time').value     = '';
   document.getElementById('f-sitename').value = '';
   document.getElementById('f-address').value  = '';

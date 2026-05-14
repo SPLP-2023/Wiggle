@@ -161,6 +161,43 @@
   .badge-overdue { font-size:11px; padding:3px 9px; border-radius:20px; background:var(--danger); color:#fff; font-weight:700; }
   .hidden { display:none !important; }
 
+  /* CALENDAR GRID — needs to be a positioning context for the span overlay */
+  .cal-cells { position:relative; }
+
+  /* FILTER TOGGLES */
+  .cal-filters { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .filter-toggle {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 16px; border-radius:20px; font-size:12px; font-weight:600;
+    cursor:pointer; border:1.5px solid; transition:all 0.2s; background:transparent;
+  }
+  .filter-toggle.active-jobs   { background:rgba(245,158,11,0.15); border-color:var(--primary); color:var(--primary); }
+  .filter-toggle.inactive-jobs { border-color:var(--border); color:var(--text-muted); }
+  .filter-toggle.active-leave  { background:rgba(6,182,212,0.15); border-color:#06b6d4; color:#06b6d4; }
+  .filter-toggle.inactive-leave{ border-color:var(--border); color:var(--text-muted); }
+
+  /* SPANNING BARS (rendered in overlay layer) */
+  .cal-span-bar { transition:opacity 0.15s; }
+  .cal-span-bar:hover { opacity:0.75; }
+
+  /* LEAVE MODAL FORM HELPERS */
+  .leave-form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .leave-form-group { margin-bottom:14px; }
+  .leave-form-group label { display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:500; }
+  .leave-form-group input,
+  .leave-form-group select,
+  .leave-form-group textarea {
+    width:100%; padding:10px 13px; background:var(--dark); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text); font-size:13px; font-family:inherit;
+    transition:border-color 0.2s;
+  }
+  .leave-form-group input:focus,
+  .leave-form-group select:focus,
+  .leave-form-group textarea:focus { outline:none; border-color:#06b6d4; }
+  .leave-form-group select option { background:var(--dark2); }
+  .leave-form-group input:disabled,
+  .leave-form-group select:disabled { opacity:0.6; cursor:not-allowed; }
+
   /* MOBILE PORTRAIT */
   @media(max-width:640px) {
     main { padding:10px 8px 40px; }
@@ -221,12 +258,22 @@
 <main>
   <div class="cal-header">
     <h2>&#128197; Calendar</h2>
-    <div class="cal-nav">
-      <button class="cal-nav-btn" onclick="changeMonth(-1)">&#8249;</button>
-      <div class="cal-month-label" id="cal-month-label">&#8212;</div>
-      <button class="cal-nav-btn" onclick="changeMonth(1)">&#8250;</button>
-      <button class="cal-today-btn" onclick="goToToday()">Today</button>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:rgba(6,182,212,0.15);border:1.5px solid #06b6d4;color:#06b6d4;font-weight:600;" onclick="openAddLeaveModal()">&#9992;&#65039; Add Leave</button>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+        <div class="cal-month-label" id="cal-month-label">&#8212;</div>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">&#8250;</button>
+        <button class="cal-today-btn" onclick="goToToday()">Today</button>
+      </div>
     </div>
+  </div>
+
+  <!-- FILTER TOGGLES -->
+  <div class="cal-filters">
+    <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Show:</span>
+    <button id="filter-jobs"  class="filter-toggle active-jobs"   onclick="toggleFilter('jobs')">&#128188; Jobs</button>
+    <button id="filter-leave" class="filter-toggle inactive-leave" onclick="toggleFilter('leave')">&#9992;&#65039; Leave</button>
   </div>
 
   <!-- LEGEND -->
@@ -237,6 +284,12 @@
       <div class="legend-item"><div class="legend-pill" style="background:rgba(34,197,94,0.15);border-color:#22c55e;"></div> Lewis</div>
       <div class="legend-item"><div class="legend-pill" style="background:rgba(168,85,247,0.15);border-color:#a855f7;"></div> Josh</div>
       <div class="legend-item"><div class="legend-pill" style="background:rgba(148,148,148,0.15);border-color:#949494;"></div> Joint</div>
+    </div>
+    <div class="legend-divider"></div>
+    <div class="legend-section">
+      <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Leave</span>
+      <div class="legend-item"><div class="legend-pill" style="background:rgba(6,182,212,0.15);border-color:#06b6d4;"></div> Approved</div>
+      <div class="legend-item"><div class="legend-pill" style="background:rgba(245,158,11,0.15);border-color:#f59e0b;border-style:dashed;"></div> Pending</div>
     </div>
     <div class="legend-divider"></div>
     <div class="legend-section">
@@ -336,17 +389,104 @@
   </div>
 </div>
 
+<!-- ADD LEAVE MODAL -->
+<div class="modal-overlay hidden" id="modal-add-leave">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>&#9992;&#65039; Add Leave / Holiday</h3>
+      <button class="modal-close" onclick="closeAddLeaveModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="leave-form-group">
+        <label>Staff Member</label>
+        <select id="leave-user"></select>
+      </div>
+      <div class="leave-form-row">
+        <div class="leave-form-group">
+          <label>From Date</label>
+          <input type="date" id="leave-start" onchange="onLeaveStartChange()">
+        </div>
+        <div class="leave-form-group">
+          <label>To Date</label>
+          <input type="date" id="leave-end">
+        </div>
+      </div>
+      <div class="leave-form-group">
+        <label>Leave Type</label>
+        <select id="leave-type">
+          <option value="Holiday">Holiday</option>
+          <option value="Annual Leave">Annual Leave</option>
+        </select>
+      </div>
+      <div class="leave-form-group">
+        <label>Notes <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+        <textarea id="leave-notes" rows="3" placeholder="Any additional info..."></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="submitLeave()">&#10003; Submit Leave Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEAVE DETAIL POPUP -->
+<div class="modal-overlay hidden" id="modal-leave-popup">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="leave-popup-title">&#8212;</h3>
+      <button class="modal-close" onclick="closeModal('modal-leave-popup')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="leave-popup-details"></div>
+      <div id="leave-popup-actions" style="display:none;gap:10px;margin-top:20px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="approveLeave()">&#10003; Approve</button>
+        <button class="btn" style="flex:1;background:var(--danger);color:#fff;" onclick="rejectLeave()">&#10005; Reject</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/Wiggle/js/data.js"></script>
 <script src="/Wiggle/js/nav.js"></script>
 <script>
 let currentUser;
 let currentYear, currentMonth;
-let selectedJobId = null;
+let selectedJobId  = null;
+let selectedLeaveId = null;
+let showJobs  = true;
+let showLeave = false;
 
 // Engineer colour map — built after Firebase loads
 let engineerColourMap = {}; // id -> colour
 
-const JOINT_COLOUR = '#949494';
+const JOINT_COLOUR  = '#949494';
+const LEAVE_COLOUR  = '#06b6d4';
+const LEAVE_PENDING = '#f59e0b';
+
+// ── DATE RANGE HELPER ─────────────────────────
+function getDateRange(startStr, endStr) {
+  const dates = [];
+  const cur = new Date(startStr + 'T00:00:00');
+  const end = new Date(endStr   + 'T00:00:00');
+  while (cur <= end) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+// ── FILTER TOGGLES ────────────────────────────
+function toggleFilter(type) {
+  if (type === 'jobs')  showJobs  = !showJobs;
+  if (type === 'leave') showLeave = !showLeave;
+  updateFilterUI();
+  renderCalendar();
+}
+
+function updateFilterUI() {
+  const jBtn = document.getElementById('filter-jobs');
+  const lBtn = document.getElementById('filter-leave');
+  if (jBtn) jBtn.className = 'filter-toggle ' + (showJobs  ? 'active-jobs'   : 'inactive-jobs');
+  if (lBtn) lBtn.className = 'filter-toggle ' + (showLeave ? 'active-leave'  : 'inactive-leave');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = requireAuth();
@@ -448,13 +588,16 @@ function renderCalendar() {
 
   const cells    = document.getElementById('cal-cells');
   const today    = new Date();
-  const jobs     = getVisibleJobs();
+  // Only use jobs if the jobs filter is on
+  const jobs     = showJobs ? getVisibleJobs() : [];
   const MAX_SHOW = 3;
 
-  // dateStr -> jobs[]
+  // dateStr -> jobs[] — multi-day jobs (endDate > bookingDate) appear in the
+  // spanning overlay only, not as inline pills, so we exclude them here.
   const jobMap = {};
   jobs.forEach(j => {
     if (!j.bookingDate) return;
+    if (j.endDate && j.endDate > j.bookingDate) return; // handled by overlay
     if (!jobMap[j.bookingDate]) jobMap[j.bookingDate] = [];
     jobMap[j.bookingDate].push(j);
   });
@@ -531,7 +674,7 @@ function renderCalendar() {
           ? `onclick="handleCellClick(event,'${dateStr}',0)"`
           : '';
 
-    html += `<div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
+    html += `<div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${!isOther?`data-date="${dateStr}"`:''}  ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
       <div class="cal-date-num">${day}</div>
       ${pillsHtml}
       ${!isOther ? `<div class="cal-add-btn" onclick="event.stopPropagation();window.location.href='/Wiggle/new-job.html?date=${dateStr}&from=calendar'">+</div>` : ''}
@@ -539,6 +682,135 @@ function renderCalendar() {
   }
 
   cells.innerHTML = html;
+  // Render spanning bars (multi-day jobs + leave) as an absolute overlay
+  requestAnimationFrame(renderSpanningOverlay);
+}
+
+// ════════════════════════════════════════════
+// SPANNING OVERLAY — multi-day jobs + leave bars
+// Rendered as absolute-positioned layer so existing
+// single-day pill code is completely untouched.
+// Bars sit at the bottom of each cell row to avoid
+// overlapping the inline pills at the top.
+// ════════════════════════════════════════════
+function renderSpanningOverlay() {
+  const grid = document.getElementById('cal-cells');
+  const old  = document.getElementById('cal-span-layer');
+  if (old) old.remove();
+
+  // Collect events to render
+  const events = [];
+
+  if (showJobs) {
+    getVisibleJobs().forEach(j => {
+      if (!j.endDate || j.endDate <= j.bookingDate) return;
+      events.push({
+        type: 'job', id: j.id,
+        startDate: j.bookingDate, endDate: j.endDate,
+        label: (j.siteName || j.company || '?') + ' #' + j.ref,
+        colour: getPillColour(j.engineers).colour,
+        statusClass: dotClass(j.status),
+        isPending: false,
+        onclick: () => openJobPopup(j.id)
+      });
+    });
+  }
+
+  if (showLeave) {
+    (appData.leave || []).filter(l => l.status !== 'rejected').forEach(l => {
+      const colour = l.status === 'pending' ? LEAVE_PENDING : LEAVE_COLOUR;
+      const icon   = l.type === 'Holiday' ? '✈️' : '📅';
+      events.push({
+        type: 'leave', id: l.id,
+        startDate: l.startDate, endDate: l.endDate,
+        label: icon + ' ' + l.userName,
+        colour, isPending: l.status === 'pending',
+        onclick: () => openLeavePopup(l.id)
+      });
+    });
+  }
+
+  if (!events.length) return;
+
+  // Map dateStr → cell position relative to #cal-cells
+  const cellPosMap = {};
+  grid.querySelectorAll('.cal-cell[data-date]').forEach(el => {
+    cellPosMap[el.dataset.date] = {
+      left: el.offsetLeft, top: el.offsetTop,
+      width: el.offsetWidth, height: el.offsetHeight
+    };
+  });
+
+  const layer = document.createElement('div');
+  layer.id = 'cal-span-layer';
+  layer.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:5;';
+
+  // Per-row slot tracking so concurrent events stack without overlap
+  const rowSlots = {}; // rowTop → boolean[]
+
+  events.forEach(evt => {
+    const visibleDates = getDateRange(evt.startDate, evt.endDate).filter(d => cellPosMap[d]);
+    if (!visibleDates.length) return;
+
+    // Group dates by calendar row (shared offsetTop)
+    const rowGroups = {};
+    visibleDates.forEach(d => {
+      const rt = cellPosMap[d].top;
+      if (!rowGroups[rt]) rowGroups[rt] = [];
+      rowGroups[rt].push(d);
+    });
+
+    const rowTops = Object.keys(rowGroups).map(Number).sort((a, b) => a - b);
+
+    // Find the first slot free in every row this event touches
+    let slot = -1;
+    for (let s = 0; s < 6; s++) {
+      if (rowTops.every(rt => !(rowSlots[rt] || [])[s])) { slot = s; break; }
+    }
+    if (slot === -1) return;
+    rowTops.forEach(rt => { if (!rowSlots[rt]) rowSlots[rt] = []; rowSlots[rt][slot] = true; });
+
+    // Draw one bar segment per row
+    const BAR_H    = 16;
+    const BAR_GAP  = 3;
+    const FROM_BOT = 4; // px gap from cell bottom
+
+    rowTops.forEach(rt => {
+      const rowDates = rowGroups[rt].sort();
+      const fp = cellPosMap[rowDates[0]];
+      const lp = cellPosMap[rowDates[rowDates.length - 1]];
+
+      const barLeft = fp.left + 2;
+      const barTop  = rt + fp.height - FROM_BOT - BAR_H - slot * (BAR_H + BAR_GAP);
+      const barW    = (lp.left + lp.width) - fp.left - 4;
+
+      const r = parseInt(evt.colour.slice(1,3),16);
+      const g = parseInt(evt.colour.slice(3,5),16);
+      const b = parseInt(evt.colour.slice(5,7),16);
+
+      const bar = document.createElement('div');
+      bar.className = 'cal-span-bar';
+      bar.style.cssText = [
+        `position:absolute`,
+        `left:${barLeft}px`, `top:${barTop}px`,
+        `width:${barW}px`,   `height:${BAR_H}px`,
+        `background:rgba(${r},${g},${b},0.15)`,
+        `border:1.5px ${evt.isPending ? 'dashed' : 'solid'} ${evt.colour}`,
+        `color:${evt.colour}`,
+        `border-radius:4px`,
+        `display:flex`, `align-items:center`, `gap:3px`,
+        `padding:0 5px`, `font-size:10px`, `font-weight:600`,
+        `overflow:hidden`, `white-space:nowrap`, `box-sizing:border-box`,
+        `pointer-events:auto`, `cursor:pointer`
+      ].join(';');
+
+      bar.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${evt.label}</span>`;
+      bar.onclick = e => { e.stopPropagation(); evt.onclick(); };
+      layer.appendChild(bar);
+    });
+  });
+
+  grid.appendChild(layer);
 }
 
 // ════════════════════════════════════════════
@@ -576,7 +848,8 @@ function goToToday() {
 
 // ── DATE MODAL ────────────────────────────────
 function openDateModal(dateStr) {
-  const jobs = getVisibleJobs().filter(j => j.bookingDate === dateStr);
+  // Exclude multi-day jobs — they appear in the spanning overlay instead
+  const jobs = getVisibleJobs().filter(j => j.bookingDate === dateStr && !(j.endDate && j.endDate > j.bookingDate));
   if (!jobs.length) return;
 
   const d = new Date(dateStr + 'T00:00:00');
@@ -647,6 +920,161 @@ function openFullJob() {
 }
 
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ════════════════════════════════════════════
+// LEAVE — ADD MODAL
+// ════════════════════════════════════════════
+function openAddLeaveModal(prefillDate) {
+  const userSel = document.getElementById('leave-user');
+  userSel.innerHTML = '';
+  appData.users.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id;
+    opt.textContent = u.name + (u.role === 'manager' ? ' (Manager)' : u.role === 'accountant' ? ' (Accountant)' : '');
+    userSel.appendChild(opt);
+  });
+
+  if (currentUser.role !== 'manager') {
+    userSel.value    = currentUser.id;
+    userSel.disabled = true;
+  } else {
+    userSel.value    = currentUser.id;
+    userSel.disabled = false;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const start = prefillDate || today;
+  document.getElementById('leave-start').value = start;
+  document.getElementById('leave-start').min   = '';
+  document.getElementById('leave-end').value   = start;
+  document.getElementById('leave-end').min     = start;
+  document.getElementById('leave-type').value  = 'Holiday';
+  document.getElementById('leave-notes').value = '';
+
+  document.getElementById('modal-add-leave').classList.remove('hidden');
+}
+
+function closeAddLeaveModal() {
+  document.getElementById('modal-add-leave').classList.add('hidden');
+}
+
+function onLeaveStartChange() {
+  const start = document.getElementById('leave-start').value;
+  const endEl = document.getElementById('leave-end');
+  endEl.min = start;
+  if (endEl.value < start) endEl.value = start;
+}
+
+function submitLeave() {
+  const userId    = document.getElementById('leave-user').value;
+  const startDate = document.getElementById('leave-start').value;
+  const endDate   = document.getElementById('leave-end').value;
+  const type      = document.getElementById('leave-type').value;
+  const notes     = document.getElementById('leave-notes').value.trim();
+
+  if (!userId)    { showToast('Please select a staff member.', 'error'); return; }
+  if (!startDate) { showToast('Please select a start date.', 'error');  return; }
+  if (!endDate)   { showToast('Please select an end date.', 'error');   return; }
+  if (endDate < startDate) { showToast('End date must be on or after start date.', 'error'); return; }
+
+  const user = appData.users.find(u => u.id === userId);
+  const leaveItem = {
+    id:        genLeaveId(),
+    userId,
+    userName:  user ? user.name : 'Unknown',
+    startDate, endDate, type, notes,
+    status:    'pending',
+    createdAt: new Date().toISOString(),
+    approvedBy: null
+  };
+
+  appData.leave.push(leaveItem);
+  saveLeave(leaveItem)
+    .then(() => {
+      showToast('Leave request submitted — awaiting manager approval.', 'success');
+      closeAddLeaveModal();
+      renderCalendar();
+    })
+    .catch(err => {
+      console.error('Leave save error', err);
+      showToast('Error saving leave request. Please try again.', 'error');
+    });
+}
+
+// ════════════════════════════════════════════
+// LEAVE — DETAIL POPUP
+// ════════════════════════════════════════════
+function openLeavePopup(id) {
+  const l = (appData.leave || []).find(x => x.id === id);
+  if (!l) return;
+  selectedLeaveId = id;
+
+  const icon = l.type === 'Holiday' ? '✈️' : '📅';
+  document.getElementById('leave-popup-title').textContent = icon + ' ' + l.type + ' — ' + l.userName;
+
+  const statusColor = l.status === 'approved' ? '#22c55e' : l.status === 'pending' ? '#f59e0b' : '#ef4444';
+  const statusLabel = l.status === 'approved' ? 'Approved' : l.status === 'pending' ? 'Pending Approval' : 'Rejected';
+
+  document.getElementById('leave-popup-details').innerHTML = `
+    <div class="popup-grid" style="margin-bottom:16px;">
+      <div class="popup-section">
+        <label>Staff Member</label>
+        <div class="val">${l.userName}</div>
+      </div>
+      <div class="popup-section">
+        <label>Status</label>
+        <div class="val" style="color:${statusColor};font-weight:700;">${statusLabel}</div>
+      </div>
+      <div class="popup-section">
+        <label>From</label>
+        <div class="val">${formatDate(l.startDate)}</div>
+      </div>
+      <div class="popup-section">
+        <label>To</label>
+        <div class="val">${formatDate(l.endDate)}</div>
+      </div>
+      <div class="popup-section">
+        <label>Type</label>
+        <div class="val">${l.type}</div>
+      </div>
+      ${l.approvedBy ? `<div class="popup-section"><label>Approved By</label><div class="val">${l.approvedBy}</div></div>` : ''}
+    </div>
+    ${l.notes ? `<div class="popup-section"><label>Notes</label><div class="val" style="font-size:13px;color:var(--text-muted);line-height:1.6;">${l.notes}</div></div>` : ''}
+  `;
+
+  const actionsEl = document.getElementById('leave-popup-actions');
+  const showActions = currentUser.role === 'manager' && l.status === 'pending';
+  actionsEl.style.display = showActions ? 'flex' : 'none';
+
+  document.getElementById('modal-leave-popup').classList.remove('hidden');
+}
+
+function approveLeave() {
+  const l = (appData.leave || []).find(x => x.id === selectedLeaveId);
+  if (!l) return;
+  l.status     = 'approved';
+  l.approvedBy = currentUser.name;
+  saveLeave(l)
+    .then(() => {
+      showToast('Leave approved.', 'success');
+      closeModal('modal-leave-popup');
+      renderCalendar();
+    })
+    .catch(err => { console.error(err); showToast('Error approving leave.', 'error'); });
+}
+
+function rejectLeave() {
+  const l = (appData.leave || []).find(x => x.id === selectedLeaveId);
+  if (!l) return;
+  l.status = 'rejected';
+  saveLeave(l)
+    .then(() => {
+      showToast('Leave rejected.', 'success');
+      closeModal('modal-leave-popup');
+      renderCalendar();
+    })
+    .catch(err => { console.error(err); showToast('Error rejecting leave.', 'error'); });
+}
 </script>
 <script>
   if ('serviceWorker' in navigator) {
