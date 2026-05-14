@@ -1254,7 +1254,19 @@ function processImportRows(raw) {
     var errors      = [];
     var bookingDate = parseUKDate(r['Date']);
     var endDate     = r['End Date'] ? parseUKDate(r['End Date']) : null;
-    var time        = String(r['Time'] || '').trim();
+    var rawTime = r['Time'];
+    var time = '';
+    if (rawTime !== '' && rawTime !== null && rawTime !== undefined) {
+      if (typeof rawTime === 'number' && rawTime >= 0 && rawTime < 1) {
+        // Excel time serial (fraction of 24hrs) → HH:MM
+        var totalMins = Math.round(rawTime * 24 * 60);
+        var hh = String(Math.floor(totalMins / 60)).padStart(2, '0');
+        var mm = String(totalMins % 60).padStart(2, '0');
+        time = hh + ':' + mm;
+      } else {
+        time = String(rawTime).trim();
+      }
+    }
     var company     = String(r['Company'] || '').trim();
     var type        = String(r['Type'] || '').trim();
 
@@ -1264,7 +1276,12 @@ function processImportRows(raw) {
     if (endDate && endDate < bookingDate)    errors.push('End Date before Date');
     if (time && !/^\d{1,2}:\d{2}$/.test(time)) errors.push('Invalid Time format');
 
-    var ref = String(refCounter++);
+    var ref = String(r['Job Ref'] || '').trim();
+    if (ref) {
+      if (!/^\d{1,10}$/.test(ref)) errors.push('Job Ref must be numeric');
+    } else {
+      ref = String(refCounter++);
+    }
     return {
       _row:   i + 2,
       _valid: errors.length === 0,
@@ -1283,7 +1300,7 @@ function processImportRows(raw) {
       rep:         String(r['Rep']         || '').trim(),
       engineers:   [],
       status:      'pending',
-      costs:       {},
+      costs:       { jobValue: parseFloat(String(r['Price'] || '').replace(/[^0-9.]/g, '')) || 0 },
       comments:    [],
       history:     [],
       auditLog:    [{ action: 'Imported', user: currentUser.name, ts: new Date().toISOString() }],
