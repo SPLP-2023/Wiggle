@@ -274,7 +274,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Site Name <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--text-muted);">(for linking — not on PDF)</span></label>
-          <input type="text" class="form-input" id="q-site-name" placeholder="e.g. The Foundry">
+          <input type="text" class="form-input" id="q-site-name" placeholder="e.g. The Foundry" oninput="updateRefDisplay()">
         </div>
         <div class="form-group">
           <label>Site Postcode <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--text-muted);">(for linking — not on PDF)</span></label>
@@ -711,6 +711,15 @@ var JOB_PRESETS = {
   'RPS':             ''
 };
 
+function updateRefDisplay() {
+  var el = document.getElementById('editor-ref');
+  if (!el.dataset.jobRef) return;
+  var jobType  = document.getElementById('q-job-type').value || '';
+  var siteName = document.getElementById('q-site-name').value.trim();
+  var dateStr  = el.dataset.dateStr || '';
+  el.textContent = ('Q' + el.dataset.jobRef + (jobType ? ' ' + jobType : '') + (siteName ? ' ' + siteName : '') + (dateStr ? ' ' + dateStr : '')).trim();
+}
+
 function onJobTypeChange() {
   var cid     = document.getElementById('q-customer').value;
   var jobType = document.getElementById('q-job-type').value;
@@ -725,6 +734,11 @@ function onJobTypeChange() {
       lineItems[0].description = preset;
       renderLines();
     }
+  }
+  // If a ref is already generated, just update the display — don't regenerate the number
+  if (document.getElementById('editor-ref').dataset.jobRef) {
+    updateRefDisplay();
+    return;
   }
   if (!cid) return;
   var c = allCustomers.find(function(x) { return x.id === cid; });
@@ -749,16 +763,24 @@ function buildRef(c) {
       attempts++;
     } while (used.indexOf(rand4) !== -1 && attempts < 100);
     var jobRef   = clientRef + rand4;
-    var quoteRef = 'QSPLP-' + jobRef + '-' + jobType + '-' + dateStr;
+    var siteName = document.getElementById('q-site-name').value.trim();
+    var quoteRef = ('Q' + jobRef + (jobType ? ' ' + jobType : '') + (siteName ? ' ' + siteName : '') + ' ' + dateStr).trim();
     document.getElementById('q-job-ref').value = jobRef;
-    document.getElementById('editor-ref').textContent = quoteRef;
+    var editorRef = document.getElementById('editor-ref');
+    editorRef.textContent = quoteRef;
+    editorRef.dataset.jobRef  = jobRef;
+    editorRef.dataset.dateStr = dateStr;
   }).catch(function(err) {
     console.error('Counter error', err);
     var rand4    = String(Math.floor(Math.random() * 9000) + 1000);
     var jobRef   = clientRef + rand4;
-    var quoteRef = 'QSPLP-' + jobRef + '-' + jobType + '-' + dateStr;
+    var siteName = document.getElementById('q-site-name').value.trim();
+    var quoteRef = ('Q' + jobRef + (jobType ? ' ' + jobType : '') + (siteName ? ' ' + siteName : '') + ' ' + dateStr).trim();
     document.getElementById('q-job-ref').value = jobRef;
-    document.getElementById('editor-ref').textContent = quoteRef;
+    var editorRef = document.getElementById('editor-ref');
+    editorRef.textContent = quoteRef;
+    editorRef.dataset.jobRef  = jobRef;
+    editorRef.dataset.dateStr = dateStr;
   });
 }
 

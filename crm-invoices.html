@@ -226,7 +226,7 @@
       <div class="totals-box">
         <div class="tot-row"><span>Subtotal</span><span id="t-sub">&#163;0.00</span></div>
         <div class="tot-row" id="t-cis-row" style="display:none;color:#ef4444;"><span>CIS Deduction (20%)</span><span id="t-cis">&#8722;&#163;0.00</span></div>
-        <div class="tot-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
+        <div class="tot-row" id="t-vat-row"><span>VAT</span><span id="t-vat">&#163;0.00</span></div>
         <div class="tot-row grand"><span>Total Due</span><span id="t-total">&#163;0.00</span></div>
       </div>
       <div class="sec-div" style="margin-top:20px;">Notes</div>
@@ -706,13 +706,15 @@ function recalc(){
   });
   var cis=document.getElementById('cis-toggle').checked;
   var cisAmt=cis?labourNet*0.20:0;
-  var cisRow=document.getElementById('t-cis-row');
-  cisRow.style.display=cis?'flex':'none';
+  // CIS reverse charge: VAT is noted in the reverse charge text but NOT added to the total
+  var totalDue=cis?(sub-cisAmt):(sub-cisAmt+vat);
+  document.getElementById('t-cis-row').style.display=cis?'flex':'none';
+  document.getElementById('t-vat-row').style.display=cis?'none':'flex';
   document.getElementById('t-sub').textContent=fmtMoney(sub);
   document.getElementById('t-cis').textContent='\u2212'+fmtMoney(cisAmt);
   document.getElementById('t-vat').textContent=fmtMoney(vat);
-  document.getElementById('t-total').textContent=fmtMoney(sub-cisAmt+vat);
-  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:sub-cisAmt+vat};
+  document.getElementById('t-total').textContent=fmtMoney(totalDue);
+  return{subtotal:sub,vat:vat,cisDeduction:cisAmt,total:totalDue};
 }
 
 function saveInvoice(){
