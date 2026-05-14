@@ -450,6 +450,22 @@
 let currentUser;
 let currentYear, currentMonth;
 let selectedJobId  = null;
+
+// Local fallbacks in case data.js is cached from before the leave update
+function genLeaveId() {
+  return 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+}
+function _saveLeave(leaveItem) {
+  if (!_db) return Promise.resolve();
+  const { id, ...data } = leaveItem;
+  return _db.collection('leave').doc(id).set(data);
+}
+function _loadLeaveIfNeeded() {
+  if (!_db || (appData.leave && appData.leave.length !== undefined && appData.leave._loaded)) return Promise.resolve();
+  return _db.collection('leave').orderBy('createdAt', 'desc').get()
+    .then(snap => { appData.leave = snap.docs.map(d => ({ ...d.data(), id: d.id })); })
+    .catch(() => { if (!appData.leave) appData.leave = []; });
+}
 let selectedLeaveId = null;
 let showJobs  = true;
 let showLeave = false;
@@ -507,6 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const now    = new Date();
     currentYear  = now.getFullYear();
     currentMonth = now.getMonth();
+    // Ensure leave array exists (guards against cached data.js)
+    if (!appData.leave) appData.leave = [];
     renderCalendar();
   }).catch(err => {
     hideLoader();
@@ -989,7 +1007,7 @@ function submitLeave() {
   };
 
   appData.leave.push(leaveItem);
-  saveLeave(leaveItem)
+  _saveLeave(leaveItem)
     .then(() => {
       showToast('Leave request submitted — awaiting manager approval.', 'success');
       closeAddLeaveModal();
@@ -1054,7 +1072,7 @@ function approveLeave() {
   if (!l) return;
   l.status     = 'approved';
   l.approvedBy = currentUser.name;
-  saveLeave(l)
+  _saveLeave(l)
     .then(() => {
       showToast('Leave approved.', 'success');
       closeModal('modal-leave-popup');
@@ -1067,7 +1085,7 @@ function rejectLeave() {
   const l = (appData.leave || []).find(x => x.id === selectedLeaveId);
   if (!l) return;
   l.status = 'rejected';
-  saveLeave(l)
+  _saveLeave(l)
     .then(() => {
       showToast('Leave rejected.', 'success');
       closeModal('modal-leave-popup');
