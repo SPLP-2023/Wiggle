@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/Wiggle/manifest.json">
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SP FSM">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quote Acceptances — Strike Point</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    :root {
+      --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
+      --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+      --text:#f1f5f9; --text-muted:#94a3b8;
+      --card-bg:#1e293b; --border:#334155;
+      --success:#22c55e; --danger:#ef4444; --info:#3b82f6;
+      --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
+
+    nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .nav-brand { display:flex; align-items:center; gap:9px; }
+    .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
+    .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
+
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; text-decoration:none; }
+    .btn-secondary { background:var(--dark3); color:var(--text); }
+    .btn-secondary:hover { background:#475569; }
+    .btn-primary { background:var(--primary); color:var(--dark); }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-sm { padding:7px 14px; font-size:12px; }
+
+    main { max-width:900px; margin:0 auto; padding:28px 20px 80px; }
+
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-header h2 { font-size:22px; font-weight:700; }
+
+    .search-bar { margin-bottom:20px; }
+    .search-bar input {
+      width:100%; padding:10px 16px; background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); color:var(--text); font-size:14px; font-family:inherit;
+    }
+    .search-bar input:focus { outline:none; border-color:var(--primary); }
+    .search-bar input::placeholder { color:var(--text-muted); }
+
+    .acceptance-row {
+      background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
+      padding:16px 20px; display:flex; align-items:center; gap:16px;
+      flex-wrap:wrap; transition:border-color 0.2s; margin-bottom:10px;
+      cursor:pointer; text-decoration:none; color:inherit;
+    }
+    .acceptance-row:hover { border-color:var(--primary); }
+
+    .acc-icon { font-size:24px; flex-shrink:0; }
+    .acc-body { flex:1; min-width:0; }
+    .acc-company { font-size:15px; font-weight:700; }
+    .acc-name { font-size:13px; color:var(--text-muted); margin-top:2px; }
+    .acc-meta { font-size:12px; color:var(--text-muted); margin-top:4px; display:flex; flex-wrap:wrap; gap:12px; }
+    .acc-meta span { display:flex; align-items:center; gap:4px; }
+    .acc-ref { font-size:12px; font-weight:700; color:var(--primary); background:rgba(245,158,11,0.1); border-radius:6px; padding:3px 9px; white-space:nowrap; flex-shrink:0; }
+    .acc-arrow { color:var(--primary); font-size:18px; flex-shrink:0; }
+
+    .empty-state { text-align:center; padding:80px 20px; color:var(--text-muted); }
+    .empty-state .empty-icon { font-size:48px; margin-bottom:16px; }
+    .empty-state p { font-size:15px; }
+
+    .count-badge { font-size:13px; color:var(--text-muted); font-weight:400; margin-left:8px; }
+
+    .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; max-width:320px; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.error { border-color:var(--danger); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()">&#8592; Back</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">&#8212;</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h2>&#9989; Quote Acceptances <span class="count-badge" id="count-badge"></span></h2>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="&#128269;  Search by company, name or quote ref…" oninput="filterList()">
+  </div>
+
+  <div id="list-container">
+    <div class="empty-state">
+      <div class="empty-icon">&#9203;</div>
+      <p>Loading acceptances…</p>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
+<script>
+var currentUser;
+var allAcceptances = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  currentUser = requireManager();
+  if (!currentUser) return;
+  showLoader();
+  setLoaderMsg('Loading acceptances…');
+
+  initFirebaseWithAuth().then(function() {
+    hideLoader();
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    updateBackButton();
+    loadAcceptances();
+  }).catch(function(err) {
+    hideLoader();
+    console.error(err);
+    showToast('Connection error — please refresh.', 'error');
+  });
+});
+
+function goBack() {
+  var from = new URLSearchParams(window.location.search).get('from');
+  if (from === 'quotes') window.location.href = '/Wiggle/crm-quotes.html';
+  else window.location.href = '/Wiggle/index.html';
+}
+
+function updateBackButton() {
+  var from = new URLSearchParams(window.location.search).get('from');
+  var btn  = document.getElementById('btn-back');
+  if (!btn) return;
+  if (from === 'quotes') btn.textContent = '← Quotes';
+  else btn.textContent = '← Dashboard';
+}
+
+function loadAcceptances() {
+  _db.collection('crm_quote_acceptance')
+    .orderBy('submitted_at', 'desc')
+    .get()
+    .then(function(snap) {
+      allAcceptances = snap.docs.map(function(d) {
+        return Object.assign({ _id: d.id }, d.data());
+      });
+      renderList(allAcceptances);
+    })
+    .catch(function(err) {
+      console.error(err);
+      document.getElementById('list-container').innerHTML =
+        '<div class="empty-state"><div class="empty-icon">&#9888;&#65039;</div><p>Failed to load acceptances.</p></div>';
+    });
+}
+
+function filterList() {
+  var q = document.getElementById('search-input').value.trim().toLowerCase();
+  if (!q) { renderList(allAcceptances); return; }
+  var filtered = allAcceptances.filter(function(a) {
+    return (a.company      || '').toLowerCase().includes(q)
+        || (a.first_name   || '').toLowerCase().includes(q)
+        || (a.last_name    || '').toLowerCase().includes(q)
+        || (a.quoteRef     || '').toLowerCase().includes(q)
+        || (a.email        || '').toLowerCase().includes(q);
+  });
+  renderList(filtered);
+}
+
+function renderList(items) {
+  var badge = document.getElementById('count-badge');
+  badge.textContent = items.length ? '(' + items.length + ')' : '';
+
+  if (!items.length) {
+    document.getElementById('list-container').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">&#128203;</div><p>No acceptances found.</p></div>';
+    return;
+  }
+
+  var html = items.map(function(a) {
+    var name     = [a.first_name, a.last_name].filter(Boolean).join(' ') || 'Unknown';
+    var dateStr  = a.submitted_at ? formatSubmittedAt(a.submitted_at) : '—';
+    var ref      = a.quoteRef || a.quoteId || '—';
+    var viewUrl  = '/Wiggle/view-quote.html?id=' + encodeURIComponent(a.quoteId || a._id) + '&from=acceptances';
+
+    return '<a class="acceptance-row" href="' + viewUrl + '">'
+      + '<div class="acc-icon">&#9989;</div>'
+      + '<div class="acc-body">'
+      +   '<div class="acc-company">' + escHtml(a.company || 'Unknown Company') + '</div>'
+      +   '<div class="acc-name">&#128100; ' + escHtml(name) + (a.email ? ' &middot; ' + escHtml(a.email) : '') + '</div>'
+      +   '<div class="acc-meta">'
+      +     '<span>&#128197; ' + dateStr + '</span>'
+      +     (a.site_address ? '<span>&#128205; ' + escHtml(a.site_address) : '') + '</span>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="acc-ref">Ref: ' + escHtml(ref) + '</div>'
+      + '<div class="acc-arrow">&#8250;</div>'
+      + '</a>';
+  }).join('');
+
+  document.getElementById('list-container').innerHTML = html;
+}
+
+function formatSubmittedAt(val) {
+  try {
+    var d = val && val.toDate ? val.toDate() : new Date(val);
+    return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch(e) { return '—'; }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Wiggle/sw.js');
+  }
+</script>
+</body>
+</html>

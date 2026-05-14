@@ -265,15 +265,22 @@ var currentInvoiceId=null,currentCustomerId=null,filterStatus='all',invoiceCount
 }
 
   function goBack() {
-  const params = new URLSearchParams(window.location.search);
-  const from   = params.get('from');
-  const cid    = params.get('cid');
-  if (from === 'customer' && cid) {
+  const params  = new URLSearchParams(window.location.search);
+  const from    = params.get('from');
+  const cid     = params.get('cid');
+  const jobid   = params.get('jobid');
+  if (from === 'job' && jobid) {
+    window.location.href = '/Wiggle/job-detail.html?id=' + jobid + '&from=invoices';
+  } else if (from === 'job') {
+    history.back();
+  } else if (from === 'customer' && cid) {
     window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
   } else if (from === 'customers') {
     window.location.href = '/Wiggle/customers.html';
+  } else if (from === 'search') {
+    window.location.href = '/Wiggle/job-search.html';
   } else {
-    window.location.href = '/Wiggle/customers.html';
+    window.location.href = '/Wiggle/index.html';
   }
 }
 
