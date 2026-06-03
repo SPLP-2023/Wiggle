@@ -240,7 +240,7 @@
     border:2px dashed var(--border); border-radius:12px; padding:24px;
     text-align:center; cursor:pointer; transition:border-color 0.2s; margin-bottom:14px;
   }
-  .doc-upload-zone:hover { border-color:var(--primary); }
+  .doc-upload-zone:hover, .doc-upload-zone.drag-over { border-color:var(--primary); background:rgba(var(--primary-rgb,99,102,241),0.06); }
   .doc-upload-zone p { color:var(--text-muted); font-size:13px; margin-top:6px; }
   .doc-card {
     background:var(--dark); border:1px solid var(--border); border-radius:10px;
@@ -696,9 +696,9 @@
     <!-- ══ DOCUMENTS SECTION ══ -->
     <div class="detail-card" style="margin-bottom:20px;">
       <h4>📎 Documents & Images</h4>
-      <div class="doc-upload-zone" onclick="document.getElementById('doc-file-input').click()">
+      <div class="doc-upload-zone" id="doc-upload-zone" onclick="document.getElementById('doc-file-input').click()">
         <div style="font-size:32px;">📂</div>
-        <p>Click to upload a PDF or image</p>
+        <p>Click or drag &amp; drop files here</p>
         <p style="font-size:11px;margin-top:4px;color:var(--text-muted);">PDF, JPG, PNG · Max 50MB per file</p>
       </div>
       <input type="file" id="doc-file-input" accept=".pdf,image/*" style="display:none;" onchange="uploadDocument(event)" multiple>
@@ -983,6 +983,7 @@ function renderPage() {
   renderCosts();
   renderComments();
   loadDocs();
+  initUploadZone();
   loadAndRenderHistory();
   renderAuditLog();
   loadLinkedRecords();
@@ -1956,8 +1957,27 @@ function togglePreview(i, url, name) {
   }
 }
 
+function initUploadZone() {
+  const zone = document.getElementById('doc-upload-zone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.type.startsWith('image/'));
+    if (!files.length) { showToast('Only PDF or image files are supported.', 'error'); return; }
+    uploadFiles(files);
+  });
+}
+
 function uploadDocument(event) {
   const files = Array.from(event.target.files);
+  if (!files.length) return;
+  uploadFiles(files, () => { event.target.value = ''; });
+}
+
+function uploadFiles(files, onComplete) {
   if (!files.length) return;
   if (!_storage) { showToast('Storage not ready — please refresh.', 'error'); return; }
 
@@ -1970,7 +1990,7 @@ function uploadDocument(event) {
     if (index >= files.length) {
       progress.style.display = 'none';
       bar.style.width = '0%';
-      event.target.value = '';
+      if (onComplete) onComplete();
       loadDocs();
       showToast(files.length + ' file(s) uploaded ✓', 'success');
       addAuditEntry(job, files.length + ' document(s) uploaded by ' + currentUser.name, currentUser.name);
