@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/Wiggle/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SP FSM">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Job — Strike Point</title>
+<style>
+  :root {
+    --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
+    --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+    --text:#f1f5f9; --text-muted:#94a3b8;
+    --card-bg:#1e293b; --border:#334155;
+    --success:#22c55e; --danger:#ef4444; --info:#3b82f6;
+    --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
+
+  /* NAV */
+  nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
+  .nav-brand .bolt { font-size:22px; }
+  .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
+  .nav-right { display:flex; align-items:center; gap:10px; }
+  .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
+  .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 22px; border-radius:var(--radius); font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; }
+  .btn-secondary { background:var(--dark3); color:var(--text); }
+  .btn-secondary:hover { background:#475569; }
+  .btn-primary { background:var(--primary); color:var(--dark); }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .btn-sm { padding:7px 14px; font-size:12px; }
+
+  /* MAIN */
+  main { max-width:760px; margin:0 auto; padding:28px 20px 60px; }
+  .page-header { margin-bottom:28px; }
+  .page-header h2 { font-size:22px; font-weight:700; }
+  .page-header p { color:var(--text-muted); font-size:14px; margin-top:4px; }
+
+  /* FORM CARD */
+  .form-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:28px; margin-bottom:20px; }
+  .form-card h3 { font-size:15px; font-weight:700; color:var(--primary); margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:13px; color:var(--text-muted); margin-bottom:7px; font-weight:500; }
+  .form-group input, .form-group select, .form-group textarea {
+    width:100%; padding:11px 14px; background:var(--dark); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text); font-size:14px; transition:border-color 0.2s; font-family:inherit;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--primary); }
+  .form-group select option { background:var(--dark2); }
+  .form-group .hint { font-size:11px; color:var(--text-muted); margin-top:5px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .optional-tag { font-size:10px; background:var(--dark3); color:var(--text-muted); padding:2px 7px; border-radius:10px; margin-left:6px; font-weight:400; vertical-align:middle; }
+
+  /* ENGINEER MULTI-SELECT */
+  .engineer-list { display:flex; flex-direction:column; gap:8px; }
+  .engineer-item { display:flex; align-items:center; gap:12px; background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:10px 14px; cursor:pointer; transition:border-color 0.2s; }
+  .engineer-item:hover { border-color:var(--primary); }
+  .engineer-item.selected { border-color:var(--primary); background:#1c2a1a; }
+  .engineer-item input[type=checkbox] { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; }
+  .engineer-item label { cursor:pointer; font-size:14px; flex:1; }
+
+  /* COST FIELDS */
+  .cost-section { display:none; }
+  .cost-section.visible { display:block; }
+  .input-prefix { position:relative; }
+  .input-prefix span { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; }
+  .input-prefix input { padding-left:26px; }
+
+  /* CIS TOGGLE */
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--dark); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; }
+  .toggle-row label { font-size:14px; }
+  .toggle-row .sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .toggle { position:relative; display:inline-block; width:44px; height:24px; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; inset:0; background:var(--dark3); border-radius:24px; cursor:pointer; transition:0.3s; }
+  .toggle-slider:before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:0.3s; }
+  .toggle input:checked + .toggle-slider { background:var(--primary); }
+  .toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+  /* FORM ACTIONS */
+  .form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; flex-wrap:wrap; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; box-shadow:var(--shadow); max-width:300px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--success); }
+  .toast.error { border-color:var(--danger); }
+
+  @media(max-width:580px) {
+    .form-row { grid-template-columns:1fr; }
+    .form-actions { flex-direction:column; }
+    .form-actions .btn { width:100%; }
+  }
+</style>
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()">&#8592; Back</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">—</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h2>➕ New Job</h2>
+    <p>Complete all required fields to create a new job.</p>
+  </div>
+  <div id="cal-date-banner" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:13px;color:var(--primary,#f59e0b);">
+    &#128197; Booking date pre-filled from calendar. You can change it below if needed.
+  </div>
+
+  <!-- ── SECTION 1: JOB DETAILS ── -->
+  <div class="form-card">
+    <h3>📋 Job Details</h3>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Job Reference Number</label>
+        <input type="text" id="f-ref" placeholder="e.g. 4821" maxlength="10">
+        <div class="hint">Ref number from customer quote</div>
+      </div>
+      <div class="form-group">
+        <label>Booking Date</label>
+        <input type="date" id="f-date" onchange="updateEndDateMin()">
+      </div>
+      <div class="form-group">
+        <label>End Date <span class="optional-tag">optional — multi-day jobs</span></label>
+        <input type="date" id="f-end-date">
+      </div>
+      <div class="form-group">
+        <label>Job Time <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+        <input type="time" id="f-time">
+      </div>
+    </div>
+
+    <div class="form-group">
+        <label>Site Name</label>
+        <input type="text" id="f-sitename" placeholder="e.g. The Chuckery">
+        <div id="site-dropdown-wrap" style="display:none;margin-top:6px;">
+          <label style="font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;">Or select an existing site:</label>
+          <select id="f-site-select" onchange="onSiteSelect()" style="width:100%;padding:10px 13px;background:var(--dark);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;">
+            <option value="">— Select a site —</option>
+          </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Job Type</label>
+        <select id="f-type" onchange="onTypeChange()">
+          <option value="">— Select type —</option>
+          <option value="Test & Inspection">Test & Inspection</option>
+          <option value="Remedial Repairs">Remedial Repairs</option>
+          <option value="Installation">Installation</option>
+          <option value="Survey">Survey</option>
+          <option value="Risk Assessment">Risk Assessment</option>
+        </select>
+      </div>
+        <div class="form-group">
+          <label>Company Name</label>
+          <select id="f-company" class="form-input" onchange="onCompanyChange()">
+            <option value="">-- Select Company --</option>
+          </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Site Representative Name <span class="optional-tag">optional</span></label>
+      <input type="text" id="f-rep" placeholder="On-site contact name">
+    </div>
+
+    <div class="form-group">
+      <label>Site Address</label>
+      <input type="text" id="f-address" placeholder="Full site address">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Site Postcode</label>
+        <input type="text" id="f-postcode" placeholder="e.g. EC1A 1BB" style="text-transform:uppercase">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <!-- spacer -->
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Initial Status</label>
+      <select id="f-status">
+        <option value="live">Live</option>
+        <option value="notconfirmed">Not Confirmed</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>PO Reference <span class="optional-tag">optional</span></label>
+      <input type="text" id="f-po" placeholder="e.g. PO-12345">
+    </div>
+
+    <div class="form-group">
+      <label>Job Description / Notes</label>
+      <textarea id="f-desc" rows="4" placeholder="Describe the work required, site access info, special instructions..."></textarea>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: ASSIGN ENGINEERS ── -->
+  <div class="form-card">
+    <h3>👷 Assign Engineers</h3>
+    <div class="engineer-list" id="engineer-list"></div>
+  </div>
+
+  <!-- ── SECTION 3: FINANCIAL ── -->
+  <div class="form-card">
+    <h3>💷 Financial Details</h3>
+
+    <!-- T&I costs -->
+    <div class="cost-section" id="costs-ti">
+      <div class="form-group">
+        <label>Job Value (ex VAT)</label>
+        <div class="input-prefix"><span>£</span><input type="number" id="f-value-ti" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="hint">VAT at 20% will be calculated automatically</div>
+      </div>
+    </div>
+
+    <!-- Non-T&I costs -->
+    <div class="cost-section" id="costs-other">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Job Value (ex VAT)</label>
+          <div class="input-prefix"><span>£</span><input type="number" id="f-value-other" placeholder="0.00" step="0.01" min="0"></div>
+        </div>
+        <div class="form-group">
+          <label>Labour Cost</label>
+          <div class="input-prefix"><span>£</span><input type="number" id="f-labour" placeholder="0.00" step="0.01" min="0"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Materials Cost</label>
+          <div class="input-prefix"><span>£</span><input type="number" id="f-materials" placeholder="0.00" step="0.01" min="0"></div>
+        </div>
+        <div class="form-group">
+          <label>Markup %</label>
+          <input type="number" id="f-markup" placeholder="e.g. 25" step="0.1" min="0" max="100">
+          <div class="hint">Applied to job value for profit calculation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shown for all job types once type is selected -->
+    <div class="cost-section" id="costs-common">
+      <div class="form-group" style="margin-top:4px;">
+        <div class="toggle-row">
+          <div>
+            <label style="font-weight:600;">CIS Tax Applicable</label>
+            <div class="sub">20% deduction on labour only</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="f-cis">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div id="no-type-msg" style="color:var(--text-muted);font-size:14px;text-align:center;padding:12px 0;">
+      Select a job type above to see financial fields.
+    </div>
+  </div>
+
+  <!-- ── ACTIONS ── -->
+  <div class="form-actions">
+    <button class="btn btn-secondary" onclick="goBack()">&#127968; Go to Dashboard</button>
+    <button class="btn btn-primary" onclick="submitJob()">&#10003; Save &amp; Add Another</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
+<script>
+// ── Init ─────────────────────────────────────
+let currentUser;
+var allCustomersData = [];
+var prefilledQuoteId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireManager();
+  if (!currentUser) return;
+  showLoader();
+  setLoaderMsg('Loading…');
+  initFirebaseWithAuth().then(() => {
+    hideLoader();
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    updateBackButton();
+    buildEngineerList();
+    loadCompanyList();
+    // Pre-fill date — use ?date= param from calendar click, or today
+    const dateParam = new URLSearchParams(window.location.search).get('date');
+    document.getElementById('f-date').value = dateParam || new Date().toISOString().split('T')[0];
+    if (dateParam) document.getElementById('cal-date-banner').style.display = 'block';
+    // Pre-fill from accepted quote if ?quoteid= present
+    const quoteId = new URLSearchParams(window.location.search).get('quoteid');
+    if (quoteId) prefillFromQuote(quoteId);
+  }).catch(err => {
+    hideLoader();
+    console.error('Firebase error', err);
+    showToast('Connection error — please refresh.', 'error');
+  });
+});
+
+function goBack() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  if (from === 'calendar')  window.location.href = '/Wiggle/calendar.html';
+  else if (from === 'search') window.location.href = '/Wiggle/job-search.html';
+  else                      window.location.href = '/Wiggle/index.html';
+}
+
+function updateBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  const from   = params.get('from');
+  const btn    = document.getElementById('btn-back');
+  if (!btn) return;
+  const labels = { dashboard: '← Dashboard', calendar: '← Calendar', search: '← Search' };
+  btn.textContent = labels[from] || '← Dashboard';
+}
+
+// ── Pre-fill from accepted quote ──────────────
+function prefillFromQuote(quoteId) {
+  prefilledQuoteId = quoteId;
+  _db.collection('crm_quotes').doc(quoteId).get().then(function(snap) {
+    if (!snap.exists) return;
+    var q = snap.data();
+
+    // Map job type from quote job type
+    var typeMap = {
+      'T&I': 'Test & Inspection', 'RPS': 'Remedial Repairs',
+      'Installation': 'Installation', 'Survey': 'Survey',
+      'Risk Assessment': 'Risk Assessment'
+    };
+    var jobType = typeMap[q.jobType] || '';
+
+    // Pre-fill company — wait for company list to be ready
+    var waitForCompanies = setInterval(function() {
+      if (!allCustomersData.length) return;
+      clearInterval(waitForCompanies);
+      var companyEl = document.getElementById('f-company');
+      if (q.company) {
+        companyEl.value = q.company;
+        onCompanyChange();
+        // After company change, set site fields
+        setTimeout(function() {
+          if (q.siteName)  document.getElementById('f-sitename').value = q.siteName;
+          if (q.serviceAddress) document.getElementById('f-address').value = q.serviceAddress;
+          if (q.postcode)  document.getElementById('f-postcode').value = q.postcode;
+        }, 300);
+      }
+    }, 100);
+
+    // Job type
+    if (jobType) document.getElementById('f-type').value = jobType;
+    onTypeChange();
+
+    // Rep from preparedFor
+    if (q.preparedFor) document.getElementById('f-rep').value = q.preparedFor;
+
+    // Job value from quote total (ex VAT = subtotal)
+    if (q.subtotal) {
+      document.getElementById('f-value-ti').value    = parseFloat(q.subtotal).toFixed(2);
+      document.getElementById('f-value-other').value = parseFloat(q.subtotal).toFixed(2);
+    }
+
+    // PO from quote acceptedBy / poNumber
+    if (q.poNumber) document.getElementById('f-po').value = q.poNumber;
+
+    // Now try to load acceptance form data for description
+    _db.collection('crm_quote_acceptance').where('quoteId', '==', quoteId).get().then(function(aSnap) {
+      var lines = [];
+      if (!aSnap.empty) {
+        var a = aSnap.docs[0].data();
+        if (a.induction)    lines.push('Site Induction: ' + a.induction);
+        if (a.parking)      lines.push('Parking: ' + a.parking);
+        if (a.credentials)  lines.push('Credentials Required: ' + a.credentials);
+        if (a.access)       lines.push('Roof Access: ' + a.access);
+        if (a.site_contact) lines.push('Site Contact: ' + a.site_contact);
+        if (a.po)           { document.getElementById('f-po').value = a.po; }
+      }
+      if (lines.length) document.getElementById('f-desc').value = lines.join('\n');
+    }).catch(function() {});
+
+    // Show a banner so the user knows this is pre-filled
+    var banner = document.getElementById('cal-date-banner');
+    banner.style.display = 'block';
+    banner.style.background = 'rgba(34,197,94,0.1)';
+    banner.style.borderColor = 'rgba(34,197,94,0.3)';
+    banner.style.color = '#22c55e';
+    banner.innerHTML = '&#10003; Pre-filled from accepted quote <strong>' + (q.ref || quoteId) + '</strong>. Please review and complete before saving.';
+
+  }).catch(function(err) { console.error('Quote prefill error', err); });
+}
+
+      function loadCompanyList() {
+      _db.collection('crm_customers').orderBy('company').get().then(function(snap) {
+        allCustomersData = snap.docs.map(function(d) { return Object.assign({ _id: d.id }, d.data()); });
+        var sel = document.getElementById('f-company');
+        allCustomersData.forEach(function(c) {
+          if (c.parentCustomerId) return; // skip entities
+          var opt = document.createElement('option');
+          opt.value = c.company;
+          opt.textContent = c.company;
+          sel.appendChild(opt);
+        });
+      }).catch(function(err) { console.error('Company list error', err); });
+    }
+
+function onCompanyChange() {
+  var companyName = document.getElementById('f-company').value;
+  var wrap = document.getElementById('site-dropdown-wrap');
+  var sel  = document.getElementById('f-site-select');
+
+  document.getElementById('f-sitename').value = '';
+  document.getElementById('f-address').value  = '';
+  document.getElementById('f-postcode').value = '';
+
+  if (!companyName) { wrap.style.display = 'none'; return; }
+
+  var customer = allCustomersData.find(function(c) { return c.company === companyName; });
+  var sites = (customer && customer.siteAddresses) ? customer.siteAddresses : [];
+
+  if (!sites.length) { wrap.style.display = 'none'; return; }
+
+  sel.innerHTML = '<option value="">— Select a site —</option>';
+  sites.forEach(function(s, i) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = (s.name || s.address) + (s.postcode ? ' · ' + s.postcode : '');
+    sel.appendChild(opt);
+  });
+  wrap.style.display = 'block';
+  sel._sites = sites;
+  sel._customerId = customer ? customer._id : null;
+}
+
+function onSiteSelect() {
+  var sel = document.getElementById('f-site-select');
+  var idx = sel.value;
+  if (idx === '' || !sel._sites) return;
+  var site = sel._sites[parseInt(idx)];
+  if (!site) return;
+  document.getElementById('f-sitename').value = site.name    || '';
+  document.getElementById('f-address').value  = site.address || '';
+  document.getElementById('f-postcode').value = site.postcode|| '';
+}
+
+// ── Engineer multi-select ─────────────────────
+function buildEngineerList() {
+  const engineers = getEngineers();
+  const container = document.getElementById('engineer-list');
+  container.innerHTML = engineers.map(e => `
+    <div class="engineer-item" id="ei-${e.id}" onclick="toggleEngineer('${e.id}')">
+      <input type="checkbox" id="ec-${e.id}" onclick="event.stopPropagation();toggleEngineer('${e.id}')">
+      <label for="ec-${e.id}">👷 ${e.name}</label>
+    </div>`).join('');
+}
+
+function toggleEngineer(id) {
+  const cb  = document.getElementById('ec-' + id);
+  const row = document.getElementById('ei-' + id);
+  cb.checked = !cb.checked;
+  row.classList.toggle('selected', cb.checked);
+}
+
+function getSelectedEngineers() {
+  return getEngineers().filter(e => document.getElementById('ec-' + e.id)?.checked).map(e => e.id);
+}
+
+// ── Job type change ───────────────────────────
+function onTypeChange() {
+  const t = document.getElementById('f-type').value;
+  const isTI = t === 'Test & Inspection';
+  const hasType = t !== '';
+
+  document.getElementById('costs-ti').classList.toggle('visible', isTI);
+  document.getElementById('costs-other').classList.toggle('visible', !isTI && hasType);
+  document.getElementById('costs-common').classList.toggle('visible', hasType);
+  document.getElementById('no-type-msg').style.display = hasType ? 'none' : 'block';
+}
+
+// ── Validation ────────────────────────────────
+function validateForm() {
+  const fields = [
+    { id: 'f-ref',     msg: 'Please enter a job reference number.' },
+    { id: 'f-date',    msg: 'Please select a booking date.' },
+    { id: 'f-type',    msg: 'Please select a job type.' },
+    { id: 'f-company', msg: 'Please enter a company name.' },
+    { id: 'f-address', msg: 'Please enter the site address.' },
+    { id: 'f-postcode',msg: 'Please enter the site postcode.' },
+    { id: 'f-sitename', msg: 'Please enter a site name.' },
+  ];
+  for (const f of fields) {
+    const el = document.getElementById(f.id);
+    if (!el.value.trim()) { showToast(f.msg, 'error'); el.focus(); return false; }
+  }
+  const ref = document.getElementById('f-ref').value.trim();
+  if (!/^\d{1,10}$/.test(ref)) { showToast('Job reference must be 1–10 digits.', 'error'); return false; }
+  if (!getSelectedEngineers().length) { showToast('Please assign at least one engineer.', 'error'); return false; }
+  const startDate = document.getElementById('f-date').value;
+  const endDate   = document.getElementById('f-end-date').value;
+  if (endDate && endDate < startDate) { showToast('End date cannot be before the booking date.', 'error'); return false; }
+  return true;
+}
+
+function updateEndDateMin() {
+  const d = document.getElementById('f-date').value;
+  const endEl = document.getElementById('f-end-date');
+  endEl.min = d;
+  if (endEl.value && endEl.value < d) endEl.value = d;
+}
+
+// ── Submit ────────────────────────────────────
+function submitJob() {
+  if (!validateForm()) return;
+
+  const type    = document.getElementById('f-type').value;
+  const isTI    = type === 'Test & Inspection';
+  const jobValue = parseFloat(isTI
+    ? document.getElementById('f-value-ti').value || 0
+    : document.getElementById('f-value-other').value || 0);
+
+  const costs = {
+    jobValue,
+    labour:    isTI ? 0 : parseFloat(document.getElementById('f-labour').value    || 0),
+    materials: isTI ? 0 : parseFloat(document.getElementById('f-materials').value || 0),
+    markup:    isTI ? 0 : parseFloat(document.getElementById('f-markup').value     || 0),
+    parking:   0,
+    miles:     0,
+    fuelCost:  0,
+    totalCosts:0,
+    netProfit: 0,
+    cis:       document.getElementById('f-cis').checked,
+  };
+
+  const postcode = document.getElementById('f-postcode').value.trim().toUpperCase();
+
+  const job = {
+    id:          genId(),
+    ref:         document.getElementById('f-ref').value.trim(),
+    bookingDate: document.getElementById('f-date').value,
+    endDate:     document.getElementById('f-end-date').value || null,
+    jobTime:     document.getElementById('f-time').value || null,
+    type,
+    siteName:    document.getElementById('f-sitename').value.trim(),
+    company:     document.getElementById('f-company').value.trim(),
+    rep:         document.getElementById('f-rep').value.trim(),
+    address:     document.getElementById('f-address').value.trim(),
+    postcode,
+    poRef:       document.getElementById('f-po').value.trim(),
+    description: document.getElementById('f-desc').value.trim(),
+    engineers:   getSelectedEngineers(),
+    status:      document.getElementById('f-status').value,
+    costs,
+    comments:    [],
+    history:     [],
+    auditLog:    [{ action: 'Job created', user: currentUser.name, ts: new Date().toISOString() }],
+    isNew:       true,
+    createdAt:   new Date().toISOString(),
+    completedAt: null,
+    startedAt:   null,
+    finishedAt:  null,
+    duration:    null,
+  };
+
+  appData.jobs.push(job);
+  saveData();
+  showToast('Job #' + job.ref + ' created! ✓', 'success');
+
+  // If created from an accepted quote — update quote to 'booked' and store quoteId on job
+  if (prefilledQuoteId) {
+    _db.collection('crm_quotes').doc(prefilledQuoteId).update({
+      status: 'booked',
+      linkedJobRef: job.ref,
+      updatedAt: new Date().toISOString()
+    }).catch(function(err) { console.error('Quote booked update error', err); });
+    // Also store quoteId on the Firestore job document for invoice linking later
+    _db.collection('jobs').where('id', '==', job.id).limit(1).get().then(function(snap) {
+      if (!snap.empty) {
+        snap.docs[0].ref.update({ quoteId: prefilledQuoteId });
+      }
+    }).catch(function() {});
+  }
+
+  // Save new site back to customer if it doesn't already exist
+  var sel = document.getElementById('f-site-select');
+  var customerId = sel._customerId || null;
+  if (customerId) {
+    var siteName = document.getElementById('f-sitename').value.trim();
+    var address  = document.getElementById('f-address').value.trim();
+    var customer = allCustomersData.find(function(c) { return c._id === customerId; });
+    var sites    = (customer && customer.siteAddresses) ? customer.siteAddresses : [];
+    var exists   = sites.some(function(s) {
+      return s.postcode && s.postcode.toUpperCase() === postcode;
+    });
+    if (!exists && siteName && postcode) {
+      var newSite = { name: siteName, address: address, postcode: postcode, entityCustomerId: null };
+      sites.push(newSite);
+      _db.collection('crm_customers').doc(customerId).update({ siteAddresses: sites })
+        .catch(function(err) { console.error('Site save error', err); });
+      if (customer) customer.siteAddresses = sites;
+    }
+  }
+
+  // Clear form ready for next job — keep company and date
+  document.getElementById('f-ref').value      = '';
+  document.getElementById('f-end-date').value = '';
+  document.getElementById('f-time').value     = '';
+  document.getElementById('f-sitename').value = '';
+  document.getElementById('f-address').value  = '';
+  document.getElementById('f-postcode').value = '';
+  document.getElementById('f-po').value       = '';
+  document.getElementById('f-desc').value     = '';
+  document.getElementById('f-rep').value      = '';
+  document.getElementById('f-status').value   = 'live';
+  document.getElementById('f-site-select').value = '';
+  var keepCompany = document.getElementById('f-company').value;
+  if (keepCompany) onCompanyChange();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Wiggle/sw.js');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/Wiggle/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SP FSM">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/icons/icon-192x192.png">
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<meta name="viewport"
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Detail — Strike Point</title>
+<style>
+  :root {
+    --primary:#f59e0b; --primary-dark:#d97706; --primary-light:#fef3c7;
+    --dark:#0f172a; --dark2:#1e293b; --dark3:#334155;
+    --text:#f1f5f9; --text-muted:#94a3b8;
+    --card-bg:#1e293b; --border:#334155;
+    --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+    --info:#3b82f6; --pending:#a855f7;
+    --radius:10px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--text); min-height:100vh; }
+
+  /* NAV */
+  nav { background:var(--dark2); border-bottom:1px solid var(--border); padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .nav-brand { display:flex; align-items:center; gap:9px; cursor:pointer; }
+  .nav-brand .bolt { font-size:22px; }
+  .nav-brand span { font-weight:700; font-size:15px; color:var(--primary); }
+  .nav-right { display:flex; align-items:center; gap:10px; }
+  .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:8px; padding:5px 11px; font-size:13px; }
+  .user-avatar { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--dark); }
+
+  /* BUTTONS */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; white-space:nowrap; }
+  .btn-primary  { background:var(--primary);  color:var(--dark); }
+  .btn-primary:hover  { background:var(--primary-dark); }
+  .btn-secondary{ background:var(--dark3);    color:var(--text); }
+  .btn-secondary:hover{ background:#475569; }
+  .btn-success  { background:var(--success);  color:#fff; }
+  .btn-success:hover  { background:#16a34a; }
+  .btn-danger   { background:var(--danger);   color:#fff; }
+  .btn-danger:hover   { background:#dc2626; }
+  .btn-warning  { background:var(--warning);  color:var(--dark); }
+  .btn-purple   { background:var(--pending);  color:#fff; }
+  .btn-info     { background:var(--info);     color:#fff; }
+  .btn-sm  { padding:7px 14px; font-size:12px; }
+  .btn-xs  { padding:5px 10px; font-size:11px; }
+  .btn-full{ width:100%; }
+
+  /* MAIN */
+  main { max-width:860px; margin:0 auto; padding:24px 20px 60px; }
+
+  /* JOB HEADER */
+  .job-header { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:20px; }
+  .job-header-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+  .job-ref-block { display:flex; align-items:center; gap:14px; }
+  .job-ref-num { font-size:32px; font-weight:800; color:var(--primary); }
+  .job-type-tag { font-size:12px; padding:4px 12px; border-radius:20px; background:var(--dark3); color:var(--text-muted); font-weight:600; }
+  .status-pill { display:flex; align-items:center; gap:8px; background:var(--dark3); border-radius:20px; padding:6px 14px; }
+  .status-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .status-live         { background:var(--warning); box-shadow:0 0 6px var(--warning); }
+  .status-pending      { background:var(--pending); box-shadow:0 0 6px var(--pending); }
+  .status-complete     { background:var(--success); box-shadow:0 0 6px var(--success); }
+  .status-aborted      { background:var(--danger);  box-shadow:0 0 6px var(--danger);  }
+  .status-notconfirmed { background:var(--danger);  box-shadow:0 0 6px var(--danger);  }
+  .status-label { font-size:13px; font-weight:600; }
+  .job-company { font-size:20px; font-weight:700; margin-bottom:4px; }
+  .job-meta-row { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; }
+  .job-meta-item { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); }
+  .badge-overdue { font-size:11px; padding:3px 10px; border-radius:20px; background:var(--danger); color:#fff; font-weight:700; }
+
+  /* ACTION BUTTONS */
+  .action-bar { display:flex; flex-wrap:wrap; gap:10px; padding-top:16px; border-top:1px solid var(--border); margin-top:16px; }
+
+  /* TIMER */
+  .timer-display { background:var(--dark); border:1px solid var(--border); border-radius:8px; padding:8px 16px; font-size:14px; font-weight:600; color:var(--primary); font-variant-numeric:tabular-nums; display:none; align-items:center; gap:8px; }
+  .timer-dot { width:8px; height:8px; border-radius:50%; background:var(--success); animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* TABS */
+  .tab-bar { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; overflow-x:auto; scrollbar-width:none; }
+  .tab-bar::-webkit-scrollbar { display:none; }
+  .tab-btn { padding:12px 20px; font-size:14px; font-weight:500; color:var(--text-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+  .tab-btn:hover { color:var(--text); }
+  .tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* ── LINKED RECORDS SIDEBAR ── */
+  .job-layout { display:grid; grid-template-columns:1fr 290px; gap:20px; align-items:start; }
+  .linked-sidebar { position:sticky; top:78px; background:var(--dark2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  @media(max-width:768px){
+    main { padding:12px 12px 60px; overflow-x:hidden; }
+    .job-layout { display:block; }
+    .linked-sidebar { position:static; width:100%; margin-top:20px; }
+  }
+  .linked-sidebar-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--dark3); border-bottom:1px solid var(--border); }
+  .linked-sidebar-header h4 { font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px; }
+  .linked-count-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--primary,#f59e0b); color:#000; }
+  .linked-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); padding:11px 16px 6px; }
+  .linked-item { display:flex; align-items:center; gap:10px; padding:9px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; text-decoration:none; color:inherit; }
+  .linked-item:last-child { border-bottom:none; }
+  .linked-item:hover { background:var(--dark3); }
+  .linked-item-icon { font-size:16px; flex-shrink:0; }
+  .linked-item-body { flex:1; min-width:0; }
+  .linked-item-title { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .linked-item-sub { font-size:11px; color:var(--text-muted); margin-top:1px; }
+  .linked-item-right { text-align:right; flex-shrink:0; }
+  .linked-item-value { font-size:12px; font-weight:700; color:#22c55e; }
+  .lsbadge { display:inline-block; font-size:9px; font-weight:700; padding:1px 6px; border-radius:20px; text-transform:uppercase; border:1px solid; margin-top:2px; }
+  .ls-draft    { color:#94a3b8; border-color:#94a3b844; background:#94a3b812; }
+  .ls-sent     { color:#3b82f6; border-color:#3b82f644; background:#3b82f612; }
+  .ls-accepted,.ls-paid { color:#22c55e; border-color:#22c55e44; background:#22c55e12; }
+  .ls-overdue  { color:#ef4444; border-color:#ef444444; background:#ef444412; }
+  .ls-cancelled,.ls-declined { color:#94a3b8; border-color:#94a3b844; background:#94a3b812; }
+  .ls-pending  { color:#f59e0b; border-color:#f59e0b44; background:#f59e0b12; }
+  .linked-empty { padding:20px 16px; font-size:12px; color:var(--text-muted); text-align:center; }
+  .linked-action-btns { display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--border); }
+  .linked-action-btns .btn { flex:1; justify-content:center; font-size:11px; padding:6px 8px; }
+
+  /* CARDS */
+  .detail-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+  .detail-card h4 { font-size:13px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+  .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+  .detail-item label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; }
+  .detail-item .val { font-size:15px; font-weight:500; margin-top:3px; }
+  .detail-item .val.editable { cursor:pointer; border-bottom:1px dashed var(--border); display:inline-block; }
+  .detail-item .val.editable:hover { border-bottom-color:var(--primary); color:var(--primary); }
+
+  /* ENGINEER CHIPS */
+  .engineer-chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .eng-chip { display:flex; align-items:center; gap:6px; background:var(--dark3); border-radius:20px; padding:5px 12px; font-size:13px; }
+  .eng-remove { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1; padding:0 0 0 4px; }
+  .eng-remove:hover { color:var(--danger); }
+
+  /* REASSIGN */
+  .reassign-row { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+
+  /* DESCRIPTION */
+  .desc-text { font-size:14px; line-height:1.7; color:var(--text); white-space:pre-wrap; }
+  .edit-textarea { width:100%; padding:10px 14px; background:var(--dark); border:1px solid var(--primary); border-radius:var(--radius); color:var(--text); font-size:14px; font-family:inherit; min-height:100px; resize:vertical; }
+  .edit-input { width:100%; padding:9px 13px; background:var(--dark); border:1px solid var(--primary); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; }
+
+  /* COSTS TAB */
+  .costs-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:16px; }
+  .cost-input-group { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .cost-input-group label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; display:block; margin-bottom:8px; }
+  .input-prefix { position:relative; }
+  .input-prefix span { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:13px; }
+  .input-prefix input { padding-left:28px; }
+  .cost-input-group input { width:100%; padding:9px 12px 9px 28px; background:var(--dark2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; font-weight:600; }
+  .cost-input-group input:focus { outline:none; border-color:var(--primary); }
+  .cost-input-group .calc-note { font-size:11px; color:var(--text-muted); margin-top:6px; }
+  .profit-summary { background:var(--dark); border:2px solid var(--primary); border-radius:12px; padding:20px; }
+  .profit-summary h4 { font-size:13px; color:var(--text-muted); text-transform:uppercase; margin-bottom:14px; }
+  .profit-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:14px; }
+  .profit-row:last-child { border-bottom:none; font-size:16px; font-weight:700; color:var(--primary); padding-top:12px; }
+  .profit-row .neg { color:var(--danger); }
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--dark); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; margin-bottom:14px; }
+  .toggle { position:relative; display:inline-block; width:44px; height:24px; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; inset:0; background:var(--dark3); border-radius:24px; cursor:pointer; transition:0.3s; }
+  .toggle-slider:before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:0.3s; }
+  .toggle input:checked + .toggle-slider { background:var(--primary); }
+  .toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+  /* COMMENTS TAB */
+  .comment-input-box { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .comment-input-box textarea { width:100%; padding:10px 14px; background:var(--dark); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; font-family:inherit; min-height:80px; resize:vertical; margin-bottom:10px; }
+  .comment-input-box textarea:focus { outline:none; border-color:var(--primary); }
+  .comment-item { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .comment-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+  .comment-author { font-size:13px; font-weight:600; color:var(--primary); }
+  .comment-time { font-size:11px; color:var(--text-muted); }
+  .comment-body { font-size:14px; line-height:1.6; white-space:pre-wrap; word-break:break-word; }
+  .comment-body a { color:var(--info); text-decoration:underline; }
+
+  /* HISTORY TAB */
+  .history-item { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+  .history-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer; }
+  .history-header:hover { background:var(--dark3); }
+  .history-title { font-size:14px; font-weight:600; }
+  .history-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .history-body { padding:16px; border-top:1px solid var(--border); display:none; white-space:pre-wrap; font-size:13px; color:var(--text-muted); line-height:1.7; font-family:monospace; }
+  .history-body.open { display:block; }
+  .chevron { transition:transform 0.2s; display:inline-block; }
+  .chevron.open { transform:rotate(180deg); }
+
+  /* AUDIT LOG */
+  .audit-section { margin-top:20px; }
+  .audit-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:10px 0; border-top:1px solid var(--border); }
+  .audit-toggle span { font-size:13px; color:var(--text-muted); font-weight:600; }
+  .audit-list { display:none; margin-top:10px; }
+  .audit-list.open { display:block; }
+  .audit-entry { display:flex; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .audit-entry:last-child { border-bottom:none; }
+  .audit-entry .au-action { flex:1; color:var(--text); }
+  .audit-entry .au-user { color:var(--primary); font-weight:600; min-width:100px; }
+  .audit-entry .au-time { color:var(--text-muted); min-width:130px; text-align:right; }
+
+  /* IMPORT ZONE */
+  .import-zone { border:2px dashed var(--border); border-radius:12px; padding:32px; text-align:center; cursor:pointer; transition:border-color 0.2s; margin-bottom:16px; }
+  .import-zone:hover { border-color:var(--primary); }
+  .import-zone p { color:var(--text-muted); font-size:14px; margin-top:8px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--dark2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:14px; z-index:999; transform:translateY(100px); opacity:0; transition:all 0.3s; box-shadow:var(--shadow); max-width:320px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--success); }
+  .toast.error   { border-color:var(--danger);  }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); }
+  .modal-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--card-bg); }
+  .modal-header h3 { font-size:16px; font-weight:700; }
+  .modal-close { background:var(--dark3); border:none; color:var(--text); width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .modal-body { padding:22px; }
+  .modal-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+
+
+  /* INLINE EDITING */
+  .inline-edit-wrap { margin-top:8px; }
+  .inline-edit-btns { display:flex; gap:8px; margin-top:8px; }
+  .manager-only { display:none; }
+  /* ── DOCUMENTS ── */
+  .doc-upload-zone {
+    border:2px dashed var(--border); border-radius:12px; padding:24px;
+    text-align:center; cursor:pointer; transition:border-color 0.2s; margin-bottom:14px;
+  }
+  .doc-upload-zone:hover { border-color:var(--primary); }
+  .doc-upload-zone p { color:var(--text-muted); font-size:13px; margin-top:6px; }
+  .doc-card {
+    background:var(--dark); border:1px solid var(--border); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .doc-card-top { display:flex; align-items:center; gap:12px; }
+  .doc-icon { font-size:26px; flex-shrink:0; }
+  .doc-info { flex:1; min-width:0; }
+  .doc-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .doc-meta { font-size:11px; color:var(--text-muted); margin-top:3px; }
+  .doc-actions { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
+  .doc-preview-wrap { margin-top:10px; display:none; }
+  .doc-preview-wrap.open { display:block; }
+  .doc-preview-img { max-width:100%; max-height:360px; border-radius:8px; object-fit:contain; background:var(--dark2); }
+  .doc-preview-pdf { width:100%; height:500px; border-radius:8px; border:none; }
+  .upload-progress {
+    background:var(--dark); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; margin-bottom:10px; font-size:13px; color:var(--text-muted); display:none;
+  }
+  .progress-bar-wrap { background:var(--dark3); border-radius:20px; height:6px; margin-top:8px; overflow:hidden; }
+  .progress-bar-fill { background:var(--primary); height:6px; border-radius:20px; transition:width 0.2s; width:0%; }
+
+  .hidden { display:none !important; }
+
+  @media(max-width:600px) {
+    .job-header-top { flex-direction:column; }
+    .action-bar .btn { flex:1; min-width:120px; }
+    .detail-grid { grid-template-columns:1fr; }
+    .costs-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+    <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
+    <span>Strike Point</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=job'">← Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=job'">&#128269; Search</button>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name-display">—</span>
+    </div>
+  </div>
+</nav>
+
+<main id="main-content" style="display:none;">
+
+  <!-- JOB HEADER -->
+<!-- JOB HEADER -->
+<div class="job-header">
+  <div class="job-header-top">
+    <div class="job-ref-block">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
+        <div class="job-company" id="h-sitename">—</div>
+        <div style="font-size:14px;color:var(--primary);font-weight:700;" id="h-ref-inline">#—</div>
+      </div>
+      <span class="job-type-tag" id="h-type">—</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="status-pill">
+        <div class="status-dot" id="h-status-dot"></div>
+        <span class="status-label" id="h-status-label">—</span>
+      </div>
+      <span class="badge-overdue hidden" id="h-overdue">⚠ Overdue</span>
+    </div>
+  </div>
+  <div style="font-size:14px;color:var(--text-muted);margin-top:4px;" id="h-company">—</div>
+  <div style="font-size:13px;color:var(--text-muted);" id="h-address">—</div>
+  <div class="job-meta-row">
+    <div class="job-meta-item">📅 <span id="h-date">—</span></div>
+    <div class="job-meta-item">📌 <span id="h-postcode">—</span></div>
+    <div class="job-meta-item">👤 <span id="h-rep">—</span></div>
+  </div>
+
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+      <!-- Engineer actions -->
+      <button class="btn btn-success"  id="btn-start"    onclick="startJob()"           >▶ Start Job</button>
+      <button class="btn btn-info"     id="btn-add-report" onclick="openReportPicker()">📋 Add Report</button>
+      <button class="btn btn-warning"  id="btn-finish"   onclick="finishJob()">⏹ Finish Job</button>
+      <div class="timer-display"       id="timer-display"><div class="timer-dot"></div><span id="timer-text">00:00:00</span></div>
+      <button class="btn btn-purple"   id="btn-eng-complete" onclick="engineerComplete()">✓ Mark Complete</button>
+      <!-- Manager actions -->
+      <button class="btn btn-success"  id="btn-approve"  onclick="approveComplete()"    >✅ Approve Complete</button>
+      <button class="btn btn-secondary"id="btn-reject"   onclick="rejectToLive()"       >↩ Reject to Live</button>
+      <!-- Both -->
+      <button class="btn btn-danger btn-sm" id="btn-abort" onclick="confirmAbort()">✕ Abort Job</button>
+      <button class="btn btn-danger btn-sm hidden" id="btn-notconfirm" onclick="markNotConfirmed()">? Not Confirmed</button>
+      <button class="btn btn-warning btn-sm hidden" id="btn-confirm-job" onclick="markConfirmed()">✓ Confirm Job</button>
+      <button class="btn btn-primary btn-sm" id="btn-create-invoice" onclick="openCreateInvoiceModal()" style="display:none;">🧾 Create Invoice</button>
+      <button class="btn btn-info"     id="btn-save-history" onclick="saveToHistory()">📁 Save to History</button>
+      <button class="btn btn-danger" id="btn-delete" onclick="confirmDelete()">🗑 Delete Job</button>
+    </div>
+  </div>
+
+  <!-- TABS + SIDEBAR LAYOUT -->
+  <div class="job-layout">
+  <div><!-- left column: tabs + panels -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('details',this)">📋 Details</button>
+    <button class="tab-btn"        onclick="switchTab('costs',this)"  >💷 Costs</button>
+    <button class="tab-btn"        onclick="switchTab('comments',this)">💬 Comments <span id="comment-count-badge"></span></button>
+    <button class="tab-btn"        onclick="switchTab('history',this)" >📁 History</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB 1 — DETAILS
+  ═══════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-details">
+
+    <!-- Job Info -->
+    <div class="detail-card">
+      <h4>Job Information</h4>
+      <div class="detail-grid">
+
+        <!-- Reference (read only) -->
+        <div class="detail-item">
+          <label>Reference</label>
+          <div class="val" id="d-ref">—</div>
+        </div>
+
+        <!-- Job Type (editable) -->
+        <div class="detail-item" id="field-type">
+          <label>Job Type</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-type">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('type')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-type">
+            <select class="edit-input" id="input-type">
+              <option>Test &amp; Inspection</option>
+              <option>Remedial Repairs</option>
+              <option>Installation</option>
+              <option>Survey</option>
+              <option>Risk Assessment</option>
+            </select>
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('type')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('type')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking Date (editable) -->
+        <div class="detail-item" id="field-date">
+          <label>Booking Date</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-date">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('date')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-date">
+            <input type="date" class="edit-input" id="input-date">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('date')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('date')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Site Name (editable) -->
+        <div class="detail-item" id="field-sitename">
+          <label>Site Name</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-sitename">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('sitename')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-sitename">
+            <input type="text" class="edit-input" id="input-sitename">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('sitename')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('sitename')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Job Time (editable) -->
+        <div class="detail-item" id="field-time">
+          <label>Job Time</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-time">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('time')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-time">
+            <input type="time" class="edit-input" id="input-time">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('time')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('time')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Company (editable) -->
+        <div class="detail-item" id="field-company">
+          <label>Company</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-company">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('company')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-company">
+            <input type="text" class="edit-input" id="input-company" list="company-list-detail" autocomplete="off">
+            <datalist id="company-list-detail"></datalist>
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('company')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('company')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PO Reference (editable) -->
+        <div class="detail-item" id="field-po">
+          <label>PO Reference</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-po">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('po')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-po">
+            <input type="text" class="edit-input" id="input-po" placeholder="e.g. PO-12345">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('po')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('po')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Site Rep (editable) -->
+        <div class="detail-item" id="field-rep">
+          <label>Site Rep</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-rep">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('rep')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-rep">
+            <input type="text" class="edit-input" id="input-rep" placeholder="Contact name">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('rep')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('rep')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Postcode (editable) -->
+        <div class="detail-item" id="field-postcode">
+          <label>Postcode</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-postcode">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('postcode')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-postcode">
+            <input type="text" class="edit-input" id="input-postcode" placeholder="e.g. ST1 1AA">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('postcode')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('postcode')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Address (editable, full width) -->
+      <div style="margin-top:14px;">
+        <div class="detail-item" id="field-address">
+          <label>Address</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="val" id="d-address">—</div>
+            <button class="btn btn-secondary btn-xs manager-only" onclick="inlineEdit('address')">✏</button>
+          </div>
+          <div class="inline-edit-wrap hidden" id="edit-address">
+            <input type="text" class="edit-input" id="input-address" placeholder="Full site address">
+            <div class="inline-edit-btns">
+              <button class="btn btn-primary btn-xs" onclick="saveInline('address')">Save</button>
+              <button class="btn btn-secondary btn-xs" onclick="cancelInline('address')">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="detail-card">
+      <h4>Job Description</h4>
+      <div id="desc-view">
+        <div class="desc-text" id="d-desc">—</div>
+        <button class="btn btn-secondary btn-sm" id="btn-edit-desc" style="margin-top:12px;" onclick="editDesc()">✏ Edit</button>
+      </div>
+      <div id="desc-edit" class="hidden">
+        <textarea class="edit-textarea" id="desc-textarea"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="saveDesc()">Save</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelDesc()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Engineers -->
+    <div class="detail-card">
+      <h4>Assigned Engineers</h4>
+      <div class="engineer-chips" id="eng-chips"></div>
+      <!-- Manager only: reassign -->
+      <div class="reassign-row hidden" id="reassign-row">
+        <select id="reassign-select" style="padding:8px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+          <option value="">— Add engineer —</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="addEngineer()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Time Tracking -->
+    <div class="detail-card">
+      <h4>Time Tracking</h4>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Started</label><div class="val" id="d-started">Not started</div></div>
+        <div class="detail-item"><label>Finished</label><div class="val" id="d-finished">—</div></div>
+        <div class="detail-item"><label>Duration</label><div class="val" id="d-duration">—</div></div>
+      </div>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="audit-section">
+      <div class="audit-toggle" onclick="toggleAudit()">
+        <span>🗒 Audit Log</span>
+        <span class="chevron" id="audit-chevron">▼</span>
+      </div>
+      <div class="audit-list" id="audit-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB 2 — COSTS
+  ═══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-costs">
+
+    <div class="detail-card">
+      <h4>CIS Tax</h4>
+      <div class="toggle-row">
+        <div>
+          <div style="font-size:14px;font-weight:600;">CIS Tax Applicable</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">20% deduction on labour only</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="c-cis" onchange="saveCosts()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- T&I Costs -->
+    <div id="costs-ti-panel">
+      <div class="detail-card">
+        <h4>Job Value</h4>
+        <div class="costs-grid">
+          <div class="cost-input-group">
+            <label>Job Value (ex VAT)</label>
+            <div class="input-prefix"><span>£</span><input type="number" id="c-value" placeholder="0.00" step="0.01" min="0" oninput="saveCosts()"></div>
+          </div>
+          <div class="cost-input-group">
+            <label>VAT (20%)</label>
+            <div class="input-prefix"><span>£</span><input type="number" id="c-vat" readonly style="opacity:0.6;"></div>
+            <div class="calc-note">Auto-calculated</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Non-T&I Costs (hidden for T&I) -->
+    <div id="costs-other-panel" class="hidden">
+      <div class="detail-card">
+        <h4>Job Value & Labour</h4>
+        <div class="costs-grid">
+          <div class="cost-input-group">
+            <label>Job Value (ex VAT)</label>
+            <div class="input-prefix"><span>£</span><input type="number" id="c-value2" placeholder="0.00" step="0.01" min="0" oninput="saveCosts()"></div>
+          </div>
+          <div class="cost-input-group">
+            <label>VAT (20%)</label>
+            <div class="input-prefix"><span>£</span><input type="number" id="c-vat2" readonly style="opacity:0.6;"></div>
+            <div class="calc-note">Auto-calculated</div>
+          </div>
+          <div class="cost-input-group">
+            <label>Labour Cost</label>
+            <div class="input-prefix"><span>£</span><input type="number" id="c-labour" placeholder="0.00" step="0.01" min="0" oninput="saveCosts()"></div>
+          </div>
+          <div class="cost-input-group">
+            <label>Materials Cost</label>
+            <div class="input-prefix"><span>£</span><input type="number" id="c-materials" placeholder="0.00" step="0.01" min="0" oninput="saveCosts()"></div>
+          </div>
+          <div class="cost-input-group">
+            <label>Markup %</label>
+            <input type="number" id="c-markup" placeholder="0" step="0.1" min="0" oninput="saveCosts()">
+            <div class="calc-note">Applied to job value</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Costs (all types) -->
+    <div class="detail-card">
+      <h4>Additional Costs</h4>
+      <div class="costs-grid">
+        <div class="cost-input-group">
+          <label>Parking Fees</label>
+          <div class="input-prefix"><span>£</span><input type="number" id="c-parking" placeholder="0.00" step="0.01" min="0" oninput="saveCosts()"></div>
+        </div>
+        <div class="cost-input-group">
+          <label>Miles Travelled</label>
+          <input type="number" id="c-miles" placeholder="0" step="1" min="0" oninput="saveCosts()">
+          <div class="calc-note" id="fuel-note">Fuel cost auto-calculated</div>
+        </div>
+        <div class="cost-input-group">
+          <label>Fuel Cost</label>
+          <div class="input-prefix"><span>£</span><input type="number" id="c-fuel" readonly style="opacity:0.6;"></div>
+          <div class="calc-note">Based on diesel price &amp; MPG in settings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Materials -->
+    <div class="detail-card">
+      <h4>Additional Materials / Costs</h4>
+      <div id="extra-costs-list" style="margin-bottom:12px;"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addExtraCost()">+ Add Item</button>
+    </div>
+
+    <!-- Profit Summary -->
+    <div class="profit-summary">
+      <h4>💷 Profit Summary</h4>
+      <div id="profit-breakdown"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB 3 — COMMENTS
+  ═══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-comments">
+    <div class="comment-input-box">
+      <textarea id="comment-input" placeholder="Add a comment, note or paste a link (e.g. Adobe PDF link)..."></textarea>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary btn-sm" onclick="postComment()">Post Comment</button>
+      </div>
+    </div>
+    <div id="comments-list"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB 4 — HISTORY
+  ═══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-history">
+
+    <!-- ══ DOCUMENTS SECTION ══ -->
+    <div class="detail-card" style="margin-bottom:20px;">
+      <h4>📎 Documents & Images</h4>
+      <div class="doc-upload-zone" onclick="document.getElementById('doc-file-input').click()">
+        <div style="font-size:32px;">📂</div>
+        <p>Click to upload a PDF or image</p>
+        <p style="font-size:11px;margin-top:4px;color:var(--text-muted);">PDF, JPG, PNG · Max 50MB per file</p>
+      </div>
+      <input type="file" id="doc-file-input" accept=".pdf,image/*" style="display:none;" onchange="uploadDocument(event)" multiple>
+      <div class="upload-progress" id="upload-progress">
+        <span id="upload-progress-name">Uploading…</span>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="upload-progress-bar"></div></div>
+      </div>
+      <div id="docs-list"></div>
+      <div id="no-docs" style="color:var(--text-muted);font-size:13px;padding:8px 0;">No documents uploaded yet.</div>
+    </div>
+
+    <!-- ══ SITE HISTORY SNAPSHOTS ══ -->
+    <div id="history-site-banner" style="display:none;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text-muted);">
+      📍 Showing all saved history for site: <strong id="history-site-name" style="color:var(--text);"></strong>
+      <span id="site-history-link-wrap" style="display:none;margin-left:12px;">
+        <a id="site-history-link" href="#" style="font-size:12px;color:var(--primary,#f59e0b);font-weight:600;text-decoration:none;">&#128269; View full site history &#8594;</a>
+      </span>
+    </div>
+    <div id="history-list"></div>
+    <div id="no-history" style="text-align:center;padding:60px 20px;color:var(--text-muted);">
+      <div style="font-size:40px;margin-bottom:12px;">📁</div>
+      <div>No history saved for this site yet.</div>
+      <div style="font-size:12px;margin-top:8px;">Click "Save to History" to create the first entry.</div>
+    </div>
+  </div>
+
+  </div><!-- end left column -->
+
+  <!-- RIGHT COLUMN: Linked Records Sidebar -->
+  <div class="linked-sidebar" id="linked-sidebar">
+    <div class="linked-sidebar-header">
+      <h4>&#128279; Linked Records</h4>
+      <span class="linked-count-badge" id="linked-total-count">0</span>
+    </div>
+    <div id="linked-sidebar-body">
+      <div class="linked-empty">Loading&hellip;</div>
+    </div>
+    <div class="linked-action-btns" id="linked-action-btns" style="display:none;">
+      <button class="btn btn-secondary" onclick="newQuoteFromJob()">&#43; Quote</button>
+      <button class="btn btn-primary"   onclick="openCreateInvoiceModal()">&#43; Invoice</button>
+    </div>
+  </div>
+
+  </div><!-- end job-layout -->
+
+</main>
+
+<!-- DELETE DOCUMENT MODAL -->
+<!-- ══ Add Report Picker Modal ══ -->
+<div class="modal-overlay hidden" id="modal-add-report">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>📋 Add Report</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-report')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Select the report type to complete for this job. Site details will be pre-filled automatically.</p>
+      <div style="display:grid;gap:12px;">
+        <div onclick="launchReport('ti')" style="display:flex;align-items:center;gap:16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:2em;">⚡</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px;">Test &amp; Inspection</div>
+            <div style="font-size:12px;color:var(--text-muted);">Full T&amp;I report with earth resistance testing, defects and compliance certification</div>
+          </div>
+        </div>
+        <div onclick="launchReport('survey')" style="display:flex;align-items:center;gap:16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:2em;">🔍</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px;">Survey Report</div>
+            <div style="font-size:12px;color:var(--text-muted);">Site survey with structure assessment, existing system evaluation and risk factors</div>
+          </div>
+        </div>
+        <div onclick="launchReport('remedial')" style="display:flex;align-items:center;gap:16px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:2em;">🔧</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px;">Remedial Report</div>
+            <div style="font-size:12px;color:var(--text-muted);">Document remedial works carried out and generate a completion report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-delete-doc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗑 Delete Document</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete-doc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to permanently delete this document? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete-doc')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteDoc()">Delete Document</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABORT CONFIRM MODAL -->
+<div class="modal-overlay hidden" id="modal-abort">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔴 Abort Job</h3>
+      <button class="modal-close" onclick="closeModal('modal-abort')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">Are you sure you want to abort this job? This will mark it as aborted. You can reopen it by rejecting from pending review if needed.</p>
+      <div class="form-group">
+        <label>Reason for aborting <span style="font-size:11px;color:var(--text-muted)">(optional)</span></label>
+        <textarea id="abort-reason" rows="3" style="width:100%;padding:10px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;" placeholder="Enter reason..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-abort')">Cancel</button>
+      <button class="btn btn-danger" onclick="abortJob()">Confirm Abort</button>
+    </div>
+  </div>
+</div>
+
+  <!-- CREATE INVOICE MODAL -->
+<div class="modal-overlay hidden" id="modal-create-invoice">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🧾 Create Invoice from Job</h3>
+      <button class="modal-close" onclick="closeModal('modal-create-invoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Please review the details below before creating the invoice.</p>
+      <div class="detail-grid" style="margin-bottom:16px;">
+        <div class="detail-item"><label>Customer</label><div class="val" id="inv-modal-customer">—</div></div>
+        <div class="detail-item"><label>Entity</label><div class="val" id="inv-modal-entity">—</div></div>
+        <div class="detail-item"><label>Site Name</label><div class="val" id="inv-modal-sitename">—</div></div>
+        <div class="detail-item"><label>Job Ref</label><div class="val" id="inv-modal-ref">—</div></div>
+        <div class="detail-item"><label>PO Reference</label><div class="val" id="inv-modal-po">—</div></div>
+        <div class="detail-item"><label>Job Type</label><div class="val" id="inv-modal-type">—</div></div>
+        <div class="detail-item"><label>Job Value (ex VAT)</label><div class="val" id="inv-modal-value">—</div></div>
+      </div>
+      <div class="detail-item" style="margin-bottom:20px;">
+        <label>Invoice Description</label>
+        <div class="val" id="inv-modal-desc" style="font-size:13px;color:var(--text-muted);margin-top:4px;">—</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-create-invoice')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmCreateInvoice()">✓ Create Invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+  <!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay hidden" id="modal-delete">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗑 Delete Job</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to permanently delete this job? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteJob()">Permanently Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE HISTORY MODAL -->
+<div class="modal-overlay hidden" id="modal-delete-history">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗑 Delete History Entry</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete-history')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);">Are you sure you want to permanently delete this history entry? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete-history')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteHistoryEntry()">Delete Entry</button>
+    </div>
+  </div>
+</div>
+
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
+<script>
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+let currentUser, job;
+let timerInterval = null;
+let _storage = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireAuth();
+  if (!currentUser) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const jobId = params.get('id');
+
+  showLoader();
+  setLoaderMsg('Loading job…');
+  initFirebaseWithAuth().then(() => {
+    hideLoader();
+    _storage = firebase.storage();
+    job = appData.jobs.find(j => j.id === jobId);
+    if (!job) {
+      document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8;"><h2>Job not found</h2><a href="/Wiggle/index.html" style="color:#f59e0b;">← Back to Dashboard</a></div>';
+      return;
+    }
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('user-name-display').textContent = currentUser.name;
+    document.getElementById('main-content').style.display = 'block';
+    renderPage();
+    updateBackButton();
+    setupActionButtons();
+    if (job.startedAt && !job.finishedAt) startTimer();
+  }).catch(err => {
+    hideLoader();
+    console.error('Firebase error', err);
+    showToast('Connection error — please refresh.', 'error');
+  });
+});
+
+function goBack() {
+    const params = new URLSearchParams(window.location.search);
+    const from   = params.get('from');
+    const cid    = params.get('cid');
+    if (from === 'customer' && cid) {
+      window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
+    } else if (from === 'calendar') {
+      window.location.href = '/Wiggle/calendar.html';
+    } else if (from === 'search') {
+      window.location.href = '/Wiggle/job-search.html';
+    } else if (from === 'site') {
+      history.back();
+    } else if (from === 'customers') {
+      window.location.href = '/Wiggle/customers.html';
+    } else {
+      window.location.href = '/Wiggle/index.html';
+    }
+}
+
+function updateBackButton() {
+    const params = new URLSearchParams(window.location.search);
+    const from   = params.get('from');
+    const btn    = document.getElementById('btn-back');
+    if (!btn || !from) return;
+    btn.style.display = 'inline-flex';
+    const labels = {
+      customer: '← Back to Customer', calendar: '← Calendar',
+      search: '← Search', customers: '← Customers',
+      dashboard: '← Dashboard', job: '← Back'
+    };
+    if (labels[from]) btn.textContent = labels[from];
+    else btn.textContent = '← Back';
+}
+
+function loadCompanyList() {
+  _db.collection('crm_customers').orderBy('company').get().then(function(snap) {
+    var sel = document.getElementById('f-company');
+    snap.docs.forEach(function(d) {
+      var opt = document.createElement('option');
+      opt.value = d.data().company;
+      opt.textContent = d.data().company;
+      sel.appendChild(opt);
+    });
+  }).catch(function(err) { console.error('Company list error', err); });
+}
+  
+
+// ════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════
+function renderPage() {
+  renderHeader();
+  renderDetails();
+  renderCosts();
+  renderComments();
+  loadDocs();
+  loadAndRenderHistory();
+  renderAuditLog();
+  loadLinkedRecords();
+}
+
+// ════════════════════════════════════════════
+// LINKED RECORDS SIDEBAR
+// ════════════════════════════════════════════
+function loadLinkedRecords() {
+  // Engineers don't see linked records — hide the sidebar entirely
+  if (!currentUser || currentUser.role !== 'manager') {
+    var sidebar = document.getElementById('linked-sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    var layout = document.querySelector('.job-layout');
+    if (layout) layout.style.gridTemplateColumns = '1fr';
+    return;
+  }
+  if (!job.ref) {
+    document.getElementById('linked-sidebar-body').innerHTML =
+      '<div class="linked-empty">No job ref set.</div>';
+    return;
+  }
+
+  var refStr      = String(job.ref).trim();
+  var jobPostcode = (job.postcode||'').trim().toUpperCase().replace(/\s+/g,'');
+  var jobCompany  = (job.company||'').trim().toLowerCase();
+  var jobSite     = (job.siteName||'').trim().toLowerCase();
+
+  // Helper: fuzzy site name match
+  function siteMatch(a, b) {
+    if (!a || !b) return false;
+    var al = a.trim().toLowerCase();
+    var bl = b.trim().toLowerCase();
+    return al === bl || al.includes(bl) || bl.includes(al);
+  }
+
+  Promise.all([
+    _db.collection('crm_quotes').get(),
+    _db.collection('crm_invoices').get()
+  ]).then(function(snaps) {
+    var quotes   = snaps[0].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+    var invoices = snaps[1].docs.map(function(d){ return Object.assign({_id:d.id}, d.data()); });
+
+    // ── QUOTES ──
+    var linkedQuotes = [];
+    var seenQIds = new Set();
+    quotes.forEach(function(q) {
+      if (seenQIds.has(q._id)) return;
+      // Tier 1: exact job ref match
+      var t1 = String(q.jobRef||'').trim() === refStr;
+      if (!t1) {
+        var m = String(q.ref||q.quoteRef||'').match(/\b(\d{4,7})\b/);
+        t1 = !!(m && m[1] === refStr);
+      }
+      if (t1) {
+        q._matchTier = 1;
+        linkedQuotes.push(q);
+        seenQIds.add(q._id);
+        return;
+      }
+      // Tier 2: same company + postcode + fuzzy site name
+      if (!jobPostcode) return;
+      var qPostcode = (q.postcode||'').replace(/\s+/g,'').toUpperCase();
+      // Fall back to extracting from serviceAddress if no dedicated postcode field
+      if (!qPostcode && q.serviceAddress) {
+        var pm = q.serviceAddress.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+        if (pm) qPostcode = pm[0].replace(/\s+/g,'').toUpperCase();
+      }
+      var qCompany = (q.company||'').trim().toLowerCase();
+      // Prefer dedicated siteName field, fall back to serviceAddress
+      var qSite    = (q.siteName || q.serviceAddress||'').trim().toLowerCase();
+      // Match on company + postcode — site name is used as additional check only if both have it
+      var postcodeMatch = qPostcode === jobPostcode;
+      var companyMatch  = qCompany === jobCompany;
+      var siteOk = (!jobSite || !qSite) ? true : siteMatch(qSite, jobSite);
+      if (postcodeMatch && companyMatch && siteOk) {
+        q._matchTier = 2;
+        linkedQuotes.push(q);
+        seenQIds.add(q._id);
+      }
+    });
+
+    // ── INVOICES ──
+    var linkedInvoices = [];
+    var seenInvIds = new Set();
+    invoices.forEach(function(inv) {
+      if (seenInvIds.has(inv._id)) return;
+      // Tier 1: exact job ref match
+      var t1 = String(inv.jobRef||inv.linkedJobRef||'').trim() === refStr;
+      if (t1) {
+        inv._matchTier = 1;
+        linkedInvoices.push(inv);
+        seenInvIds.add(inv._id);
+        return;
+      }
+      // Tier 2: same company + postcode + fuzzy site name
+      if (!jobPostcode) return;
+      var invPostcode = (inv.postcode||'').replace(/\s+/g,'').toUpperCase();
+      if (!invPostcode && inv.clientAddress) {
+        var pm2 = inv.clientAddress.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+        if (pm2) invPostcode = pm2[0].replace(/\s+/g,'').toUpperCase();
+      }
+      var invCompany = (inv.company||inv.clientName||'').trim().toLowerCase();
+      var invSite    = (inv.siteName||'').trim().toLowerCase();
+      if (invPostcode === jobPostcode && invCompany === jobCompany && siteMatch(invSite, jobSite)) {
+        inv._matchTier = 2;
+        linkedInvoices.push(inv);
+        seenInvIds.add(inv._id);
+      }
+    });
+
+    renderLinkedSidebar(linkedQuotes, linkedInvoices);
+  }).catch(function(err) {
+    console.error('Linked records error', err);
+    document.getElementById('linked-sidebar-body').innerHTML =
+      '<div class="linked-empty">Could not load linked records.</div>';
+  });
+}
+
+function renderLinkedSidebar(quotes, invoices) {
+  var total = quotes.length + invoices.length;
+  document.getElementById('linked-total-count').textContent = total;
+  var body = document.getElementById('linked-action-btns');
+  if (currentUser && currentUser.role === 'manager') {
+    body.style.display = 'flex';
+  }
+  var sideBody = document.getElementById('linked-sidebar-body');
+  if (!total) {
+    sideBody.innerHTML = '<div class="linked-empty">No linked quotes or invoices found for ref #' + (job.ref||'') + '.</div>';
+    return;
+  }
+  var html = '';
+  if (quotes.length) {
+    html += '<div class="linked-section-label">&#128203; Quotes (' + quotes.length + ')</div>';
+    quotes.forEach(function(q) {
+      var val = q.total ? '&pound;' + parseFloat(q.total).toFixed(2) : '&mdash;';
+      var sc  = 'ls-' + (q.status||'draft').toLowerCase();
+      var ref = q.ref || q.quoteRef || q._id;
+      var siteTag = q._matchTier === 2
+        ? '<span style="font-size:10px;color:var(--info);font-weight:600;">&#127959; Same site</span>'
+        : '';
+      html += '<a class="linked-item" href="/Wiggle/crm-quotes.html?view=' + q._id + '&from=job">'
+        + '<div class="linked-item-icon">&#128203;</div>'
+        + '<div class="linked-item-body">'
+        +   '<div class="linked-item-title">' + escHtml(q.serviceAddress||q.company||ref) + '</div>'
+        +   '<div class="linked-item-sub">' + escHtml(String(ref).substring(0,28)) + (siteTag ? ' ' : '') + '</div>'
+        +   (siteTag ? '<div>' + siteTag + '</div>' : '')
+        + '</div>'
+        + '<div class="linked-item-right">'
+        +   '<div class="linked-item-value">' + val + '</div>'
+        +   '<div class="lsbadge ' + sc + '">' + escHtml(q.status||'draft') + '</div>'
+        + '</div></a>';
+    });
+  }
+  if (invoices.length) {
+    html += '<div class="linked-section-label">&#129534; Invoices (' + invoices.length + ')</div>';
+    invoices.forEach(function(inv) {
+      var val = inv.total||inv.totalDue ? '&pound;' + parseFloat(inv.total||inv.totalDue||0).toFixed(2) : '&mdash;';
+      var sc  = 'ls-' + (inv.status||'draft').toLowerCase();
+      var num = inv.invoiceNumber||inv.number||inv.ref||inv._id;
+      var siteTag = inv._matchTier === 2
+        ? '<span style="font-size:10px;color:var(--info);font-weight:600;">&#127959; Same site</span>'
+        : '';
+      html += '<a class="linked-item" href="/Wiggle/crm-invoices.html?view=' + inv._id + '&from=job">'
+        + '<div class="linked-item-icon">&#129534;</div>'
+        + '<div class="linked-item-body">'
+        +   '<div class="linked-item-title">' + escHtml(inv.siteName||inv.clientName||num) + '</div>'
+        +   '<div class="linked-item-sub">' + escHtml(num) + '</div>'
+        +   (siteTag ? '<div>' + siteTag + '</div>' : '')
+        + '</div>'
+        + '<div class="linked-item-right">'
+        +   '<div class="linked-item-value">' + val + '</div>'
+        +   '<div class="lsbadge ' + sc + '">' + escHtml(inv.status||'draft') + '</div>'
+        + '</div></a>';
+    });
+  }
+  sideBody.innerHTML = html;
+}
+
+function newQuoteFromJob() {
+  var url = '/Wiggle/crm-quotes.html';
+  _db.collection('crm_customers').where('company','==',job.company||'').limit(1).get()
+    .then(function(snap) {
+      if (!snap.empty) {
+        url += '?customer=' + snap.docs[0].id + '&jobref=' + encodeURIComponent(job.ref) + '&from=job&jobid=' + job.id;
+      }
+      window.location.href = url;
+    }).catch(function() { window.location.href = url; });
+}
+
+function renderHeader() {
+  const si = getStatusInfo(job.status);
+  document.getElementById('h-sitename').textContent = job.siteName || '—';
+  document.getElementById('h-ref-inline').textContent = '#' + job.ref;
+  document.getElementById('h-type').textContent    = job.type;
+  document.getElementById('h-company').textContent = job.company;
+  setAddressLink('h-address', job.address);
+  document.getElementById('h-date').textContent    = formatDate(job.bookingDate);
+  document.getElementById('h-postcode').textContent= job.postcode || '—';
+  document.getElementById('h-rep').textContent     = job.rep || 'No representative';
+  const dot = document.getElementById('h-status-dot');
+  dot.className = 'status-dot ' + si.dot;
+  document.getElementById('h-status-label').textContent = si.label;
+  document.getElementById('h-overdue').classList.toggle('hidden', !isOverdue(job));
+}
+
+function renderDetails() {
+  document.getElementById('d-sitename').textContent = job.siteName || '—';
+  document.getElementById('d-ref').textContent     = '#' + job.ref;
+  document.getElementById('d-type').textContent    = job.type;
+  document.getElementById('d-date').textContent    = formatDate(job.bookingDate);
+  document.getElementById('d-company').textContent = job.company;
+  document.getElementById('d-rep').textContent     = job.rep || '—';
+  document.getElementById('d-postcode').textContent= job.postcode;
+  setAddressLink('d-address', job.address);
+  document.getElementById('d-desc').textContent    = job.description || 'No description provided.';
+  document.getElementById('d-po').textContent      = job.poRef || '—';
+  document.getElementById('d-time').textContent    = job.jobTime ? formatJobTime(job.jobTime) : '—';
+  // Time tracking
+  document.getElementById('d-started').textContent  = job.startedAt  ? formatDateTime(job.startedAt)  : 'Not started';
+  document.getElementById('d-finished').textContent = job.finishedAt ? formatDateTime(job.finishedAt) : '—';
+  document.getElementById('d-duration').textContent = job.duration   ? job.duration : '—';
+  // Engineers
+  renderEngineerChips();
+  // Edit desc btn: only manager
+  document.getElementById('btn-edit-desc').classList.toggle('hidden', currentUser.role !== 'manager');
+  // Show all inline edit buttons for manager
+  document.querySelectorAll('.manager-only').forEach(el => {
+    el.style.display = currentUser.role === 'manager' ? 'inline-flex' : 'none';
+  });
+}
+
+function renderEngineerChips() {
+  const isManager = currentUser.role === 'manager';
+  const chips = document.getElementById('eng-chips');
+  chips.innerHTML = (job.engineers || []).map(id => {
+    const name = getUserName(id);
+    return `<div class="eng-chip">👷 ${name}
+      ${isManager && job.engineers.length > 1 ? `<button class="eng-remove" onclick="removeEngineer('${id}')" title="Remove">✕</button>` : ''}
+    </div>`;
+  }).join('') || '<span style="color:var(--text-muted)">No engineers assigned</span>';
+
+  const row = document.getElementById('reassign-row');
+  if (isManager) {
+    row.classList.remove('hidden');
+    const sel = document.getElementById('reassign-select');
+    const assigned = job.engineers || [];
+    sel.innerHTML = '<option value="">— Add engineer —</option>' +
+      getEngineers().filter(e => !assigned.includes(e.id)).map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  }
+
+}
+
+// ════════════════════════════════════════════
+// ACTION BUTTONS VISIBILITY
+// ════════════════════════════════════════════
+function setupActionButtons() {
+  const isManager = currentUser.role === 'manager';
+  const isEngineer = currentUser.role === 'engineer';
+  const s = job.status;
+  const isAssigned = job.engineers?.includes(currentUser.id);
+  const isLive         = job.status === 'live';
+  const isPending      = job.status === 'pending';
+  const isNotConfirmed = job.status === 'notconfirmed';
+
+  show('btn-start',       isLive && isEngineer);
+  show('btn-finish',      isLive && isEngineer && job.startedAt);
+  show('btn-eng-done',    isLive && isEngineer);
+  show('btn-approve',     isPending && isManager);
+  show('btn-reject',      isPending && isManager);
+  show('btn-abort',       (isLive || isPending || isNotConfirmed) && isManager);
+  show('btn-notconfirm',  isLive && isManager);
+  show('btn-confirm-job', job.status === 'notconfirmed' && isManager);
+  show('btn-create-invoice', job.status === 'complete' && isManager);
+  show('btn-delete',      isManager);
+  // Save to History: visible to both roles when job is active or complete
+  show('btn-save-history', (isManager || (isEngineer && isAssigned)) && (s === 'live' || s === 'pending' || s === 'complete'));
+}
+
+function show(id, condition) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('hidden', !condition);
+}
+
+// ════════════════════════════════════════════
+// STATUS ACTIONS
+// ════════════════════════════════════════════
+function startJob() {
+  if (job.startedAt) return;
+  job.startedAt = new Date().toISOString();
+  addAuditEntry(job, 'Job started', currentUser.name);
+  saveJob(job); renderHeader(); renderDetails(); setupActionButtons(); startTimer();
+  showToast('Job started — timer running ▶', 'success');
+}
+
+function finishJob() {
+  if (!job.startedAt || job.finishedAt) return;
+  job.finishedAt = new Date().toISOString();
+  const ms = new Date(job.finishedAt) - new Date(job.startedAt);
+  job.duration = fmtDuration(ms);
+  stopTimer();
+  addAuditEntry(job, 'Job timer stopped. Duration: ' + job.duration, currentUser.name);
+  saveJob(job); renderDetails(); setupActionButtons();
+  showToast('Timer stopped. Duration: ' + job.duration, 'success');
+}
+
+function fmtDuration(ms) {
+  const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000), s = Math.floor((ms%60000)/1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
+function engineerComplete() {
+  job.status = 'pending';
+  addAuditEntry(job, 'Marked complete by engineer — awaiting manager review', currentUser.name);
+  if (!job.finishedAt && job.startedAt) finishJob();
+  saveJob(job); renderHeader(); setupActionButtons();
+  showToast('Job marked complete — awaiting manager approval ✓', 'success');
+}
+
+function approveComplete() {
+  job.status = 'complete';
+  job.completedAt = new Date().toISOString();
+  addAuditEntry(job, 'Approved and marked complete by manager', currentUser.name);
+  saveJob(job); renderHeader(); setupActionButtons();
+  showToast('Job approved and completed ✅', 'success');
+}
+
+  function markNotConfirmed() {
+  addAuditEntry(job, 'Marked as Not Confirmed', currentUser.name);
+  job.status = 'notconfirmed';
+  saveJob(job); renderHeader(); setupActionButtons();
+}
+
+function markConfirmed() {
+  addAuditEntry(job, 'Confirmed — set to Live', currentUser.name);
+  job.status = 'live';
+  saveJob(job); renderHeader(); setupActionButtons();
+}
+
+function rejectToLive() {
+  job.status = 'live';
+  addAuditEntry(job, 'Rejected back to live by manager', currentUser.name);
+  saveJob(job); renderHeader(); setupActionButtons();
+  showToast('Job rejected back to live ↩', 'success');
+}
+
+function confirmAbort() { document.getElementById('modal-abort').classList.remove('hidden'); }
+
+function abortJob() {
+  const reason = document.getElementById('abort-reason').value.trim();
+  job.status = 'aborted';
+  addAuditEntry(job, 'Job aborted' + (reason ? ': ' + reason : ''), currentUser.name);
+  saveJob(job); renderHeader(); setupActionButtons();
+  closeModal('modal-abort');
+  showToast('Job aborted 🔴', 'success');
+}
+
+  function confirmDelete() {
+  document.getElementById('modal-delete').classList.remove('hidden');
+}
+
+function deleteJob() {
+  appData.jobs = appData.jobs.filter(j => j.id !== job.id);
+  _db.collection('jobs').doc(job.id).delete().then(() => {
+    window.location.href = '/Wiggle/index.html';
+  }).catch(err => {
+    console.error('Delete error:', err);
+    showToast('Error deleting job — please try again.', 'error');
+  });
+}
+
+// ════════════════════════════════════════════
+// TIMER
+// ════════════════════════════════════════════
+function startTimer() {
+  const display = document.getElementById('timer-display');
+  const text    = document.getElementById('timer-text');
+  display.style.display = 'inline-flex';
+  timerInterval = setInterval(() => {
+    const ms = Date.now() - new Date(job.startedAt).getTime();
+    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000), s = Math.floor((ms%60000)/1000);
+    text.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  document.getElementById('timer-display').style.display = 'none';
+}
+
+// ════════════════════════════════════════════
+// DESCRIPTION EDIT
+// ════════════════════════════════════════════
+function editDesc() {
+  document.getElementById('desc-textarea').value = job.description || '';
+  document.getElementById('desc-view').classList.add('hidden');
+  document.getElementById('desc-edit').classList.remove('hidden');
+}
+function cancelDesc() {
+  document.getElementById('desc-view').classList.remove('hidden');
+  document.getElementById('desc-edit').classList.add('hidden');
+}
+function saveDesc() {
+  job.description = document.getElementById('desc-textarea').value.trim();
+  addAuditEntry(job, 'Job description updated', currentUser.name);
+  saveJob(job); cancelDesc();
+  document.getElementById('d-desc').textContent = job.description || 'No description.';
+  showToast('Description updated ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+// ENGINEER REASSIGNMENT
+// ════════════════════════════════════════════
+function addEngineer() {
+  const sel = document.getElementById('reassign-select');
+  const id  = sel.value;
+  if (!id) return;
+  if (!job.engineers) job.engineers = [];
+  job.engineers.push(id);
+  job.isNew = true;
+  addAuditEntry(job, 'Engineer added: ' + getUserName(id), currentUser.name);
+  saveJob(job); renderEngineerChips(); setupActionButtons();
+  showToast(getUserName(id) + ' added to job ✓', 'success');
+}
+
+function removeEngineer(id) {
+  if (job.engineers.length <= 1) { showToast('At least one engineer must remain.', 'error'); return; }
+  const name = getUserName(id);
+  job.engineers = job.engineers.filter(e => e !== id);
+  addAuditEntry(job, 'Engineer removed: ' + name, currentUser.name);
+  saveJob(job); renderEngineerChips();
+  showToast(name + ' removed from job', 'success');
+}
+
+// ════════════════════════════════════════════
+// COSTS
+// ════════════════════════════════════════════
+function renderCosts() {
+  const c = job.costs || {};
+  const isTI = job.type === 'Test & Inspection';
+
+  document.getElementById('costs-ti-panel').classList.toggle('hidden', !isTI);
+  document.getElementById('costs-other-panel').classList.toggle('hidden', isTI);
+
+  document.getElementById('c-cis').checked = !!c.cis;
+
+  if (isTI) {
+    setVal('c-value', c.jobValue);
+    setVal('c-vat',   ((c.jobValue||0) * 0.2).toFixed(2));
+  } else {
+    setVal('c-value2',    c.jobValue);
+    setVal('c-vat2',      ((c.jobValue||0) * 0.2).toFixed(2));
+    setVal('c-labour',    c.labour);
+    setVal('c-materials', c.materials);
+    setVal('c-markup',    c.markup);
+  }
+
+  setVal('c-parking', c.parking);
+  setVal('c-miles',   c.miles);
+  setVal('c-fuel',    c.fuelCost);
+
+  // Diesel note
+  const s = appData.settings;
+  document.getElementById('fuel-note').textContent =
+    `${s.mpg}mpg @ £${s.dieselPricePerLitre}/L`;
+
+  renderExtraCosts();
+  renderProfitSummary();
+  saveCosts(); // ← ADD THIS LINE
+}
+
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = (v !== undefined && v !== null) ? v : '';
+}
+
+function saveCosts() {
+  if (!job.costs) job.costs = {};
+  const c = job.costs;
+  const isTI = job.type === 'Test & Inspection';
+
+  c.cis       = document.getElementById('c-cis').checked;
+  c.jobValue  = parseFloat(isTI ? document.getElementById('c-value').value : document.getElementById('c-value2').value) || 0;
+  c.labour    = isTI ? 0 : (parseFloat(document.getElementById('c-labour').value) || 0);
+  c.materials = isTI ? 0 : (parseFloat(document.getElementById('c-materials').value) || 0);
+  c.markup    = isTI ? 0 : (parseFloat(document.getElementById('c-markup').value) || 0);
+  c.parking   = parseFloat(document.getElementById('c-parking').value) || 0;
+  c.miles     = parseFloat(document.getElementById('c-miles').value) || 0;
+
+  // Fuel: miles / mpg * litres_per_gallon * price_per_litre
+  const { mpg, dieselPricePerLitre } = appData.settings;
+  c.fuelCost = parseFloat(((c.miles / mpg) * 4.54609 * dieselPricePerLitre).toFixed(2));
+
+  // VAT display
+  const vatEl_ti = document.getElementById('c-vat');
+  const vatEl_ot = document.getElementById('c-vat2');
+  if (vatEl_ti) vatEl_ti.value = (c.jobValue * 0.2).toFixed(2);
+  if (vatEl_ot) vatEl_ot.value = (c.jobValue * 0.2).toFixed(2);
+  document.getElementById('c-fuel').value = c.fuelCost.toFixed(2);
+
+  // Totals
+  const extraTotal = (c.extraCosts || []).reduce((s,x) => s + (parseFloat(x.amount)||0), 0);
+  c.totalCosts = parseFloat((c.labour + c.materials + c.parking + c.fuelCost + extraTotal).toFixed(2));
+
+  if (isTI) {
+    c.netProfit = parseFloat((c.jobValue - c.parking - c.fuelCost - extraTotal).toFixed(2));
+  } else {
+    
+    c.netProfit = parseFloat((c.jobValue - c.labour - c.materials - c.parking - c.fuelCost - extraTotal).toFixed(2));
+  }
+
+  saveJob(job);
+  renderProfitSummary();
+}
+
+function renderProfitSummary() {
+  const c = job.costs || {};
+  const isTI = job.type === 'Test & Inspection';
+  const s = appData.settings;
+  const extraTotal = (c.extraCosts || []).reduce((acc, x) => acc + (parseFloat(x.amount)||0), 0);
+  const vat = (c.jobValue||0) * 0.2;
+
+  let rows = '';
+  rows += profitRow('Job Value (ex VAT)', c.jobValue, false);
+  rows += profitRow('VAT (20%)', vat, false);
+  if (!isTI) {
+    rows += profitRow('Labour Cost', c.labour, true);
+    rows += profitRow('Materials Cost', c.materials, true);
+    rows += profitRow('Markup %', c.markup ? c.markup + '%' : '0%', false, true);
+  }
+  rows += profitRow('Parking Fees', c.parking, true);
+  rows += profitRow('Fuel Cost (' + (c.miles||0) + ' miles)', c.fuelCost, true);
+  if (c.cis && !isTI) rows += profitRow('CIS Deduction (20% labour)', (c.labour||0)*0.2, true);
+  if (extraTotal) rows += profitRow('Additional Costs', extraTotal, true);
+  rows += `<div class="profit-row"><span>Net Profit</span><span style="color:${(c.netProfit||0)>=0?'var(--success)':'var(--danger)'}">£${(c.netProfit||0).toFixed(2)}</span></div>`;
+
+  document.getElementById('profit-breakdown').innerHTML = rows;
+}
+
+function profitRow(label, val, isDeduction, isInfo) {
+  if (!val && val !== 0) return '';
+  const display = isInfo ? val : '£' + (parseFloat(val)||0).toFixed(2);
+  const cls = isDeduction ? 'neg' : '';
+  const prefix = isDeduction ? '− ' : '';
+  return `<div class="profit-row"><span>${label}</span><span class="${cls}">${isDeduction?'− ':''}${isInfo ? display : '£'+(parseFloat(val)||0).toFixed(2)}</span></div>`;
+}
+
+// Extra costs
+function renderExtraCosts() {
+  const list = document.getElementById('extra-costs-list');
+  const extras = job.costs?.extraCosts || [];
+  if (!extras.length) { list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;margin-bottom:8px;">No additional items.</div>'; return; }
+  list.innerHTML = extras.map((x,i) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <input value="${x.desc}" placeholder="Description" style="flex:1;padding:8px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;" oninput="updateExtra(${i},'desc',this.value)">
+      <div style="position:relative;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);">£</span>
+      <input type="number" value="${x.amount}" placeholder="0.00" style="width:100px;padding:8px 10px 8px 24px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;" oninput="updateExtra(${i},'amount',this.value)"></div>
+      <button onclick="removeExtra(${i})" style="background:var(--danger);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>`).join('');
+}
+
+function addExtraCost() {
+  if (!job.costs.extraCosts) job.costs.extraCosts = [];
+  job.costs.extraCosts.push({ desc: '', amount: 0 });
+  saveJob(job); renderExtraCosts();
+}
+
+function updateExtra(i, field, val) {
+  job.costs.extraCosts[i][field] = field === 'amount' ? parseFloat(val)||0 : val;
+  saveCosts();
+}
+
+function removeExtra(i) {
+  job.costs.extraCosts.splice(i, 1);
+  saveCosts(); renderExtraCosts();
+}
+
+// ════════════════════════════════════════════
+// COMMENTS
+// ════════════════════════════════════════════
+function renderComments() {
+  const list = document.getElementById('comments-list');
+  const comments = job.comments || [];
+  document.getElementById('comment-count-badge').textContent = comments.length ? ` (${comments.length})` : '';
+  if (!comments.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">No comments yet.</div>';
+    return;
+  }
+  list.innerHTML = [...comments].reverse().map(c => `
+    <div class="comment-item">
+      <div class="comment-header">
+        <span class="comment-author">👷 ${c.author}</span>
+        <span class="comment-time">${formatDateTime(c.ts)}</span>
+      </div>
+      <div class="comment-body">${linkify(escHtml(c.text))}</div>
+    </div>`).join('');
+}
+
+function postComment() {
+  const input = document.getElementById('comment-input');
+  const text  = input.value.trim();
+  if (!text) { showToast('Please enter a comment.', 'error'); return; }
+  if (!job.comments) job.comments = [];
+  job.comments.push({ author: currentUser.name, ts: new Date().toISOString(), text });
+  input.value = '';
+  saveJob(job); renderComments();
+  showToast('Comment posted ✓', 'success');
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function linkify(t) {
+  return t.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+// ════════════════════════════════════════════
+// HISTORY
+// ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// HISTORY — Save to History (Firebase)
+// ════════════════════════════════════════════
+function buildSnapshot() {
+  const c = job.costs || {};
+  const isTI = job.type === 'Test & Inspection';
+  const engineers = (job.engineers||[]).map(id => getUserName(id)).join(', ');
+  const extraCosts = (c.extraCosts||[]).map(x => `  ${x.desc}: £${parseFloat(x.amount).toFixed(2)}`).join('\n');
+  return {
+    jobId: job.id, jobRef: job.ref, siteName: job.siteName || '—',
+    company: job.company, address: job.address, postcode: job.postcode,
+    type: job.type, status: getStatusInfo(job.status).label,
+    bookingDate: formatDate(job.bookingDate), engineers,
+    description: job.description || 'None',
+    startedAt: job.startedAt ? formatDateTime(job.startedAt) : 'N/A',
+    finishedAt: job.finishedAt ? formatDateTime(job.finishedAt) : 'N/A',
+    duration: job.duration || 'N/A',
+    costs: {
+      jobValue: (c.jobValue||0).toFixed(2), vat: ((c.jobValue||0)*0.2).toFixed(2),
+      labour: isTI ? null : (c.labour||0).toFixed(2),
+      materials: isTI ? null : (c.materials||0).toFixed(2),
+      markup: isTI ? null : (c.markup||0),
+      parking: (c.parking||0).toFixed(2), miles: c.miles||0,
+      fuelCost: (c.fuelCost||0).toFixed(2), cis: c.cis ? 'Yes' : 'No',
+      extraCosts, totalCosts: (c.totalCosts||0).toFixed(2), netProfit: (c.netProfit||0).toFixed(2),
+    },
+    comments: (job.comments||[]).map(cm => `[${formatDateTime(cm.ts)}] ${cm.author}: ${cm.text}`).join('\n') || 'None',
+    auditLog: (job.auditLog||[]).map(e => `[${formatDateTime(e.ts)}] ${e.user}: ${e.action}`).join('\n') || 'None',
+  };
+}
+
+function saveToHistory() {
+  if (!job.siteName || !job.siteName.trim()) {
+    showToast('Please set a site name before saving to history.', 'error'); return;
+  }
+  const entry = { siteKey: job.siteName.trim(), savedAt: new Date().toISOString(), savedBy: currentUser.name, snapshot: buildSnapshot() };
+  _db.collection('siteHistory').add(entry).then(() => {
+    addAuditEntry(job, 'Saved to site history by ' + currentUser.name, currentUser.name);
+    saveJob(job);
+    showToast('Saved to history ✓', 'success');
+    loadAndRenderHistory();
+  }).catch(err => { console.error(err); showToast('Error saving to history.', 'error'); });
+}
+
+function loadAndRenderHistory() {
+  if (!_db || !job.siteName) return;
+  _db.collection('siteHistory').where('siteKey', '==', job.siteName.trim())
+    .orderBy('savedAt', 'desc').get()
+    .then(snap => renderHistory(snap.docs.map(doc => ({ _docId: doc.id, ...doc.data() }))))
+    .catch(err => console.error('History load error', err));
+}
+
+function renderHistory(items) {
+  const list = document.getElementById('history-list');
+  const noH  = document.getElementById('no-history');
+  const banner = document.getElementById('history-site-banner');
+  const isManager = currentUser.role === 'manager';
+  if (!items || !items.length) {
+    noH.style.display = 'block'; list.innerHTML = ''; banner.style.display = 'none'; return;
+  }
+  noH.style.display = 'none'; banner.style.display = 'block';
+  document.getElementById('history-site-name').textContent = job.siteName;
+  // Wire up "View full site history" link — manager only
+  var linkWrap = document.getElementById('site-history-link-wrap');
+  var link     = document.getElementById('site-history-link');
+  if (linkWrap && link && job.siteName && currentUser && currentUser.role === 'manager') {
+    var url = '/Wiggle/site-history.html?site=' + encodeURIComponent(job.siteName.trim())
+            + '&company=' + encodeURIComponent(job.company||'')
+            + '&from=job';
+    link.href = url;
+    linkWrap.style.display = 'inline';
+  }
+  list.innerHTML = items.map((h, i) => {
+    const s = h.snapshot || {}; if (!s.costs) s.costs = {}; const isTI = s.type === 'Test & Inspection';
+    const details = `JOB DETAILS
+Reference:    #${s.jobRef}
+Site Name:    ${s.siteName}
+Company:      ${s.company}
+Address:      ${s.address}
+Postcode:     ${s.postcode}
+Job Type:     ${s.type}
+Booking Date: ${s.bookingDate}
+Status:       ${s.status}
+Engineers:    ${s.engineers}
+
+DESCRIPTION
+${s.description}
+
+TIME TRACKING
+Started:      ${s.startedAt}
+Finished:     ${s.finishedAt}
+Duration:     ${s.duration}
+
+FINANCIALS
+Job Value:    £${s.costs.jobValue} (ex VAT)
+VAT (20%):    £${s.costs.vat}
+${!isTI ? `Labour:       £${s.costs.labour}
+Materials:    £${s.costs.materials}
+Markup:       ${s.costs.markup}%
+` : ''}Parking:      £${s.costs.parking}
+Miles:        ${s.costs.miles}
+Fuel Cost:    £${s.costs.fuelCost}
+CIS Applied:  ${s.costs.cis}
+${s.costs.extraCosts ? 'Additional:\n' + s.costs.extraCosts + '\n' : ''}Total Costs:  £${s.costs.totalCosts}
+Net Profit:   £${s.costs.netProfit}
+
+COMMENTS
+${s.comments}
+
+AUDIT LOG
+${s.auditLog}`;
+    return `<div class="history-item">
+      <div class="history-header" onclick="toggleHistory(${i})">
+        <div>
+          <div class="history-title">📄 ${s.siteName} — Job #${s.jobRef} — ${formatDate(h.savedAt)}</div>
+          <div class="history-sub">Saved by ${h.savedBy} · ${s.type} · ${s.status}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${isManager ? `<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();confirmDeleteHistory('${h._docId}')" title="Delete">🗑</button>` : ''}
+          <span class="chevron" id="hchev-${i}">▼</span>
+        </div>
+      </div>
+      <div class="history-body" id="hbody-${i}">${escHtml(details)}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistory(i) {
+  const body = document.getElementById('hbody-' + i);
+  const chev = document.getElementById('hchev-' + i);
+  const open = body.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+
+let _pendingDeleteHistoryDocId = null;
+function confirmDeleteHistory(docId) {
+  _pendingDeleteHistoryDocId = docId;
+  document.getElementById('modal-delete-history').classList.remove('hidden');
+}
+function deleteHistoryEntry() {
+  if (!_pendingDeleteHistoryDocId) return;
+  _db.collection('siteHistory').doc(_pendingDeleteHistoryDocId).delete().then(() => {
+    _pendingDeleteHistoryDocId = null;
+    closeModal('modal-delete-history');
+    showToast('History entry deleted ✓', 'success');
+    addAuditEntry(job, 'History entry deleted by ' + currentUser.name, currentUser.name);
+    saveJob(job);
+    loadAndRenderHistory();
+  }).catch(err => { console.error(err); showToast('Error deleting entry.', 'error'); });
+}
+
+// ════════════════════════════════════════════
+// AUDIT LOG
+// ════════════════════════════════════════════
+function renderAuditLog() {
+  const list = document.getElementById('audit-list');
+  const entries = [...(job.auditLog || [])].reverse();
+  list.innerHTML = entries.map(e => `
+    <div class="audit-entry">
+      <span class="au-action">${e.action}</span>
+      <span class="au-user">${e.user}</span>
+      <span class="au-time">${formatDateTime(e.ts)}</span>
+    </div>`).join('') || '<div style="color:var(--text-muted);font-size:13px;">No audit entries.</div>';
+}
+
+function toggleAudit() {
+  const list = document.getElementById('audit-list');
+  const chev = document.getElementById('audit-chevron');
+  const open = list.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+
+
+
+
+// ════════════════════════════════════════════
+// INLINE FIELD EDITING (manager only)
+// ════════════════════════════════════════════
+const _fieldMap = {
+  sitename: { jobKey: 'siteName',    display: 'd-sitename', header: 'h-sitename',  type: 'text' },
+  type:     { jobKey: 'type',        display: 'd-type',     header: 'h-type',      type: 'select' },
+  date:     { jobKey: 'bookingDate', display: 'd-date',     header: 'h-date',      type: 'date' },
+  company:  { jobKey: 'company',     display: 'd-company',  header: 'h-company',   type: 'text' },
+  rep:      { jobKey: 'rep',         display: 'd-rep',      header: 'h-rep',       type: 'text' },
+  postcode: { jobKey: 'postcode',    display: 'd-postcode', header: 'h-postcode',  type: 'text' },
+  address:  { jobKey: 'address',     display: 'd-address',  header: null,          type: 'text' },
+  po:       { jobKey: 'poRef',       display: 'd-po',       header: null,          type: 'text' },
+  time:     { jobKey: 'jobTime',     display: 'd-time',     header: null,          type: 'time' },
+};
+
+function formatJobTime(t) {
+  if (!t) return '—';
+  try {
+    const [h, m] = t.split(':');
+    const date = new Date(); date.setHours(+h, +m);
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  } catch(e) { return t; }
+}
+
+function inlineEdit(field) {
+  const fm = _fieldMap[field];
+  const input = document.getElementById('input-' + field);
+  // Populate input with current value
+  if (fm.type === 'date') {
+    input.value = job[fm.jobKey] || '';
+  } else if (fm.type === 'select') {
+    input.value = job[fm.jobKey] || '';
+  } else {
+    input.value = job[fm.jobKey] || '';
+  }
+  document.getElementById('edit-' + field).classList.remove('hidden');
+}
+
+function cancelInline(field) {
+  document.getElementById('edit-' + field).classList.add('hidden');
+}
+
+function saveInline(field) {
+  const fm = _fieldMap[field];
+  const input = document.getElementById('input-' + field);
+  const val = input.value.trim();
+  if (!val && field !== 'rep') { showToast('This field cannot be empty.', 'error'); return; }
+
+  const oldVal = job[fm.jobKey];
+  job[fm.jobKey] = val;
+
+  // Update display value
+  const displayEl = document.getElementById(fm.display);
+  if (fm.type === 'date') {
+    displayEl.textContent = formatDate(val);
+  } else {
+    displayEl.textContent = val || '—';
+  }
+
+  // Update header if mapped
+  if (fm.header) {
+    const headerEl = document.getElementById(fm.header);
+    if (headerEl) {
+      if (fm.type === 'date') {
+        headerEl.textContent = formatDate(val);
+      } else {
+        headerEl.textContent = val || '—';
+      }
+    }
+  }
+
+  // Special: address also updates the combined header address line
+  if (field === 'address' || field === 'postcode') {
+    document.getElementById('h-address').textContent =
+      (job.address || '') + (job.postcode ? ', ' + job.postcode : '');
+  }
+
+  // Special: time — store raw value, display formatted
+  if (field === 'time') {
+    const displayEl = document.getElementById(fm.display);
+    displayEl.textContent = val ? formatJobTime(val) : '—';
+  }
+
+  // Special: type change may affect costs panel visibility
+  if (field === 'type') {
+    document.getElementById('h-type').textContent = val;
+    renderCosts();
+  }
+
+  addAuditEntry(job, field.charAt(0).toUpperCase() + field.slice(1) + ' updated: "' + oldVal + '" → "' + val + '"', currentUser.name);
+  saveJob(job);
+  cancelInline(field);
+  showToast('Updated ✓', 'success');
+}
+
+// ════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// DOCUMENTS
+// ════════════════════════════════════════════
+function getFileIcon(name) {
+  if (!name) return '📄';
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') return '📕';
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼';
+  return '📄';
+}
+function formatFileSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+function isImage(name) {
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(name || '');
+}
+function isPdf(name) {
+  return /\.pdf$/i.test(name || '');
+}
+
+function loadDocs() {
+  if (!_db) return;
+  _db.collection('jobs').doc(job.id).collection('documents').orderBy('uploadedAt', 'desc').get()
+    .then(snap => {
+      const docs = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+      renderDocs(docs);
+    }).catch(err => console.error('Load docs error:', err));
+}
+
+function renderDocs(docs) {
+  const list   = document.getElementById('docs-list');
+  const noDocs = document.getElementById('no-docs');
+  const isManager = currentUser.role === 'manager';
+
+  if (!docs || !docs.length) {
+    noDocs.style.display = 'block';
+    list.innerHTML = '';
+    return;
+  }
+  noDocs.style.display = 'none';
+
+  list.innerHTML = docs.map((doc, i) => `
+    <div class="doc-card" id="doc-card-${i}">
+      <div class="doc-card-top">
+        <div class="doc-icon">${getFileIcon(doc.name)}</div>
+        <div class="doc-info">
+          <div class="doc-name" title="${doc.name}">${doc.name}</div>
+          <div class="doc-meta">${formatFileSize(doc.size)} · Uploaded by ${doc.uploadedBy} · ${formatDate(doc.uploadedAt)}</div>
+        </div>
+        <div class="doc-actions">
+          ${isImage(doc.name) || isPdf(doc.name) ? `<button class="btn btn-secondary btn-xs" onclick="togglePreview(${i}, '${doc.url}', '${doc.name}')">👁 View</button>` : ''}
+          <a class="btn btn-secondary btn-xs" href="${doc.url}" download="${doc.name}" target="_blank">⬇ Download</a>
+          <button class="btn btn-info btn-xs" onclick="saveDocToHistory('${doc._docId}', '${doc.name}', '${doc.url}')">📁 Save to History</button>
+          ${isManager ? `<button class="btn btn-danger btn-xs" onclick="confirmDeleteDoc('${doc._docId}', ${i})">🗑</button>` : ''}
+        </div>
+      </div>
+      <div class="doc-preview-wrap" id="doc-preview-${i}"></div>
+    </div>`).join('');
+}
+
+function togglePreview(i, url, name) {
+  const wrap = document.getElementById('doc-preview-' + i);
+  if (wrap.classList.contains('open')) {
+    wrap.classList.remove('open');
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.classList.add('open');
+  if (isPdf(name)) {
+    wrap.innerHTML = `<iframe class="doc-preview-pdf" src="${url}"></iframe>`;
+  } else {
+    wrap.innerHTML = `<img class="doc-preview-img" src="${url}" alt="${name}">`;
+  }
+}
+
+function uploadDocument(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  if (!_storage) { showToast('Storage not ready — please refresh.', 'error'); return; }
+
+  const progress = document.getElementById('upload-progress');
+  const bar      = document.getElementById('upload-progress-bar');
+  const label    = document.getElementById('upload-progress-name');
+
+  let index = 0;
+  function uploadNext() {
+    if (index >= files.length) {
+      progress.style.display = 'none';
+      bar.style.width = '0%';
+      event.target.value = '';
+      loadDocs();
+      showToast(files.length + ' file(s) uploaded ✓', 'success');
+      addAuditEntry(job, files.length + ' document(s) uploaded by ' + currentUser.name, currentUser.name);
+      saveJob(job);
+      return;
+    }
+    const file = files[index++];
+    label.textContent = 'Uploading ' + file.name + '…';
+    progress.style.display = 'block';
+
+    const storageRef = _storage.ref('jobs/' + job.id + '/' + Date.now() + '_' + file.name);
+    const uploadTask = storageRef.put(file);
+
+    uploadTask.on('state_changed',
+      snap => {
+        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+        bar.style.width = pct + '%';
+      },
+      err => {
+        console.error('Upload error:', err);
+        showToast('Upload failed: ' + file.name, 'error');
+        progress.style.display = 'none';
+      },
+      () => {
+        uploadTask.snapshot.ref.getDownloadURL().then(url => {
+          return _db.collection('jobs').doc(job.id).collection('documents').add({
+            name:       file.name,
+            size:       file.size,
+            type:       file.type,
+            url,
+            uploadedBy: currentUser.name,
+            uploadedAt: new Date().toISOString(),
+            savedToSiteHistory: false,
+          });
+        }).then(() => uploadNext())
+          .catch(err => { console.error(err); showToast('Error saving file info.', 'error'); });
+      }
+    );
+  }
+  uploadNext();
+}
+
+function saveDocToHistory(docId, name, url) {
+  if (!job.siteName || !job.siteName.trim()) {
+    showToast('Please set a site name before saving to history.', 'error'); return;
+  }
+  const entry = {
+    siteKey:  job.siteName.trim(),
+    savedAt:  new Date().toISOString(),
+    savedBy:  currentUser.name,
+    type:     'document',
+    docName:  name,
+    docUrl:   url,
+    jobRef:   job.ref,
+    siteName: job.siteName,
+  };
+  _db.collection('siteHistory').add(entry).then(() => {
+    _db.collection('jobs').doc(job.id).collection('documents').doc(docId)
+      .update({ savedToSiteHistory: true });
+    showToast('Document saved to site history ✓', 'success');
+    addAuditEntry(job, 'Document saved to site history: ' + name, currentUser.name);
+    saveJob(job);
+    loadAndRenderHistory();
+  }).catch(err => { console.error(err); showToast('Error saving to history.', 'error'); });
+}
+
+let _pendingDeleteDocId = null;
+function confirmDeleteDoc(docId) {
+  _pendingDeleteDocId = docId;
+  document.getElementById('modal-delete-doc').classList.remove('hidden');
+}
+
+function deleteDoc() {
+  if (!_pendingDeleteDocId) return;
+  _db.collection('jobs').doc(job.id).collection('documents').doc(_pendingDeleteDocId).get()
+    .then(snap => {
+      const data = snap.data();
+      return _storage.refFromURL(data.url).delete().then(() => {
+        return _db.collection('jobs').doc(job.id).collection('documents').doc(_pendingDeleteDocId).delete();
+      });
+    }).then(() => {
+      _pendingDeleteDocId = null;
+      closeModal('modal-delete-doc');
+      showToast('Document deleted ✓', 'success');
+      loadDocs();
+    }).catch(err => { console.error(err); showToast('Error deleting document.', 'error'); });
+}
+
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ════════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  // ════════════════════════════════════════════
+// CREATE INVOICE FROM JOB
+// ════════════════════════════════════════════
+function openCreateInvoiceModal() {
+  // Try to find matching customer by site name first, then company name
+  showLoader();
+  setLoaderMsg('Finding customer…');
+  _db.collection('crm_customers').get().then(snap => {
+    hideLoader();
+    const customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let matchedCustomer = null;
+    let matchedEntityId = null;
+
+    // Match by site name in siteAddresses
+    if (job.siteName) {
+      for (const c of customers) {
+        const sites = c.siteAddresses || [];
+        const siteMatch = sites.find(s =>
+          s.address && s.address.toLowerCase().includes(job.siteName.toLowerCase())
+        );
+        if (siteMatch) {
+          matchedCustomer = c;
+          matchedEntityId = siteMatch.entityCustomerId || null;
+          break;
+        }
+      }
+    }
+
+    // Fall back to company name match
+    if (!matchedCustomer && job.company) {
+      matchedCustomer = customers.find(c =>
+        c.company && c.company.toLowerCase() === job.company.toLowerCase()
+      );
+    }
+
+    // Build modal content
+    const poLine = job.poRef ? ` | PO: ${job.poRef}` : '';
+    const desc = `${job.type} — ${job.siteName || job.company} (Job Ref: #${job.ref}${poLine})`;
+    const value = job.costs?.jobValue || 0;
+    const entityName = matchedEntityId ? customers.find(c => c.id === matchedEntityId)?.company : null;
+
+    document.getElementById('inv-modal-customer').textContent   = matchedCustomer ? matchedCustomer.company : 'No match found — please select manually';
+    document.getElementById('inv-modal-entity').textContent     = entityName || '—';
+    document.getElementById('inv-modal-sitename').textContent   = job.siteName || '—';
+    document.getElementById('inv-modal-ref').textContent        = '#' + job.ref;
+    document.getElementById('inv-modal-po').textContent         = job.poRef || '—';
+    document.getElementById('inv-modal-type').textContent       = job.type;
+    document.getElementById('inv-modal-value').textContent      = '£' + value.toFixed(2);
+    document.getElementById('inv-modal-desc').textContent       = desc;
+
+    // Store for use when confirming
+    document.getElementById('modal-create-invoice').dataset.customerId  = matchedCustomer?.id || '';
+    document.getElementById('modal-create-invoice').dataset.entityId    = matchedEntityId || '';
+    document.getElementById('modal-create-invoice').dataset.desc        = desc;
+    document.getElementById('modal-create-invoice').dataset.value       = value;
+
+    document.getElementById('modal-create-invoice').classList.remove('hidden');
+  }).catch(err => {
+    hideLoader();
+    console.error(err);
+    showToast('Error finding customer.', 'error');
+  });
+}
+
+function confirmCreateInvoice() {
+  const modal      = document.getElementById('modal-create-invoice');
+  const customerId = modal.dataset.customerId;
+  const entityId   = modal.dataset.entityId;
+  const desc       = modal.dataset.desc;
+  const value      = modal.dataset.value;
+
+  let url = '/Wiggle/crm-invoices.html?fromjob=' + job.id;
+  url += '&jobref='   + encodeURIComponent(job.ref);
+  url += '&desc='     + encodeURIComponent(desc);
+  url += '&value='    + encodeURIComponent(value);
+  url += '&from=job&jobid=' + job.id;
+  if (customerId) url += '&customer=' + customerId;
+  if (entityId)   url += '&entity='   + entityId;
+
+  window.location.href = url;
+}
+
+function setAddressLink(id, address) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!address) { el.textContent = '—'; return; }
+  const url = 'https://maps.google.com/maps?q=' + encodeURIComponent(address);
+  el.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">' + address + '</a>';
+}
+
+function openReportPicker() {
+  document.getElementById('modal-add-report').classList.remove('hidden');
+}
+
+function launchReport(type) {
+  const pageMap = { ti: 'ti-report.html', survey: 'survey.html', remedial: 'remedial-report.html' };
+  const base = 'https://splp-2023.github.io/splp-reports/';
+  const returnUrl = 'https://splp-2023.github.io/Wiggle/job-detail.html?id=' + (job.id || '');
+
+  const params = new URLSearchParams({
+    site:      job.siteName   || '',
+    address:   job.address    || '',
+    engineer:  currentUser.name || '',
+    ref:       job.ref        || '',
+    jobId:     job.id         || '',
+    returnUrl: returnUrl
+  });
+
+  closeModal('modal-add-report');
+  window.location.href = base + pageMap[type] + '?' + params.toString();
+}
+</script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Wiggle/sw.js');
+  }
+</script>
+</body>
+</html>
