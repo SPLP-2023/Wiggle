@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/Wiggle/manifest.json">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -251,18 +251,18 @@
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">&#8592; Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/index.html?from=calendar'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/customers.html?from=calendar'">&#128101; Customers</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-quotes.html?from=calendar'">&#128176; Quotes</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-invoices.html?from=calendar'">&#129534; Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/job-search.html?from=calendar'">&#128269; Search</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/settings.html?from=calendar'">&#9881;&#65039; Settings</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=calendar'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=calendar'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=calendar'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=calendar'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=calendar'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=calendar'">&#9881;&#65039; Settings</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">&#8212;</span>
@@ -490,8 +490,8 @@
   </div>
 </div>
 
-<script src="/js/data.js"></script>
-<script src="/js/nav.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
 <script>
 let currentUser;
 let currentYear, currentMonth;
@@ -639,12 +639,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function goBack() {
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
-  if (from === 'customers')      window.location.href = '/customers.html';
-  else if (from === 'quotes')    window.location.href = '/crm-quotes.html';
-  else if (from === 'invoices')  window.location.href = '/crm-invoices.html';
-  else if (from === 'settings')  window.location.href = '/settings.html';
-  else if (from === 'search')    window.location.href = '/job-search.html';
-  else                           window.location.href = '/index.html';
+  if (from === 'customers')      window.location.href = '/Wiggle/customers.html';
+  else if (from === 'quotes')    window.location.href = '/Wiggle/crm-quotes.html';
+  else if (from === 'invoices')  window.location.href = '/Wiggle/crm-invoices.html';
+  else if (from === 'settings')  window.location.href = '/Wiggle/settings.html';
+  else if (from === 'search')    window.location.href = '/Wiggle/job-search.html';
+  else                           window.location.href = '/Wiggle/index.html';
 }
 
 function updateBackButton() {
@@ -807,7 +807,7 @@ function renderCalendar() {
     html += `<div class="cal-cell ${isOther?'other-month':''} ${isToday?'today':''}" ${!isOther?`data-date="${dateStr}"`:''}  ${cellClick} style="${dayJobs.length>0&&!isOther?'cursor:pointer;':''}">
       <div class="cal-date-num">${day}</div>
       ${pillsHtml}
-      ${!isOther ? `<div class="cal-add-btn" onclick="event.stopPropagation();window.location.href='/new-job.html?date=${dateStr}&from=calendar'">+</div>` : ''}
+      ${!isOther ? `<div class="cal-add-btn" onclick="event.stopPropagation();window.location.href='/Wiggle/new-job.html?date=${dateStr}&from=calendar'">+</div>` : ''}
     </div>`;
   }
 
@@ -954,7 +954,7 @@ function handleCellClick(event, dateStr, jobCount, singleJobId) {
 
   if (jobCount === 0) {
     // Empty cell — go straight to new job with date pre-filled
-    window.location.href = '/new-job.html?date=' + dateStr + '&from=calendar';
+    window.location.href = '/Wiggle/new-job.html?date=' + dateStr + '&from=calendar';
   } else if (jobCount === 1 && singleJobId) {
     // One job — open popup
     openJobPopup(singleJobId);
@@ -1048,7 +1048,7 @@ function openJobPopup(id) {
 
 function openFullJob() {
   if (!selectedJobId) return;
-  window.location.href = '/job-detail.html?id=' + selectedJobId + '&from=calendar';
+  window.location.href = '/Wiggle/job-detail.html?id=' + selectedJobId + '&from=calendar';
 }
 
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
@@ -1318,7 +1318,7 @@ function rejectLeave() {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('/Wiggle/sw.js');
   }
 </script>
 </body>

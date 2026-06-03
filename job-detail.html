@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/Wiggle/manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -276,14 +276,14 @@
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/index.html?from=job'">← Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/job-search.html?from=job'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=job'">← Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=job'">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">—</span>
@@ -886,8 +886,8 @@
   </div>
 </div>
 
-<script src="/js/data.js"></script>
-<script src="/js/nav.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
 <script>
 // ════════════════════════════════════════════
 // INIT
@@ -910,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _storage = firebase.storage();
     job = appData.jobs.find(j => j.id === jobId);
     if (!job) {
-      document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8;"><h2>Job not found</h2><a href="/index.html" style="color:#f59e0b;">← Back to Dashboard</a></div>';
+      document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8;"><h2>Job not found</h2><a href="/Wiggle/index.html" style="color:#f59e0b;">← Back to Dashboard</a></div>';
       return;
     }
     document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
@@ -932,17 +932,17 @@ function goBack() {
     const from   = params.get('from');
     const cid    = params.get('cid');
     if (from === 'customer' && cid) {
-      window.location.href = '/crm-customer.html?id=' + cid;
+      window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
     } else if (from === 'calendar') {
-      window.location.href = '/calendar.html';
+      window.location.href = '/Wiggle/calendar.html';
     } else if (from === 'search') {
-      window.location.href = '/job-search.html';
+      window.location.href = '/Wiggle/job-search.html';
     } else if (from === 'site') {
       history.back();
     } else if (from === 'customers') {
-      window.location.href = '/customers.html';
+      window.location.href = '/Wiggle/customers.html';
     } else {
-      window.location.href = '/index.html';
+      window.location.href = '/Wiggle/index.html';
     }
 }
 
@@ -1125,7 +1125,7 @@ function renderLinkedSidebar(quotes, invoices) {
       var siteTag = q._matchTier === 2
         ? '<span style="font-size:10px;color:var(--info);font-weight:600;">&#127959; Same site</span>'
         : '';
-      html += '<a class="linked-item" href="/crm-quotes.html?view=' + q._id + '&from=job">'
+      html += '<a class="linked-item" href="/Wiggle/crm-quotes.html?view=' + q._id + '&from=job">'
         + '<div class="linked-item-icon">&#128203;</div>'
         + '<div class="linked-item-body">'
         +   '<div class="linked-item-title">' + escHtml(q.serviceAddress||q.company||ref) + '</div>'
@@ -1147,7 +1147,7 @@ function renderLinkedSidebar(quotes, invoices) {
       var siteTag = inv._matchTier === 2
         ? '<span style="font-size:10px;color:var(--info);font-weight:600;">&#127959; Same site</span>'
         : '';
-      html += '<a class="linked-item" href="/crm-invoices.html?view=' + inv._id + '&from=job">'
+      html += '<a class="linked-item" href="/Wiggle/crm-invoices.html?view=' + inv._id + '&from=job">'
         + '<div class="linked-item-icon">&#129534;</div>'
         + '<div class="linked-item-body">'
         +   '<div class="linked-item-title">' + escHtml(inv.siteName||inv.clientName||num) + '</div>'
@@ -1164,7 +1164,7 @@ function renderLinkedSidebar(quotes, invoices) {
 }
 
 function newQuoteFromJob() {
-  var url = '/crm-quotes.html';
+  var url = '/Wiggle/crm-quotes.html';
   _db.collection('crm_customers').where('company','==',job.company||'').limit(1).get()
     .then(function(snap) {
       if (!snap.empty) {
@@ -1349,7 +1349,7 @@ function abortJob() {
 function deleteJob() {
   appData.jobs = appData.jobs.filter(j => j.id !== job.id);
   _db.collection('jobs').doc(job.id).delete().then(() => {
-    window.location.href = '/index.html';
+    window.location.href = '/Wiggle/index.html';
   }).catch(err => {
     console.error('Delete error:', err);
     showToast('Error deleting job — please try again.', 'error');
@@ -1672,7 +1672,7 @@ function renderHistory(items) {
   var linkWrap = document.getElementById('site-history-link-wrap');
   var link     = document.getElementById('site-history-link');
   if (linkWrap && link && job.siteName && currentUser && currentUser.role === 'manager') {
-    var url = '/site-history.html?site=' + encodeURIComponent(job.siteName.trim())
+    var url = '/Wiggle/site-history.html?site=' + encodeURIComponent(job.siteName.trim())
             + '&company=' + encodeURIComponent(job.company||'')
             + '&from=job';
     link.href = url;
@@ -2163,7 +2163,7 @@ function confirmCreateInvoice() {
   const desc       = modal.dataset.desc;
   const value      = modal.dataset.value;
 
-  let url = '/crm-invoices.html?fromjob=' + job.id;
+  let url = '/Wiggle/crm-invoices.html?fromjob=' + job.id;
   url += '&jobref='   + encodeURIComponent(job.ref);
   url += '&desc='     + encodeURIComponent(desc);
   url += '&value='    + encodeURIComponent(value);
@@ -2189,7 +2189,7 @@ function openReportPicker() {
 function launchReport(type) {
   const pageMap = { ti: 'ti-report.html', survey: 'survey.html', remedial: 'remedial-report.html' };
   const base = 'https://splp-2023.github.io/splp-reports/';
-  const returnUrl = 'https://app.strikepoint.uk/job-detail.html?id=' + (job.id || '');
+  const returnUrl = 'https://splp-2023.github.io/Wiggle/job-detail.html?id=' + (job.id || '');
 
   const params = new URLSearchParams({
     site:      job.siteName   || '',
@@ -2206,7 +2206,7 @@ function launchReport(type) {
 </script>
   <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('/Wiggle/sw.js');
   }
 </script>
 </body>

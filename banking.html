@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/Wiggle/manifest.json">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -132,13 +132,13 @@
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="currentUser && currentUser.role === 'accountant' ? void(0) : window.location.href='/index.html'" style="cursor:default;">
+  <div class="nav-brand" onclick="currentUser && currentUser.role === 'accountant' ? void(0) : window.location.href='/Wiggle/index.html'" style="cursor:default;">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <div id="accountant-nav" style="display:none;">
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-invoices.html?from=banking'">🧾 Invoices</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=banking'">🧾 Invoices</button>
     </div>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
@@ -358,8 +358,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/data.js"></script>
-<script src="/js/nav.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // BANKING PAGE
@@ -385,9 +385,9 @@ const NO_VAT_CATEGORIES  = ['Transfers','Taxes','Dividends','Director\'s Loan','
 
 document.addEventListener('DOMContentLoaded', () => {
   currentUser = getSession();
-  if (!currentUser) { window.location.href = '/login.html'; return; }
+  if (!currentUser) { window.location.href = '/Wiggle/login.html'; return; }
   if (currentUser.role !== 'manager' && currentUser.role !== 'accountant') {
-    window.location.href = '/index.html'; return;
+    window.location.href = '/Wiggle/index.html'; return;
   }
   showLoader();
   initFirebaseWithAuth().then(() => {
@@ -868,9 +868,9 @@ function formatDateShort(d) {
 
   function doLogout() {
   clearSession().then(() => {
-    window.location.href = '/login.html';
+    window.location.href = '/Wiggle/login.html';
   }).catch(() => {
-    window.location.href = '/login.html';
+    window.location.href = '/Wiggle/login.html';
   });
 }
 
@@ -933,7 +933,7 @@ function closeModal(id) {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('/Wiggle/sw.js');
   }
 </script>
 </body>

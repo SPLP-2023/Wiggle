@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════
 // STRIKE POINT — SHARED NAV / HAMBURGER
-// /js/nav.js
+// /Wiggle/js/nav.js
 // Include on every page AFTER data.js
 // ══════════════════════════════════════════════
 
@@ -148,28 +148,28 @@
 
     // ── Manager links ──
     var managerLinks = [
-      { label: '&#127968; Dashboard',  href: '/index.html?from=nav',        match: 'index' },
-      { label: '&#128197; Calendar',   href: '/calendar.html?from=nav',     match: 'calendar' },
-      { label: '&#128101; Customers',  href: '/customers.html?from=nav',    match: 'customers' },
-      { label: '&#128176; Quotes',     href: '/crm-quotes.html?from=nav',          match: 'crm-quotes' },
-      { label: '&#9989; Acceptances', href: '/quote-acceptances.html?from=nav',   match: 'quote-acceptances' },
-      { label: '&#129534; Invoices',  href: '/crm-invoices.html?from=nav',         match: 'crm-invoices' },
-      { label: '&#128269; Search',     href: '/job-search.html?from=nav',   match: 'job-search' },
-      { label: '&#128230; Parts',      href: '/parts-catalogue.html?from=nav',    match: 'parts-catalogue' },
-      { label: '&#128178; Banking',    href: '/banking.html?from=nav',      match: 'banking' },
-      { label: '&#9881;&#65039; Settings', href: '/settings.html?from=nav', match: 'settings' },
+      { label: '&#127968; Dashboard',  href: '/Wiggle/index.html?from=nav',        match: 'index' },
+      { label: '&#128197; Calendar',   href: '/Wiggle/calendar.html?from=nav',     match: 'calendar' },
+      { label: '&#128101; Customers',  href: '/Wiggle/customers.html?from=nav',    match: 'customers' },
+      { label: '&#128176; Quotes',     href: '/Wiggle/crm-quotes.html?from=nav',          match: 'crm-quotes' },
+      { label: '&#9989; Acceptances', href: '/Wiggle/quote-acceptances.html?from=nav',   match: 'quote-acceptances' },
+      { label: '&#129534; Invoices',  href: '/Wiggle/crm-invoices.html?from=nav',         match: 'crm-invoices' },
+      { label: '&#128269; Search',     href: '/Wiggle/job-search.html?from=nav',   match: 'job-search' },
+      { label: '&#128230; Parts',      href: '/Wiggle/parts-catalogue.html?from=nav',    match: 'parts-catalogue' },
+      { label: '&#128178; Banking',    href: '/Wiggle/banking.html?from=nav',      match: 'banking' },
+      { label: '&#9881;&#65039; Settings', href: '/Wiggle/settings.html?from=nav', match: 'settings' },
     ];
 
     // ── Engineer links ──
     var engineerLinks = [
-      { label: '&#127968; Dashboard',  href: '/index.html?from=nav',    match: 'index' },
-      { label: '&#128197; Calendar',   href: '/calendar.html?from=nav', match: 'calendar' },
+      { label: '&#127968; Dashboard',  href: '/Wiggle/index.html?from=nav',    match: 'index' },
+      { label: '&#128197; Calendar',   href: '/Wiggle/calendar.html?from=nav', match: 'calendar' },
     ];
 
     // ── Accountant links ──
     var accountantLinks = [
-      { label: '&#128178; Banking',    href: '/banking.html?from=nav',      match: 'banking' },
-      { label: '&#129534; Invoices',   href: '/crm-invoices.html?from=nav', match: 'crm-invoices' },
+      { label: '&#128178; Banking',    href: '/Wiggle/banking.html?from=nav',      match: 'banking' },
+      { label: '&#129534; Invoices',   href: '/Wiggle/crm-invoices.html?from=nav', match: 'crm-invoices' },
     ];
 
     var isAccountant = currentUser.role === 'accountant';
@@ -199,7 +199,7 @@
       if (typeof doLogout === 'function') doLogout();
       else if (typeof clearSession === 'function') {
         clearSession();
-        window.location.href = '/login.html';
+        window.location.href = '/Wiggle/login.html';
       }
     };
     dropdown.appendChild(logoutBtn);
@@ -214,18 +214,18 @@
       var jobid = urlParams.get('jobid');
 
       var backRoutes = {
-        'dashboard':   { label: '← Dashboard',    href: '/index.html' },
-        'calendar':    { label: '← Calendar',     href: '/calendar.html' },
-        'customers':   { label: '← Customers',    href: '/customers.html' },
-        'customer':    { label: '← Customer',     href: cid ? '/crm-customer.html?id=' + cid : '/customers.html' },
-        'quotes':      { label: '← Quotes',       href: '/crm-quotes.html' },
-        'invoices':    { label: '← Invoices',     href: '/crm-invoices.html' },
-        'job':         { label: '← Job',          href: jobid ? '/job-detail.html?id=' + jobid : '/index.html' },
-        'search':      { label: '← Search',       href: '/job-search.html' },
-        'settings':    { label: '← Settings',     href: '/settings.html' },
-        'banking':     { label: '← Banking',      href: '/banking.html' },
-        'acceptances': { label: '← Acceptances',  href: '/quote-acceptances.html' },
-        'site':        { label: '← Site History', href: '/site-history.html' },
+        'dashboard':   { label: '← Dashboard',    href: '/Wiggle/index.html' },
+        'calendar':    { label: '← Calendar',     href: '/Wiggle/calendar.html' },
+        'customers':   { label: '← Customers',    href: '/Wiggle/customers.html' },
+        'customer':    { label: '← Customer',     href: cid ? '/Wiggle/crm-customer.html?id=' + cid : '/Wiggle/customers.html' },
+        'quotes':      { label: '← Quotes',       href: '/Wiggle/crm-quotes.html' },
+        'invoices':    { label: '← Invoices',     href: '/Wiggle/crm-invoices.html' },
+        'job':         { label: '← Job',          href: jobid ? '/Wiggle/job-detail.html?id=' + jobid : '/Wiggle/index.html' },
+        'search':      { label: '← Search',       href: '/Wiggle/job-search.html' },
+        'settings':    { label: '← Settings',     href: '/Wiggle/settings.html' },
+        'banking':     { label: '← Banking',      href: '/Wiggle/banking.html' },
+        'acceptances': { label: '← Acceptances',  href: '/Wiggle/quote-acceptances.html' },
+        'site':        { label: '← Site History', href: '/Wiggle/site-history.html' },
       };
 
       var route = fromVal && fromVal !== 'nav' ? backRoutes[fromVal] : null;

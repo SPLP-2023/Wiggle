@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/Wiggle/manifest.json">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -161,19 +161,19 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()" style="display:none;">← Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/index.html?from=quotes'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/calendar.html?from=quotes'">&#128197; Calendar</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/customers.html?from=quotes'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=quotes'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=quotes'">&#128197; Calendar</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=quotes'">&#128101; Customers</button>
     <button class="btn btn-sm" style="background:var(--primary);color:var(--dark);font-weight:700;">&#128176; Quotes</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-invoices.html?from=quotes'">&#129534; Invoices</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/job-search.html?from=quotes'">&#128269; Search</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/settings.html?from=quotes'">&#9881;&#65039; Settings</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=quotes'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=quotes'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/settings.html?from=quotes'">&#9881;&#65039; Settings</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -420,8 +420,8 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="/js/data.js"></script>
-<script src="/js/nav.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
 <script>
 var currentUser;
 var allQuotes = [];
@@ -456,14 +456,14 @@ var FOOTER = 'Strike Point Lightning Protection Ltd Registered office: Atkinson 
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
   const cid    = params.get('cid');
-  if (from === 'customer' && cid)  window.location.href = '/crm-customer.html?id=' + cid;
-  else if (from === 'customers')   window.location.href = '/customers.html';
-  else if (from === 'calendar')    window.location.href = '/calendar.html';
-  else if (from === 'invoices')    window.location.href = '/crm-invoices.html';
-  else if (from === 'settings')    window.location.href = '/settings.html';
-  else if (from === 'search')      window.location.href = '/job-search.html';
-  else if (from === 'dashboard')   window.location.href = '/index.html';
-  else                             window.location.href = '/index.html';
+  if (from === 'customer' && cid)  window.location.href = '/Wiggle/crm-customer.html?id=' + cid;
+  else if (from === 'customers')   window.location.href = '/Wiggle/customers.html';
+  else if (from === 'calendar')    window.location.href = '/Wiggle/calendar.html';
+  else if (from === 'invoices')    window.location.href = '/Wiggle/crm-invoices.html';
+  else if (from === 'settings')    window.location.href = '/Wiggle/settings.html';
+  else if (from === 'search')      window.location.href = '/Wiggle/job-search.html';
+  else if (from === 'dashboard')   window.location.href = '/Wiggle/index.html';
+  else                             window.location.href = '/Wiggle/index.html';
 }
 
 function updateBackButton() {
@@ -485,7 +485,7 @@ function updateBackButton() {
 document.addEventListener('DOMContentLoaded', function() {
   currentUser = requireAuth();
   if (!currentUser) return;
-  if (currentUser.role !== 'manager') { window.location.href = '/index.html'; return; }
+  if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
   document.getElementById('q-prepared-by').value = currentUser.name;
@@ -1500,7 +1500,7 @@ function renderEmailTemplate(docId, quoteData) {
 
   var clientName = (quoteData && quoteData.preparedFor) || document.getElementById('q-prepared-for').value.trim() || 'there';
   var ref        = (quoteData && quoteData.ref) || document.getElementById('editor-ref').textContent || '';
-  var acceptLink = 'https://app.strikepoint.uk/accept-quote.html?id=' + docId;
+  var acceptLink = 'https://splp-2023.github.io/Wiggle/accept-quote.html?id=' + docId;
 
   box.innerHTML =
     'Hi ' + esc(clientName) + ',\n\n'
@@ -1560,7 +1560,7 @@ function showToast(msg, type) {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('/Wiggle/sw.js');
   }
 </script>
 </body>

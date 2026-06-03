@@ -1,14 +1,14 @@
-const CACHE_NAME = 'sp-fsm-v1.5';
+const CACHE_NAME = 'sp-fsm-v1.4';
 
 const CACHE_URLS = [
-  '/login.html',
-  '/index.html',
-  '/job-detail.html',
-  '/new-job.html',
-  '/settings.html',
-  '/calendar.html',
-  '/parts-catalogue.html',
-  '/js/data.js',
+  '/Wiggle/login.html',
+  '/Wiggle/index.html',
+  '/Wiggle/job-detail.html',
+  '/Wiggle/new-job.html',
+  '/Wiggle/settings.html',
+  '/Wiggle/calendar.html',
+  '/Wiggle/parts-catalogue.html',
+  '/Wiggle/js/data.js',
 ];
 
 self.addEventListener('install', event => {

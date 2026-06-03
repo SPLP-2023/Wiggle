@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/Wiggle/manifest.json">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -122,12 +122,12 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/customers.html'">
+  <div class="nav-brand" onclick="window.location.href='/Wiggle/customers.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point CRM</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/customers.html'">&#8592; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html'">&#8592; Customers</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">-</span>
@@ -269,8 +269,8 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="/js/data.js"></script>
-<script src="/js/nav.js"></script>
+<script src="/Wiggle/js/data.js"></script>
+<script src="/Wiggle/js/nav.js"></script>
 <script>
 var currentUser, customer, customerId;
 var editSites = [];
@@ -278,15 +278,15 @@ var editSites = [];
 document.addEventListener('DOMContentLoaded', function() {
   currentUser = requireAuth();
   if (!currentUser) return;
-  if (currentUser.role !== 'manager') { window.location.href = '/index.html'; return; }
+  if (currentUser.role !== 'manager') { window.location.href = '/Wiggle/index.html'; return; }
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent = currentUser.name;
   var params = new URLSearchParams(window.location.search);
   customerId = params.get('id');
-  if (!customerId) { window.location.href = '/customers.html'; return; }
-  document.getElementById('btn-new-quote').onclick = function() { window.location.href = '/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
-  document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
-  document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/crm-invoices.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
+  if (!customerId) { window.location.href = '/Wiggle/customers.html'; return; }
+  document.getElementById('btn-new-quote').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
+  document.getElementById('btn-new-quote2').onclick = function() { window.location.href = '/Wiggle/crm-quotes.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
+  document.getElementById('btn-new-inv').onclick = function() { window.location.href = '/Wiggle/crm-invoices.html?customer=' + customerId + '&from=customer&cid=' + customerId; };
   showLoader();
   initFirebaseWithAuth().then(function() { hideLoader(); loadCustomer(); })
     .catch(function() { hideLoader(); showToast('Connection error - please refresh.', 'error'); });
@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function loadCustomer() {
   _db.collection('crm_customers').doc(customerId).get().then(function(doc) {
-    if (!doc.exists) { window.location.href = '/customers.html'; return; }
+    if (!doc.exists) { window.location.href = '/Wiggle/customers.html'; return; }
     customer = Object.assign({ id: doc.id }, doc.data());
     document.getElementById('main-content').style.display = 'block';
     renderHeader();
@@ -404,7 +404,7 @@ function renderJobsList(jobs, invoicedRefs, list) {
       ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">&#9888; Overdue</span>'
       : '';
 
-    html += '<div class="job-item" onclick="window.location.href=\'/job-detail.html?id=' + esc(j.id) + '&from=customer&cid=' + customerId + '\'">'
+    html += '<div class="job-item" onclick="window.location.href=\'/Wiggle/job-detail.html?id=' + esc(j.id) + '&from=customer&cid=' + customerId + '\'">'
       + '<div class="job-dot dot-' + esc(j.status) + '"></div>'
       + '<div class="job-info">'
       +   '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
@@ -425,13 +425,13 @@ function renderJobsList(jobs, invoicedRefs, list) {
   if (total > SHOW) {
     html += '<div style="margin-top:4px;">'
       + '<button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" '
-      + 'onclick="window.location.href=\'/job-search.html?company=' + encodeURIComponent(customer.company) + '&from=customer\'">'
+      + 'onclick="window.location.href=\'/Wiggle/job-search.html?company=' + encodeURIComponent(customer.company) + '&from=customer\'">'
       + '&#128269; View all ' + total + ' jobs for ' + esc(customer.company) + '</button>'
       + '</div>';
   } else {
     html += '<div style="margin-top:4px;">'
       + '<button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" '
-      + 'onclick="window.location.href=\'/job-search.html?company=' + encodeURIComponent(customer.company) + '&from=customer\'">'
+      + 'onclick="window.location.href=\'/Wiggle/job-search.html?company=' + encodeURIComponent(customer.company) + '&from=customer\'">'
       + '&#128269; Search all records for ' + esc(customer.company) + '</button>'
       + '</div>';
   }
@@ -478,7 +478,7 @@ function renderQuotes(quotes) {
       + '<div style="text-align:right;flex-shrink:0;">'
       +   '<div style="font-size:15px;font-weight:700;">' + fmtMoney(q.total || 0) + '</div>'
       +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
-      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/crm-quotes.html?id=' + esc(q.id) + '&from=customer&cid=' + customerId + '\'">View</button></div>'
+      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-quotes.html?id=' + esc(q.id) + '&from=customer&cid=' + customerId + '\'">View</button></div>'
       + '</div></div>';
   }
   list.innerHTML = html;
@@ -525,7 +525,7 @@ function renderInvoices(invs) {
       + '<div style="text-align:right;flex-shrink:0;">'
       +   '<div style="font-size:15px;font-weight:700;color:' + col + ';">' + fmtMoney(inv.total||inv.totalDue||0) + '</div>'
       +   '<div style="font-size:11px;color:var(--text-muted);">inc VAT</div>'
-      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/crm-invoices.html?id=' + esc(inv.id) + '&from=customer&cid=' + customerId + '\'">View</button></div>'
+      +   '<div style="margin-top:8px;"><button class="btn btn-secondary btn-xs" onclick="window.location.href=\'/Wiggle/crm-invoices.html?id=' + esc(inv.id) + '&from=customer&cid=' + customerId + '\'">View</button></div>'
       + '</div></div>';
   }
   list.innerHTML = html;
@@ -722,7 +722,7 @@ function showToast(msg, type) {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('/Wiggle/sw.js');
   }
 </script>
 </body>

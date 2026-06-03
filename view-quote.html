@@ -94,8 +94,8 @@ main{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
     <span>Strike Point</span>
   </div>
   <div style="display:flex;gap:8px;">
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/index.html'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-quotes.html'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html'">&#128176; Quotes</button>
   </div>
 </header>
 
@@ -165,11 +165,11 @@ const quoteId = params.get('id');
 let quoteData = null;
 
 window.openQuote = function() {
-  if (quoteId) window.location.href = '/crm-quotes.html?id=' + quoteId;
+  if (quoteId) window.location.href = '/Wiggle/crm-quotes.html?id=' + quoteId;
 };
 
 window.copyAcceptLink = function() {
-  var link = window.location.origin + '/accept-quote.html?id=' + quoteId;
+  var link = window.location.origin + '/Wiggle/accept-quote.html?id=' + quoteId;
   navigator.clipboard.writeText(link).then(function() {
     var btn = document.querySelector('[onclick="copyAcceptLink()"]');
     var orig = btn.innerHTML;
