@@ -1500,7 +1500,7 @@ function renderEmailTemplate(docId, quoteData) {
 
   var clientName = (quoteData && quoteData.preparedFor) || document.getElementById('q-prepared-for').value.trim() || 'there';
   var ref        = (quoteData && quoteData.ref) || document.getElementById('editor-ref').textContent || '';
-  var acceptLink = 'https://splp-2023.github.io/Wiggle/accept-quote.html?id=' + docId;
+  var acceptLink = 'https://app.strikepoint.uk/accept-quote.html?id=' + docId;
 
   box.innerHTML =
     'Hi ' + esc(clientName) + ',\n\n'
