@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/Wiggle/manifest.json">
+  <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -112,7 +112,7 @@
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/index.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
@@ -302,8 +302,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/nav.js"></script>
 <script>
 // ── Init ─────────────────────────────────────
 let currentUser;
@@ -339,9 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function goBack() {
   const params = new URLSearchParams(window.location.search);
   const from   = params.get('from');
-  if (from === 'calendar')  window.location.href = '/Wiggle/calendar.html';
-  else if (from === 'search') window.location.href = '/Wiggle/job-search.html';
-  else                      window.location.href = '/Wiggle/index.html';
+  if (from === 'calendar')  window.location.href = '/calendar.html';
+  else if (from === 'search') window.location.href = '/job-search.html';
+  else                      window.location.href = '/index.html';
 }
 
 function updateBackButton() {
@@ -656,7 +656,7 @@ function submitJob() {
 </script>
   <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Wiggle/sw.js');
+    navigator.serviceWorker.register('/sw.js');
   }
 </script>
 </body>

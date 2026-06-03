@@ -6,8 +6,8 @@
 <title>Site History &mdash; Strike Point</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/nav.js"></script>
 <style>
 :root{--dark:#0f1117;--dark2:#1a1d27;--dark3:#22263a;--border:#2e3350;--accent:#f59e0b;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--purple:#a855f7;--text:#f1f5f9;--muted:#94a3b8;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -98,15 +98,15 @@ main{max-width:900px;margin:0 auto;padding:28px 20px 80px;}
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/index.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
     <button class="btn btn-secondary btn-sm" id="btn-back" onclick="goBack()">&#8592; Back</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=site'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/job-search.html?from=site'">&#128269; Search</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=site'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/index.html?from=site'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/job-search.html?from=site'">&#128269; Search</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/customers.html?from=site'">&#128101; Customers</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display" style="font-size:13px;font-weight:600;">&#8212;</span>
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (!siteName) {
     document.getElementById('results-area').innerHTML =
-      '<div class="state-msg"><div class="ico">&#9888;</div><h3>No site specified</h3><p><a href="/Wiggle/job-search.html" style="color:var(--accent);">Go to search</a></p></div>';
+      '<div class="state-msg"><div class="ico">&#9888;</div><h3>No site specified</h3><p><a href="/job-search.html" style="color:var(--accent);">Go to search</a></p></div>';
     return;
   }
 
@@ -152,8 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function goBack() {
   if (fromPage === 'job') history.back();
-  else if (companyName) window.location.href = '/Wiggle/job-search.html?company=' + encodeURIComponent(companyName);
-  else window.location.href = '/Wiggle/job-search.html';
+  else if (companyName) window.location.href = '/job-search.html?company=' + encodeURIComponent(companyName);
+  else window.location.href = '/job-search.html';
 }
 
 function updateBackButton() {
@@ -292,7 +292,7 @@ function renderVisits(jobs, quotes, invoices) {
       + invInd
       + '<span class="visit-value">'+val+'</span>'
       + '<span class="sbadge '+sc+'">'+esc(j.status||'live')+'</span>'
-      + '<a class="btn btn-secondary btn-sm" href="/Wiggle/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &#8594;</a>'
+      + '<a class="btn btn-secondary btn-sm" href="/job-detail.html?id='+j._id+'&from=site" style="padding:3px 10px;font-size:11px;">View Job &#8594;</a>'
       + '</div>';
 
     // Linked quotes and invoices
@@ -306,7 +306,7 @@ function renderVisits(jobs, quotes, invoices) {
           var qval = q.total ? '&pound;'+parseFloat(q.total).toFixed(2) : '&mdash;';
           var qsc  = 's-'+(q.status||'draft').toLowerCase();
           var qref = q.ref||q.quoteRef||q._id;
-          html += '<a class="linked-row" href="/Wiggle/crm-quotes.html?view='+q._id+'&from=site">'
+          html += '<a class="linked-row" href="/crm-quotes.html?view='+q._id+'&from=site">'
             + '<div class="lr-icon">&#128203;</div>'
             + '<div style="flex:1;min-width:0;">'
             +   '<div class="lr-title">'+esc(q.serviceAddress||q.company||qref)+'</div>'
@@ -325,7 +325,7 @@ function renderVisits(jobs, quotes, invoices) {
           var ival = inv.total||inv.totalDue ? '&pound;'+parseFloat(inv.total||inv.totalDue||0).toFixed(2) : '&mdash;';
           var isc  = 's-'+(inv.status||'draft').toLowerCase();
           var inum = inv.invoiceNumber||inv.number||inv.ref||inv._id;
-          html += '<a class="linked-row" href="/Wiggle/crm-invoices.html?view='+inv._id+'&from=site">'
+          html += '<a class="linked-row" href="/crm-invoices.html?view='+inv._id+'&from=site">'
             + '<div class="lr-icon">&#129534;</div>'
             + '<div style="flex:1;min-width:0;">'
             +   '<div class="lr-title">'+esc(inv.siteName||inv.clientName||inum)+'</div>'
@@ -349,8 +349,8 @@ function renderVisits(jobs, quotes, invoices) {
 
 function goBack() {
   if (fromPage === 'job') history.back();
-  else if (companyName) window.location.href = '/Wiggle/job-search.html?company=' + encodeURIComponent(companyName);
-  else window.location.href = '/Wiggle/job-search.html';
+  else if (companyName) window.location.href = '/job-search.html?company=' + encodeURIComponent(companyName);
+  else window.location.href = '/job-search.html';
 }
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

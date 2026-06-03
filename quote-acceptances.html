@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/Wiggle/manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -119,8 +119,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/nav.js"></script>
 <script>
 var currentUser;
 var allAcceptances = [];
@@ -146,8 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function goBack() {
   var from = new URLSearchParams(window.location.search).get('from');
-  if (from === 'quotes') window.location.href = '/Wiggle/crm-quotes.html';
-  else window.location.href = '/Wiggle/index.html';
+  if (from === 'quotes') window.location.href = '/crm-quotes.html';
+  else window.location.href = '/index.html';
 }
 
 function updateBackButton() {
@@ -202,7 +202,7 @@ function renderList(items) {
     var name     = [a.first_name, a.last_name].filter(Boolean).join(' ') || 'Unknown';
     var dateStr  = a.submitted_at ? formatSubmittedAt(a.submitted_at) : '—';
     var ref      = a.quoteRef || a.quoteId || '—';
-    var viewUrl  = '/Wiggle/view-quote.html?id=' + encodeURIComponent(a.quoteId || a._id) + '&from=acceptances';
+    var viewUrl  = '/view-quote.html?id=' + encodeURIComponent(a.quoteId || a._id) + '&from=acceptances';
 
     return '<a class="acceptance-row" href="' + viewUrl + '">'
       + '<div class="acc-icon">&#9989;</div>'
@@ -237,7 +237,7 @@ function escHtml(str) {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Wiggle/sw.js');
+    navigator.serviceWorker.register('/sw.js');
   }
 </script>
 </body>

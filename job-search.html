@@ -6,8 +6,8 @@
 <title>Job Ref Search &mdash; Strike Point</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/nav.js"></script>
 <style>
 :root{--dark:#0f1117;--dark2:#1a1d27;--dark3:#22263a;--border:#2e3350;--accent:#f59e0b;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--text:#f1f5f9;--muted:#94a3b8;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -102,16 +102,16 @@ main{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
 </head>
 <body>
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html?from=search'">
+  <div class="nav-brand" onclick="window.location.href='/index.html?from=search'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/index.html?from=search'">&#127968; Dashboard</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/calendar.html?from=search'">&#128197; Calendar</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/customers.html?from=search'">&#128101; Customers</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-quotes.html?from=search'">&#128176; Quotes</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/Wiggle/crm-invoices.html?from=search'">&#129534; Invoices</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/index.html?from=search'">&#127968; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/calendar.html?from=search'">&#128197; Calendar</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/customers.html?from=search'">&#128101; Customers</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-quotes.html?from=search'">&#128176; Quotes</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/crm-invoices.html?from=search'">&#129534; Invoices</button>
     <button class="btn btn-sm" style="background:var(--primary,#f59e0b);color:#000;font-weight:700;">&#128269; Search</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
@@ -267,7 +267,7 @@ function buildRefGroupHtml(refKey, g, nested) {
     g.jobs.forEach(function(j){
       var val=(j.costs&&j.costs.jobValue)?'&pound;'+parseFloat(j.costs.jobValue).toFixed(2):'&mdash;';
       var sc='s-'+(j.status||'live').toLowerCase().replace(/\s+/g,'');
-      html+='<a class="record-row" href="/Wiggle/job-detail.html?id='+j._id+'&from=search">'
+      html+='<a class="record-row" href="/job-detail.html?id='+j._id+'&from=search">'
         +'<div class="rec-icon">&#128736;</div>'
         +'<div class="rec-main"><div class="rec-title">'+esc(j.siteName||j.company||'Job #'+j.ref)+'</div>'
         +'<div class="rec-sub">'+esc(j.type||'')+(j.poRef?' &middot; PO: '+esc(j.poRef):'')+' &middot; '+fmtDate(j.bookingDate)+'</div></div>'
@@ -282,7 +282,7 @@ function buildRefGroupHtml(refKey, g, nested) {
       var val=q2.total?'&pound;'+parseFloat(q2.total).toFixed(2):'&mdash;';
       var sc='s-'+(q2.status||'draft').toLowerCase();
       var ref=q2.ref||q2.quoteRef||q2._id;
-      html+='<a class="record-row" href="/Wiggle/crm-quotes.html?view='+q2._id+'">'
+      html+='<a class="record-row" href="/crm-quotes.html?view='+q2._id+'">'
         +'<div class="rec-icon">&#128203;</div>'
         +'<div class="rec-main"><div class="rec-title">'+esc(q2.serviceAddress||q2.company||ref)+'</div>'
         +'<div class="rec-sub">'+esc(ref)+(q2.jobType?' &middot; '+esc(q2.jobType):'')+'</div></div>'
@@ -297,7 +297,7 @@ function buildRefGroupHtml(refKey, g, nested) {
       var val=inv.total?'&pound;'+parseFloat(inv.total).toFixed(2):'&mdash;';
       var sc='s-'+(inv.status||'draft').toLowerCase();
       var num=inv.invoiceNumber||inv.number||inv._id;
-      html+='<a class="record-row" href="/Wiggle/crm-invoices.html?view='+inv._id+'">'
+      html+='<a class="record-row" href="/crm-invoices.html?view='+inv._id+'">'
         +'<div class="rec-icon">&#129534;</div>'
         +'<div class="rec-main"><div class="rec-title">'+esc(inv.siteName||inv.clientName||num)+'</div>'
         +'<div class="rec-sub">'+esc(num)+(inv.clientName?' &middot; '+esc(inv.clientName):'')+'</div></div>'

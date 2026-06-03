@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="/Wiggle/manifest.json">
+  <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -94,7 +94,7 @@
   </div>
 </div>
 
-<script src="/Wiggle/js/data.js"></script>
+<script src="/js/data.js"></script>
 <script>
   // Just initialise Firebase — don't load Firestore data on login page
   if (!firebase.apps.length) {
@@ -104,7 +104,7 @@
 
   const existing = getSession();
   if (existing) {
-    window.location.href = '/Wiggle/index.html';
+    window.location.href = '/index.html';
   } else {
     document.getElementById('_fsm_loader').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
@@ -129,9 +129,9 @@
         const user = { ...profile, id: 'u' + (AUTH_USERS.indexOf(profile) + 1) };
         setSession(user);
         if (user.role === 'accountant') {
-          window.location.href = '/Wiggle/banking.html';
+          window.location.href = '/banking.html';
         } else {
-          window.location.href = '/Wiggle/index.html';
+          window.location.href = '/index.html';
         }
       })
       .catch(() => {
@@ -145,7 +145,7 @@
 </script>
   <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Wiggle/sw.js');
+    navigator.serviceWorker.register('/sw.js');
   }
 </script>
 </body>

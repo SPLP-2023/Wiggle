@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/Wiggle/manifest.json">
+<link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SP FSM">
@@ -152,12 +152,12 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
 <body>
 
 <nav>
-  <div class="nav-brand" onclick="window.location.href='/Wiggle/index.html'">
+  <div class="nav-brand" onclick="window.location.href='/index.html'">
     <img src="https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png" alt="Logo" style="height:32px;width:auto;object-fit:contain;">
     <span>Strike Point</span>
   </div>
   <div class="nav-right">
-    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="window.location.href='/Wiggle/index.html'" style="display:none;">&#8592; Dashboard</button>
+    <button class="btn btn-secondary btn-sm" id="btn-back" onclick="window.location.href='/index.html'" style="display:none;">&#8592; Dashboard</button>
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">&#8212;</span>
@@ -341,8 +341,8 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
 
 <div class="toast" id="toast"></div>
 
-<script src="/Wiggle/js/data.js"></script>
-<script src="/Wiggle/js/nav.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/nav.js"></script>
 <script>
 var currentUser, allParts = [], editingPartId = null, pendingDeleteId = null;
 
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
   currentUser = requireAuth();
   if (!currentUser) return;
   if (currentUser.role !== 'manager') {
-    window.location.href = '/Wiggle/index.html';
+    window.location.href = '/index.html';
     return;
   }
   document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
