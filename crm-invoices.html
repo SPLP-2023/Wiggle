@@ -925,17 +925,18 @@ function buildPDF(pdf,d,logo,footerImg){
     var net=(parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0);
     var vat=net*((parseFloat(li.vatRate)||0)/100);
     if(!li.type||li.type==='Labour') labourNet+=net;
-    if(alt){pdf.setFillColor(240,245,252);pdf.rect(lm,ty-5,pw,8,'F');}
-    alt=!alt;
     var dl=pdf.splitTextToSize(li.description||'',68);
-    pdf.text(dl[0]||'',lm+2,ty);
+    var rowH=Math.max(8,dl.length*5+3);
+    if(alt){pdf.setFillColor(240,245,252);pdf.rect(lm,ty-5,pw,rowH,'F');}
+    alt=!alt;
+    dl.forEach(function(dline,dli){pdf.text(dline,lm+2,ty+dli*5);});
     pdf.text(String(li.qty||1),108,ty,{align:'right'});
     pdf.text(fmtMoney(li.unitPrice||0),138,ty,{align:'right'});
     if(!d.cis){
       pdf.text((li.vatRate||0)+'%',156,ty,{align:'right'});
       pdf.text(fmtMoney(net+vat),rm,ty,{align:'right'});
     }
-    ty+=8;
+    ty+=rowH;
     if(ty>210){addFtr(pdf,footerImg);pdf.addPage();ty=20;}
   });
 
