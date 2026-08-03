@@ -252,7 +252,11 @@
         </div>
         <div class="form-group">
           <label>Prepared By</label>
-          <input type="text" class="form-input" id="q-prepared-by" placeholder="e.g. Luke Storey">
+          <select class="form-input" id="q-prepared-by">
+            <option value="Luke Storey">Luke Storey</option>
+            <option value="Emily Storey">Emily Storey</option>
+            <option value="Lauren Duffin">Lauren Duffin</option>
+          </select>
         </div>
       </div>
       <div class="form-row">
@@ -625,7 +629,14 @@ function openExistingQuote(id) {
     document.getElementById('q-customer').value     = q.customerId || '';
     document.getElementById('q-prepared-for').value = q.preparedFor || '';
     document.getElementById('q-email').value        = q.clientEmail || '';
-    document.getElementById('q-prepared-by').value  = q.preparedBy || '';
+    var preparedBySel = document.getElementById('q-prepared-by');
+    if (q.preparedBy && !Array.prototype.some.call(preparedBySel.options, function(o) { return o.value === q.preparedBy; })) {
+      var extraOpt = document.createElement('option');
+      extraOpt.value = q.preparedBy;
+      extraOpt.textContent = q.preparedBy;
+      preparedBySel.appendChild(extraOpt);
+    }
+    preparedBySel.value = q.preparedBy || '';
     document.getElementById('q-address').value      = q.serviceAddress || '';
     document.getElementById('q-site-name').value    = q.siteName || '';
     document.getElementById('q-postcode').value     = q.postcode || '';
