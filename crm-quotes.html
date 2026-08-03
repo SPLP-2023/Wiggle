@@ -710,6 +710,7 @@ function onQuoteSiteSelect() {
   document.getElementById('q-site-name').value = site.name    || '';
   document.getElementById('q-address').value   = site.address || (site.name || '');
   document.getElementById('q-postcode').value  = site.postcode|| '';
+  updateRefDisplay();
 }
 
 
