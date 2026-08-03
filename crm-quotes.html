@@ -146,7 +146,7 @@
 
     /* Email template */
     .email-template-section { margin-top:20px; }
-    .email-template-box { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:16px 18px; font-size:14px; line-height:1.8; color:var(--text); white-space:pre-wrap; font-family:'Segoe UI',system-ui,sans-serif; }
+    .email-template-box { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:16px 18px; font-size:11pt; line-height:1.8; color:var(--text); white-space:pre-wrap; font-family:Arial,Helvetica,sans-serif; }
     .email-template-box a { color:var(--primary); text-decoration:underline; }
     .copy-btn { margin-top:10px; display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:8px; background:var(--dark3); border:1px solid var(--border); color:var(--text); font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; }
     .copy-btn:hover { background:#475569; }
@@ -1509,20 +1509,17 @@ function renderEmailTemplate(docId, quoteData) {
   var box     = document.getElementById('email-template-box');
   if (!section || !box || !docId) return;
 
-  var clientName = (quoteData && quoteData.preparedFor) || document.getElementById('q-prepared-for').value.trim() || 'there';
   var ref        = (quoteData && quoteData.ref) || document.getElementById('editor-ref').textContent || '';
   var acceptLink = 'https://splp-2023.github.io/Wiggle/accept-quote.html?id=' + docId;
 
   box.innerHTML =
-    'Hi ' + esc(clientName) + ',\n\n'
-    + 'Please find your quote ' + (ref ? '(' + esc(ref) + ') ' : '') + 'attached.\n\n'
+    'Please find your quote ' + (ref ? '(' + esc(ref) + ') ' : '') + 'attached.\n\n'
     + 'To accept the quote, please complete the form below:\n'
     + '<a href="' + acceptLink + '" target="_blank">Quote Acceptance Form</a>\n\n'
     + 'Once submitted, we will proceed with scheduling your visit.';
 
   box.dataset.plainText =
-    'Hi ' + clientName + ',\n\n'
-    + 'Please find your quote ' + (ref ? '(' + ref + ') ' : '') + 'attached.\n\n'
+    'Please find your quote ' + (ref ? '(' + ref + ') ' : '') + 'attached.\n\n'
     + 'To accept the quote, please complete the form below:\n'
     + acceptLink + '\n\n'
     + 'Once submitted, we will proceed with scheduling your visit.';
@@ -1536,7 +1533,7 @@ function copyEmailTemplate() {
   var text = box.dataset.plainText || box.innerText;
   var html = box.innerHTML.replace(/\n/g, '<br>');
   var blob = new Blob([
-    '<html><body><div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.8;">' + html + '</div></body></html>'
+    '<html><body><div style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.8;">' + html + '</div></body></html>'
   ], { type: 'text/html' });
   var plainBlob = new Blob([text], { type: 'text/plain' });
   try {
