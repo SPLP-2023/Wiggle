@@ -1093,11 +1093,14 @@ function generateOrderMaterialsPDF() {
       pdf.setFontSize(20); pdf.setFont(undefined,'bold');
       pdf.text('Order Sheet', 105, 46, { align:'center' });
 
+      var today = new Date();
+      var fileDateStr = String(today.getDate()).padStart(2,'0') + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getFullYear()).slice(-2);
+
       pdf.setFontSize(9); pdf.setFont(undefined,'bold');
       pdf.text('Order Ref:', lm, 56); pdf.setFont(undefined,'normal');
       pdf.text(pdf.splitTextToSize(orderRef, pw-24)[0], lm+22, 56);
       pdf.setFont(undefined,'bold');
-      pdf.text('Date:', lm, 62); pdf.setFont(undefined,'normal'); pdf.text(new Date().toLocaleDateString('en-GB'), lm+22, 62);
+      pdf.text('Date:', lm, 62); pdf.setFont(undefined,'normal'); pdf.text(today.toLocaleDateString('en-GB'), lm+22, 62);
 
       var ty = 74;
       // Table header
@@ -1122,7 +1125,7 @@ function generateOrderMaterialsPDF() {
         if (ty > 260) { pdf.addPage(); ty = 20; }
       });
 
-      pdf.save('Order Sheet - ' + orderRef + '.pdf');
+      pdf.save('Strike Point Order - ' + orderRef + ' ' + fileDateStr + '.pdf');
       closeOrderMaterialsModal();
     } catch(e) { console.error(e); showToast('PDF error.', 'error'); }
     btn.disabled = false; btn.textContent = '📄 PDF';
