@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
   --primary:#f59e0b; --primary-dark:#d97706;
@@ -43,6 +44,7 @@ nav{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 20px
 .btn-danger:hover{background:#dc2626;}
 .btn-success{background:var(--success);color:#fff;}
 .btn-info{background:var(--info);color:#fff;}
+.btn-order-materials{background:var(--info);color:#fff;}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-xs{padding:4px 9px;font-size:11px;}
 
@@ -171,7 +173,10 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
       <h1>&#128230; Parts Catalogue</h1>
       <p>Manage your parts library. Parts are available in the Remedials Builder when creating quotes.</p>
     </div>
-    <button class="btn btn-primary" onclick="openNewPart()">&#43; Add Part</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-order-materials" onclick="openOrderMaterialsModal()">&#128230; Order Materials</button>
+      <button class="btn btn-primary" onclick="openNewPart()">&#43; Add Part</button>
+    </div>
   </div>
 
   <!-- Seed banner — shown if catalogue is empty -->
@@ -301,6 +306,33 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closePresetModal()">Cancel</button>
       <button class="btn btn-primary" id="btn-save-preset" onclick="savePreset()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER MATERIALS MODAL -->
+<div class="modal-overlay hidden" id="modal-order-materials">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <h3>&#128230; Order Materials</h3>
+      <button class="modal-close" onclick="closeOrderMaterialsModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Order Ref *</label>
+        <input type="text" class="form-input" id="om-order-ref" placeholder="e.g. Order for The Foundry job">
+      </div>
+      <div class="form-group">
+        <label>Parts <span style="font-weight:400;text-transform:none;font-size:11px;">(set quantities to order)</span></label>
+        <input type="text" class="form-input" id="om-parts-search" placeholder="&#128269; Search parts..." oninput="renderOrderPartsPicker()" style="margin-bottom:10px;">
+        <div id="om-parts-picker" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;">
+          <div style="color:var(--text-muted);font-size:13px;">Loading parts&hellip;</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeOrderMaterialsModal()">Cancel</button>
+      <button class="btn btn-order-materials" id="btn-order-pdf" onclick="generateOrderMaterialsPDF()">&#128438; PDF</button>
     </div>
   </div>
 </div>
@@ -957,6 +989,170 @@ function confirmDeletePreset() {
     console.error(err);
     showToast('Error deleting.', 'error');
   });
+}
+
+// ════════════════════════════════════════════
+// ORDER MATERIALS
+// ════════════════════════════════════════════
+var orderQtys = {}; // partId -> qty
+
+function openOrderMaterialsModal() {
+  orderQtys = {};
+  document.getElementById('om-order-ref').value = '';
+  document.getElementById('om-parts-search').value = '';
+  renderOrderPartsPicker();
+  document.getElementById('modal-order-materials').classList.remove('hidden');
+}
+
+function closeOrderMaterialsModal() {
+  document.getElementById('modal-order-materials').classList.add('hidden');
+}
+
+function renderOrderPartsPicker() {
+  var q = (document.getElementById('om-parts-search').value || '').toLowerCase().trim();
+  var filtered = allParts.filter(function(p) {
+    if (!q) return true;
+    return (p.name||'').toLowerCase().includes(q) ||
+           (p.partNumber||'').toLowerCase().includes(q) ||
+           (p.category||'').toLowerCase().includes(q);
+  });
+
+  var groups = {};
+  filtered.forEach(function(p) {
+    var c = p.category || 'Other';
+    if (!groups[c]) groups[c] = [];
+    groups[c].push(p);
+  });
+
+  var html = '';
+  Object.keys(groups).sort().forEach(function(cat) {
+    var catId = 'omcat_' + cat.replace(/\W/g,'_');
+    var isOpen = !!q;
+    html += '<div>'
+      + '<div class="rp-cat-label ' + (isOpen?'open':'') + '" onclick="toggleOmCat(\'' + catId + '\')" id="omlbl-' + catId + '">' + esc(cat) + '</div>'
+      + '<div class="rp-cat-items ' + (isOpen?'open':'') + '" id="' + catId + '">';
+    groups[cat].forEach(function(p) {
+      var qty = orderQtys[p._id] || 0;
+      html += '<div class="rp-part-row">'
+        + '<span class="rp-part-num">' + esc(p.partNumber||'—') + '</span>'
+        + '<span class="rp-part-name">' + esc(p.name) + '</span>'
+        + '<input type="number" class="rp-part-qty" min="0" step="1" value="' + qty + '" placeholder="0"'
+        + ' oninput="setOrderQty(\'' + p._id + '\',this.value)">'
+        + '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  if (!html) html = '<div style="color:var(--text-muted);font-size:13px;padding:8px;">No parts found.</div>';
+  document.getElementById('om-parts-picker').innerHTML = html;
+}
+
+function toggleOmCat(catId) {
+  var body = document.getElementById(catId);
+  var lbl  = document.getElementById('omlbl-' + catId);
+  if (!body) return;
+  var open = body.classList.toggle('open');
+  if (lbl) lbl.classList.toggle('open', open);
+}
+
+function setOrderQty(partId, val) {
+  var qty = parseFloat(val) || 0;
+  if (qty > 0) orderQtys[partId] = qty;
+  else delete orderQtys[partId];
+}
+
+function generateOrderMaterialsPDF() {
+  var orderRef = document.getElementById('om-order-ref').value.trim();
+  if (!orderRef) { showToast('Please enter an Order Ref.', 'error'); return; }
+
+  var items = [];
+  Object.keys(orderQtys).forEach(function(pid) {
+    var p = allParts.find(function(x) { return x._id === pid; });
+    if (p && orderQtys[pid] > 0) items.push({ partNumber: p.partNumber||'', name: p.name, qty: orderQtys[pid] });
+  });
+  if (!items.length) { showToast('Please select at least one part.', 'error'); return; }
+  items.sort(function(a,b) { return (a.partNumber||'').localeCompare(b.partNumber||''); });
+
+  var LOGO = 'https://raw.githubusercontent.com/SPLP-2023/tool/refs/heads/main/assets/Color%20logo%20-%20no%20background%20(px%20reduction).png';
+  var btn = document.getElementById('btn-order-pdf');
+  btn.disabled = true; btn.textContent = 'Building…';
+
+  loadImgB64(LOGO, function(logoB64) {
+    try {
+      var pdf = new window.jspdf.jsPDF();
+      var lm = 20, pw = 170, rm = lm + pw;
+
+      addImgAspect(pdf, logoB64, 148, 6, 52, 28);
+      pdf.setFontSize(10); pdf.setFont(undefined,'bold');
+      pdf.text('Strike Point Lightning Protection Ltd', lm, 14);
+      pdf.setFont(undefined,'normal'); pdf.setFontSize(9);
+      pdf.text('10 Arnot Hill Road, Arnold, Nottingham NG5 6LJ', lm, 20);
+      pdf.text('Company No: 15114852  |  VAT No: 448 8105 74', lm, 26);
+      pdf.text('Tel: 0115 990 3220  |  info@strikepoint.uk', lm, 32);
+
+      pdf.setFontSize(20); pdf.setFont(undefined,'bold');
+      pdf.text('Order Sheet', 105, 46, { align:'center' });
+
+      pdf.setFontSize(9); pdf.setFont(undefined,'bold');
+      pdf.text('Order Ref:', lm, 56); pdf.setFont(undefined,'normal');
+      pdf.text(pdf.splitTextToSize(orderRef, pw-24)[0], lm+22, 56);
+      pdf.setFont(undefined,'bold');
+      pdf.text('Date:', lm, 62); pdf.setFont(undefined,'normal'); pdf.text(new Date().toLocaleDateString('en-GB'), lm+22, 62);
+
+      var ty = 74;
+      // Table header
+      pdf.setFillColor(51,102,153);
+      pdf.rect(lm, ty-5, pw, 9, 'F');
+      pdf.setTextColor(255,255,255); pdf.setFont(undefined,'bold'); pdf.setFontSize(9);
+      pdf.text('Part #', lm+2, ty);
+      pdf.text('Description', lm+30, ty);
+      pdf.text('Qty', rm, ty, { align:'right' });
+      pdf.setTextColor(0,0,0); ty += 8;
+
+      pdf.setFont(undefined,'normal'); pdf.setFontSize(9);
+      var alt = false;
+      items.forEach(function(p) {
+        if (alt) { pdf.setFillColor(240,245,252); pdf.rect(lm, ty-5, pw, 8, 'F'); }
+        alt = !alt;
+        pdf.text(p.partNumber||'—', lm+2, ty);
+        var nameLines = pdf.splitTextToSize(p.name, 130);
+        pdf.text(nameLines[0], lm+30, ty);
+        pdf.text(String(p.qty), rm, ty, { align:'right' });
+        ty += 8;
+        if (ty > 260) { pdf.addPage(); ty = 20; }
+      });
+
+      pdf.save('Order Sheet - ' + orderRef + '.pdf');
+      closeOrderMaterialsModal();
+    } catch(e) { console.error(e); showToast('PDF error.', 'error'); }
+    btn.disabled = false; btn.textContent = '📄 PDF';
+  });
+}
+
+function loadImgB64(url, cb) {
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    var c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    c.getContext('2d').drawImage(img,0,0);
+    cb(c.toDataURL('image/png'));
+  };
+  img.onerror = function() { cb(null); };
+  img.src = url;
+}
+
+function addImgAspect(pdf, imgData, x, y, maxW, maxH) {
+  if (!imgData) return;
+  try {
+    var props = pdf.getImageProperties(imgData);
+    var ratio = props.width / props.height;
+    var finalW, finalH;
+    if (ratio > maxW / maxH) { finalW = maxW; finalH = maxW / ratio; }
+    else { finalH = maxH; finalW = maxH * ratio; }
+    var fmt = imgData.indexOf('data:image/jpeg') === 0 ? 'JPEG' : 'PNG';
+    pdf.addImage(imgData, fmt, x, y, finalW, finalH);
+  } catch(e) { console.error('Image render error:', e); }
 }
 
 // ── HELPERS ───────────────────────────────────
