@@ -1106,7 +1106,7 @@ function generateOrderMaterialsPDF() {
       pdf.setTextColor(255,255,255); pdf.setFont(undefined,'bold'); pdf.setFontSize(9);
       pdf.text('Part #', lm+2, ty);
       pdf.text('Description', lm+30, ty);
-      pdf.text('Qty', rm, ty, { align:'right' });
+      pdf.text('Qty', lm+140, ty, { align:'right' });
       pdf.setTextColor(0,0,0); ty += 8;
 
       pdf.setFont(undefined,'normal'); pdf.setFontSize(9);
@@ -1115,9 +1115,9 @@ function generateOrderMaterialsPDF() {
         if (alt) { pdf.setFillColor(240,245,252); pdf.rect(lm, ty-5, pw, 8, 'F'); }
         alt = !alt;
         pdf.text(p.partNumber||'—', lm+2, ty);
-        var nameLines = pdf.splitTextToSize(p.name, 130);
+        var nameLines = pdf.splitTextToSize(p.name, 100);
         pdf.text(nameLines[0], lm+30, ty);
-        pdf.text(String(p.qty), rm, ty, { align:'right' });
+        pdf.text(String(p.qty), lm+140, ty, { align:'right' });
         ty += 8;
         if (ty > 260) { pdf.addPage(); ty = 20; }
       });
