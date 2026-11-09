@@ -181,6 +181,7 @@
       <button class="show-entities-toggle" id="entities-toggle-btn" onclick="toggleShowEntities()">&#128279; Show Entities</button>
       <button class="btn btn-secondary" onclick="document.getElementById('excel-import-input').click()">&#8679; Import from Excel</button>
       <input type="file" id="excel-import-input" accept=".xlsx,.xls" style="display:none;" onchange="importFromExcel(event)">
+      <button class="btn btn-secondary" onclick="exportCustomersToExcel()">&#8681; Export to Excel</button>
       <button class="btn btn-primary" onclick="openNewCustomer()">+ New Customer</button>
     </div>
   </div>
@@ -627,6 +628,39 @@ function uploadCustomersBatch(customers, offset, fill, status, banner, filename)
     showToast('Import error — check console for details.', 'error');
     banner.classList.add('hidden');
   });
+}
+
+// ════════════════════════════════════════════
+// EXCEL EXPORT
+// ════════════════════════════════════════════
+function exportCustomersToExcel() {
+  if (!allCustomers.length) { showToast('No customers to export.', 'error'); return; }
+
+  const rows = allCustomers.map(c => ({
+    'Client Ref':      c.clientRef || '',
+    'Company':         c.company || '',
+    'Contact Name':    c.contact || '',
+    'Phone':           c.phone || '',
+    'Client Email':    c.email || '',
+    'Invoice Email':   c.invoiceEmail || '',
+    'City':            c.city || '',
+    'Invoice Address': c.invoiceAddress || '',
+    'Site Addresses':  (c.siteAddresses || []).map(s => [s.name, s.address, s.postcode].filter(Boolean).join(', ')).join(' | '),
+    'Linked Entity':   c.parentCustomerId ? (allCustomers.find(p => p.id === c.parentCustomerId)?.company || '') : '',
+    'Notes':           c.notes || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:10},{wch:28},{wch:20},{wch:16},{wch:26},{wch:26},{wch:16},{wch:34},{wch:50},{wch:22},{wch:40},
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+
+  const date = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'StrikePoint_Customers_' + date + '.xlsx');
+  showToast(`${rows.length} customers exported ✓`, 'success');
 }
 
 // ════════════════════════════════════════════
